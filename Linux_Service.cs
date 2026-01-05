@@ -435,5 +435,111 @@ namespace SA_ToolBelt
         }
 
         #endregion
+
+        #region Home Directory Management
+
+        /// <summary>
+        /// Create a home directory for a user on a Linux server with proper permissions
+        /// </summary>
+        /// <param name="hostname">Target server hostname</param>
+        /// <param name="username">SSH username</param>
+        /// <param name="password">SSH password</param>
+        /// <param name="ntUserId">The NT User ID (directory name)</param>
+        /// <returns>True if directory was created successfully, false otherwise</returns>
+        public async Task<bool> CreateHomeDirectoryAsync(string hostname, string username, string password, string ntUserId)
+        {
+            try
+            {
+                _consoleForm?.WriteInfo($"Creating home directory for user: {ntUserId}");
+
+                // Directory path where we'll create the user's home directory
+                string directoryPath = $"/net/cce-data/home/{ntUserId}";
+
+                _consoleForm?.WriteInfo($"Target directory: {directoryPath}");
+
+                // Build command to:
+                // 1. Check if directory already exists
+                // 2. Create directory if it doesn't exist
+                // 3. Set chmod to 755 (rwxr-xr-x)
+                // 4. Set ownership to ntUserId:share_Group
+                string command = $"if [ ! -d '{directoryPath}' ]; then " +
+                                $"sudo mkdir -p '{directoryPath}' && " +
+                                $"sudo chmod 755 '{directoryPath}' && " +
+                                $"sudo chown {ntUserId}:share_Group '{directoryPath}' && " +
+                                $"echo 'Directory created successfully' || echo 'Failed to create directory'; " +
+                                $"else echo 'Directory already exists'; fi";
+
+                _consoleForm?.WriteInfo($"Executing directory creation command...");
+
+                string output = await ExecuteSSHCommandAsync(hostname, username, password, command);
+
+                // Check the output for success indicators
+                bool success = output.Contains("Directory created successfully") ||
+                              output.Contains("Directory already exists");
+
+                if (success)
+                {
+                    if (output.Contains("Directory already exists"))
+                    {
+                        _consoleForm?.WriteWarning($"Home directory {directoryPath} already exists on {hostname}");
+                    }
+                    else
+                    {
+                        _consoleForm?.WriteSuccess($"Home directory created successfully: {directoryPath}");
+                        _consoleForm?.WriteSuccess($"Permissions set to: 755 (rwxr-xr-x)");
+                        _consoleForm?.WriteSuccess($"Ownership set to: {ntUserId}:share_Group");
+                    }
+
+                    // Verify the directory and permissions
+                    await VerifyHomeDirectoryAsync(hostname, username, password, ntUserId);
+
+                    return true;
+                }
+                else
+                {
+                    _consoleForm?.WriteError($"Failed to create home directory: {output}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error creating home directory for {ntUserId}: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Verify that a home directory exists with correct permissions
+        /// </summary>
+        /// <param name="hostname">Target server hostname</param>
+        /// <param name="username">SSH username</param>
+        /// <param name="password">SSH password</param>
+        /// <param name="ntUserId">The NT User ID (directory name)</param>
+        /// <returns>Verification output</returns>
+        private async Task<string> VerifyHomeDirectoryAsync(string hostname, string username, string password, string ntUserId)
+        {
+            try
+            {
+                string directoryPath = $"/net/cce-data/home/{ntUserId}";
+
+                _consoleForm?.WriteInfo($"Verifying home directory: {directoryPath}");
+
+                // Use ls -ld to show directory details (permissions, owner, group)
+                string verifyCommand = $"ls -ld '{directoryPath}'";
+
+                string output = await ExecuteSSHCommandAsync(hostname, username, password, verifyCommand);
+
+                _consoleForm?.WriteInfo($"Directory details: {output.Trim()}");
+
+                return output;
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteWarning($"Could not verify directory: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        #endregion
     }
 }

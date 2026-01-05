@@ -1,0 +1,266 @@
+================================================================================
+SSH DIRECTORY CREATION FEATURE - IMPLEMENTATION SUMMARY
+================================================================================
+Date: 2026-01-05
+Feature: Automated Linux home directory creation during LDAP account creation
+
+================================================================================
+OVERVIEW
+================================================================================
+This implementation adds the ability to automatically create a home directory
+on a Linux server when creating a new LDAP account. The feature prompts the
+user for SSH credentials and creates the directory with proper permissions and
+ownership.
+
+================================================================================
+FILES MODIFIED
+================================================================================
+
+1. Linux_Service.cs
+   - Location: /home/user/SA_Toolbelt/Linux_Service.cs
+   - Status: Modified
+
+2. SA_ToolBelt.cs
+   - Location: /home/user/SA_Toolbelt/SA_ToolBelt.cs
+   - Status: Modified
+
+3. LinuxCredentialDialog.cs
+   - Location: /home/user/SA_Toolbelt/LinuxCredentialDialog.cs
+   - Status: NEW FILE CREATED
+
+================================================================================
+DETAILED CHANGES
+================================================================================
+
+---[ Linux_Service.cs ]---
+
+NEW REGION: Home Directory Management (Lines 439-543)
+
+Method 1: CreateHomeDirectoryAsync
+   - Purpose: Creates a home directory for a user on a Linux server via SSH
+   - Parameters:
+     * hostname: Target Linux server hostname
+     * username: SSH username for authentication
+     * password: SSH password for authentication
+     * ntUserId: The NT User ID (used as directory name)
+   - Returns: bool (true if successful, false otherwise)
+
+   - Functionality:
+     * Creates directory at: /net/cce-data/home/{ntUserId}
+     * Sets permissions to 755 (rwxr-xr-x)
+     * Sets ownership to {ntUserId}:share_Group
+     * Checks if directory already exists before creating
+     * Verifies the directory after creation
+     * Provides detailed console logging
+
+   - Command executed (via SSH):
+     if [ ! -d '/net/cce-data/home/{ntUserId}' ]; then
+       sudo mkdir -p '/net/cce-data/home/{ntUserId}' &&
+       sudo chmod 755 '/net/cce-data/home/{ntUserId}' &&
+       sudo chown {ntUserId}:share_Group '/net/cce-data/home/{ntUserId}' &&
+       echo 'Directory created successfully' || echo 'Failed to create directory';
+     else
+       echo 'Directory already exists';
+     fi
+
+Method 2: VerifyHomeDirectoryAsync (Private helper method)
+   - Purpose: Verifies that a home directory exists with correct permissions
+   - Parameters:
+     * hostname: Target Linux server hostname
+     * username: SSH username for authentication
+     * password: SSH password for authentication
+     * ntUserId: The NT User ID (directory name to verify)
+   - Returns: string (output from ls -ld command)
+
+   - Functionality:
+     * Uses 'ls -ld' to show directory details
+     * Logs the verification output to console
+     * Provides confirmation of permissions and ownership
+
+---[ SA_ToolBelt.cs ]---
+
+Change 1: Constructor Modification (Line 71)
+   - OLD: _linuxService = new Linux_Service();
+   - NEW: _linuxService = new Linux_Service(_consoleForm);
+   - Reason: Pass console form reference for proper logging
+
+Change 2: btnLdapCreateAccount_Click Method (Lines 2853-2890)
+   - Added new Step 6: Create home directory on Linux server
+   - Location: After Step 5 (adding user to RHDS security groups)
+
+   - Workflow:
+     1. Prompts user for Linux SSH credentials via dialog
+     2. If credentials provided, calls CreateHomeDirectoryAsync
+     3. Logs success or failure to console
+     4. Gracefully handles cancellation (skips directory creation)
+     5. Captures and logs any exceptions
+
+   - Variables added:
+     * homeDirectoryCreated: bool - tracks success status
+
+Change 3: Success Message Update (Lines 2936-2944)
+   - Added home directory creation status to success message
+   - Shows either:
+     * "✓ Home directory created at /net/cce-data/home/{ntUserId}"
+     * "⚠ Home directory creation was skipped or failed"
+
+---[ LinuxCredentialDialog.cs (NEW FILE) ]---
+
+Class: LinuxCredentialDialog
+   - Purpose: Dialog form for collecting Linux SSH credentials
+   - Base Class: Form
+   - Namespace: SA_ToolBelt
+
+   - Properties:
+     * Hostname: string - Linux server hostname
+     * Username: string - SSH username
+     * Password: string - SSH password (masked input)
+
+   - UI Components:
+     * Hostname input field
+     * Username input field
+     * Password input field (masked with *)
+     * OK button (with validation)
+     * Cancel button
+
+   - Static Method: GetCredentials()
+     * Returns: (bool success, string hostname, string username, string password)
+     * Shows the dialog and returns user input
+     * Returns success=false if user cancels
+
+   - Validation:
+     * All fields are required
+     * Shows error messages for missing fields
+     * Prevents form submission until all fields are filled
+
+================================================================================
+WORKFLOW INTEGRATION
+================================================================================
+
+The feature integrates into the existing LDAP account creation process as follows:
+
+1. User fills out LDAP account creation form (existing)
+2. User clicks "Create Account" button (existing)
+3. System creates RHDS account (existing)
+4. System waits for AD replication (existing)
+5. System sets Unix attributes in AD (existing)
+6. System adds user to security groups (existing)
+7. ** NEW ** System prompts for Linux SSH credentials
+8. ** NEW ** System creates home directory on Linux server
+9. System displays comprehensive success message (updated to include home dir status)
+
+================================================================================
+TECHNICAL DETAILS
+================================================================================
+
+SSH Connection:
+   - Uses existing ExecuteSSHCommandAsync method from Linux_Service
+   - Leverages plink.exe for SSH connectivity
+   - Supports password-based authentication
+   - 30-second timeout for SSH operations
+
+Directory Permissions:
+   - chmod 755 = rwxr-xr-x
+     * Owner (user): read, write, execute
+     * Group: read, execute
+     * Others: read, execute
+
+Ownership:
+   - Owner: {ntUserId} (the user being created)
+   - Group: share_Group (fixed group name)
+
+Error Handling:
+   - User can cancel credential dialog (directory creation skipped)
+   - SSH connection failures are caught and logged
+   - Directory creation failures are caught and logged
+   - Process continues even if directory creation fails
+   - All errors are displayed in console and success message
+
+================================================================================
+TESTING RECOMMENDATIONS
+================================================================================
+
+1. Test with valid Linux credentials:
+   - Verify directory is created
+   - Verify permissions are set to 755
+   - Verify ownership is set correctly
+
+2. Test with invalid credentials:
+   - Verify error is caught and logged
+   - Verify process continues (doesn't crash)
+
+3. Test with existing directory:
+   - Verify system detects existing directory
+   - Verify warning message is displayed
+
+4. Test credential dialog cancellation:
+   - Verify process continues without creating directory
+   - Verify warning message indicates skipped creation
+
+5. Test complete workflow:
+   - Create LDAP account from start to finish
+   - Verify all steps complete successfully
+   - Verify success message includes all status information
+
+================================================================================
+DEPENDENCIES
+================================================================================
+
+Required Components:
+   - plink.exe (for SSH connectivity)
+   - Linux server with SSH access
+   - User account with sudo privileges on Linux server
+   - share_Group must exist on Linux server
+   - /net/cce-data/home directory must exist on Linux server
+
+Required Permissions:
+   - SSH user must have sudo access for:
+     * mkdir
+     * chmod
+     * chown
+
+================================================================================
+NOTES
+================================================================================
+
+- Directory path is hardcoded: /net/cce-data/home/{ntUserId}
+- Group ownership is hardcoded: share_Group
+- Permissions are hardcoded: 755
+- These can be made configurable in future enhancements if needed
+
+- The feature is optional - user can cancel credential dialog
+- Cancellation does not affect the rest of the account creation process
+
+- All SSH operations are async to prevent UI blocking
+- Console logging provides detailed feedback at each step
+
+================================================================================
+METHODS ADDED OR MODIFIED
+================================================================================
+
+NEW METHODS:
+   1. Linux_Service.CreateHomeDirectoryAsync()
+      - Location: Linux_Service.cs:449
+
+   2. Linux_Service.VerifyHomeDirectoryAsync()
+      - Location: Linux_Service.cs:519
+
+   3. LinuxCredentialDialog.GetCredentials()
+      - Location: LinuxCredentialDialog.cs:158
+
+   4. LinuxCredentialDialog.BtnOK_Click()
+      - Location: LinuxCredentialDialog.cs:127
+
+MODIFIED METHODS:
+   1. SAToolBelt.SAToolBelt() (Constructor)
+      - Location: SA_ToolBelt.cs:65-73
+      - Change: Pass _consoleForm to Linux_Service constructor
+
+   2. SAToolBelt.btnLdapCreateAccount_Click()
+      - Location: SA_ToolBelt.cs:2669-2951
+      - Change: Added Step 6 for home directory creation
+      - Change: Updated success message to include home directory status
+
+================================================================================
+END OF SUMMARY
+================================================================================
