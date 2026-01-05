@@ -6,7 +6,6 @@ using System.Security.Principal;
 using System.Threading.Tasks;
 using System.DirectoryServices.ActiveDirectory;
 using System.Security.Claims;
-using System.ComponentModel.DataAnnotations;
 
 namespace SA_ToolBelt
 {
@@ -197,6 +196,134 @@ namespace SA_ToolBelt
             }
 
             return users;
+        }
+        #endregion
+
+        #region Create User Accounts
+
+        /// <summary>
+        /// Set Unix attributes (uidNumber and gidNumber) in Active Directory - DTO Friendly
+        /// </summary>
+        public bool SetUnixAttributes(string username, string uidNumber, string gidNumber)
+        {
+            DirectoryEntry directoryEntry = null;
+
+            try
+            {
+                _consoleForm?.WriteInfo($"Setting Unix attributes for user: {username}");
+
+                using (var context = new PrincipalContext(ContextType.Domain, _domain))
+                using (var user = UserPrincipal.FindByIdentity(context, username))
+                {
+                    if (user == null)
+                    {
+                        _consoleForm?.WriteError($"User not found: {username}");
+                        return false;
+                    }
+
+                    // Get the underlying DirectoryEntry to access extended attributes
+                    directoryEntry = (DirectoryEntry)user.GetUnderlyingObject();
+
+                    // Set uidNumber
+                    if (!string.IsNullOrEmpty(uidNumber))
+                    {
+                        if (directoryEntry.Properties.Contains("uidNumber"))
+                        {
+                            directoryEntry.Properties["uidNumber"].Value = uidNumber;
+                        }
+                        else
+                        {
+                            directoryEntry.Properties["uidNumber"].Add(uidNumber);
+                        }
+                        _consoleForm?.WriteInfo($"Set uidNumber to {uidNumber}");
+                    }
+
+                    // Set gidNumber
+                    if (!string.IsNullOrEmpty(gidNumber))
+                    {
+                        if (directoryEntry.Properties.Contains("gidNumber"))
+                        {
+                            directoryEntry.Properties["gidNumber"].Value = gidNumber;
+                        }
+                        else
+                        {
+                            directoryEntry.Properties["gidNumber"].Add(gidNumber);
+                        }
+                        _consoleForm?.WriteInfo($"Set gidNumber to {gidNumber}");
+                    }
+
+                    // Commit changes
+                    directoryEntry.CommitChanges();
+                    _consoleForm?.WriteSuccess($"Successfully set Unix attributes for {username}");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error setting Unix attributes: {ex.Message}");
+                throw new Exception($"Error setting Unix attributes for {username}: {ex.Message}", ex);
+            }
+            finally
+            {
+                // Properly dispose of DirectoryEntry
+                directoryEntry?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Add user to a security group - DTO Friendly
+        /// </summary>
+        public bool AddUserToGroup(string username, string groupName)
+        {
+            try
+            {
+                _consoleForm?.WriteInfo($"Adding user {username} to group {groupName}");
+
+                // Check if user exists and is already a member (using DTOs)
+                var userInfo = GetUserInfo(username);
+                if (userInfo == null)
+                {
+                    _consoleForm?.WriteError($"User not found: {username}");
+                    return false;
+                }
+
+                var userGroups = GetUserGroups(username);
+                if (userGroups.Any(g => string.Equals(g.Name, groupName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _consoleForm?.WriteWarning($"User {username} is already a member of {groupName}");
+                    return true;
+                }
+
+                // Perform the actual group addition
+                using (var context = new PrincipalContext(ContextType.Domain, _domain))
+                using (var user = UserPrincipal.FindByIdentity(context, username))
+                using (var group = GroupPrincipal.FindByIdentity(context, groupName))
+                {
+                    if (user == null)
+                    {
+                        _consoleForm?.WriteError($"User not found during group addition: {username}");
+                        return false;
+                    }
+
+                    if (group == null)
+                    {
+                        _consoleForm?.WriteError($"Group not found: {groupName}");
+                        return false;
+                    }
+
+                    // Add user to group
+                    group.Members.Add(user);
+                    group.Save();
+
+                    _consoleForm?.WriteSuccess($"Successfully added {username} to {groupName}");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error adding user to group: {ex.Message}");
+                return false;
+            }
         }
         #endregion
 
@@ -1012,6 +1139,50 @@ namespace SA_ToolBelt
                 throw new Exception($"Error removing user from groups: {ex.Message}", ex);
             }
         }
+        /// <summary>
+        /// Get the Notes field (info attribute) from a security group
+        /// </summary>
+        public string GetGroupNotes(string groupName)
+        {
+            DirectoryEntry groupEntry = null;
+            try
+            {
+                using (var context = new PrincipalContext(ContextType.Domain, _domain))
+                using (var group = GroupPrincipal.FindByIdentity(context, groupName))
+                {
+                    if (group == null)
+                    {
+                        _consoleForm?.WriteWarning($"Group not found: {groupName}");
+                        return null;
+                    }
+
+                    // Get the underlying DirectoryEntry to access the 'info' attribute (Notes field)
+                    groupEntry = (DirectoryEntry)group.GetUnderlyingObject();
+
+                    if (groupEntry.Properties.Contains("info") &&
+                        groupEntry.Properties["info"].Count > 0)
+                    {
+                        string notes = groupEntry.Properties["info"][0]?.ToString();
+                        _consoleForm?.WriteInfo($"Found notes for group '{groupName}'");
+                        return notes;
+                    }
+                    else
+                    {
+                        _consoleForm?.WriteInfo($"No notes found for group '{groupName}'");
+                        return null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error getting notes for group {groupName}: {ex.Message}");
+                throw new Exception($"Error getting notes for group {groupName}: {ex.Message}", ex);
+            }
+            finally
+            {
+                groupEntry?.Dispose();
+            }
+        }
         #endregion
 
         #region Computer Operations
@@ -1069,17 +1240,29 @@ namespace SA_ToolBelt
 
             try
             {
-                string username = CredentialManager._username;
-                string password = CredentialManager._password;
-
-                using (var entry = new DirectoryEntry(ouPath, username, password))
+                using (var context = new PrincipalContext(ContextType.Domain, _domain, ouPath))
                 {
-                    foreach (DirectoryEntry computer in entry.Children)
+                    using (var computerPrincipal = new ComputerPrincipal(context))
+                    using (var searcher = new PrincipalSearcher(computerPrincipal))
                     {
-                        if (computer.SchemaClassName.Equals("computer", StringComparison.OrdinalIgnoreCase))
-                        {
-                            computers.Add(new ComputerInfo(computer));
-                        }
+                        foreach (var result in searcher.FindAll())
+                            if (result is ComputerPrincipal computer)
+                            {
+                                try
+                                {
+                                    var entry = computer.GetUnderlyingObject() as DirectoryEntry;
+                                    computers.Add(new ComputerInfo(entry));
+                                }
+                                catch (Exception ex)
+                                {
+                                    _consoleForm?.WriteError($"Error processing computer {computer.Name}: {ex.Message}");
+                                }
+                                finally
+                                {
+                                    computer.Dispose();
+                                }
+                            }
+
                     }
                 }
             }
@@ -1094,7 +1277,7 @@ namespace SA_ToolBelt
         /// <summary>
         /// Get computers from multiple OUs as DTOs
         /// </summary>
-        public async Task<List<ComputerInfo>> GetComputersFromMultipleOUsAsync(IEnumerable<string> ouPaths )
+        public async Task<List<ComputerInfo>> GetComputersFromMultipleOUsAsync(IEnumerable<string> ouPaths)
         {
             var allComputers = new List<ComputerInfo>();
 

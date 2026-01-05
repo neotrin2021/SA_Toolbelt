@@ -83,6 +83,7 @@ namespace SA_ToolBelt
             rtbConsoleBox.SelectionColor = color;
             rtbConsoleBox.AppendText($"{DateTime.Now:HH:mm:ss}: {text}{Environment.NewLine}");
             rtbConsoleBox.ScrollToCaret();
+            rtbConsoleBox.Refresh();
         }
 
         public void ClearConsole()

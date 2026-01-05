@@ -42,7 +42,6 @@
             rtbConsoleBox.Size = new Size(846, 360);
             rtbConsoleBox.TabIndex = 0;
             rtbConsoleBox.Text = "";
-            
             // 
             // btnDockConsole
             // 

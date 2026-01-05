@@ -137,8 +137,70 @@ namespace SA_ToolBelt
 
         #region User Creation Shit
 
+        /// <summary>
+        /// Get the next available Linux UID from Directory Services
+        /// Excludes specific system/reserved UIDs: 101, 276, 6000, 22941, 22942, 22943
+        /// </summary>
+        public string GetNextAvailableUid()
+        {
+            try
+            {
+                _consoleForm?.WriteInfo("Getting next available Linux UID from Directory Services...");
+
+                using (var ldapConnection = GetSecureConnection())
+                {
+                    string distinguishedName = $"ou=people,{BASE_DN}";
+                    string filter = "(uidNumber=*)";
+
+                    var searchRequest = new SearchRequest(
+                        distinguishedName,
+                        filter,
+                        System.DirectoryServices.Protocols.SearchScope.Subtree,
+                        new string[] { "uidNumber" }
+                    );
+
+                    var searchResponse = (SearchResponse)ldapConnection.SendRequest(searchRequest);
+
+                    var currentUIDNumbers = new List<int>();
+
+                    foreach (SearchResultEntry entry in searchResponse.Entries)
+                    {
+                        if (entry.Attributes.Contains("uidNumber"))
+                        {
+                            string uidValue = entry.Attributes["uidNumber"][0].ToString();
+                            if (int.TryParse(uidValue, out int uid))
+                            {
+                                currentUIDNumbers.Add(uid);
+                            }
+                        }
+                    }
+
+                    // Filter out specific UIDs (system/reserved accounts)
+                    int[] excludedUIDs = { 101, 276, 6000, 22941, 22942, 22943 };
+                    var filteredUIDs = currentUIDNumbers.Where(uid => !excludedUIDs.Contains(uid)).ToList();
+
+                    if (filteredUIDs.Count == 0)
+                    {
+                        _consoleForm?.WriteWarning("No existing UIDs found. Starting from default UID 10000");
+                        return "10000";
+                    }
+
+                    // Get next available UID
+                    int nextAvailableUID = filteredUIDs.Max() + 1;
+
+                    _consoleForm?.WriteSuccess($"Next available UID: {nextAvailableUID}");
+                    return nextAvailableUID.ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error getting next available UID: {ex.Message}");
+                throw new Exception($"Error getting next available UID: {ex.Message}", ex);
+            }
+        }
+
         public void CreateNewUser(string ntUserId, string email, string firstName, string lastName,
-                             string phone, string tempPassword, string linuxUid)
+                             string phone, string tempPassword, string linuxUid, string gidNumber, string securityGroup = null)
         {
             if (!CredentialManager.IsAuthenticated)
             {
@@ -174,7 +236,7 @@ namespace SA_ToolBelt
                     "ntuser", "posixAccount", "account", "shadowaccount"
                 });
                 AddAttribute(directoryRequest, "mail", email);
-                AddAttribute(directoryRequest, "gidNumber", "1002");
+                AddAttribute(directoryRequest, "gidNumber", gidNumber);
                 AddAttribute(directoryRequest, "ntUserHomeDirDrive", "H");
                 AddAttribute(directoryRequest, "loginShell", "/bin/bash");
                 AddAttribute(directoryRequest, "telephoneNumber", phone);
@@ -205,11 +267,21 @@ namespace SA_ToolBelt
                 _consoleForm?.WriteInfo("    - account");
                 _consoleForm?.WriteInfo("    - shadowaccount");
 
-                // Add user to Linux share_group
-                string dnGroup = $"cn=share_group,ou=Groups,{BASE_DN}";
-                var modifyRequest = new ModifyRequest(dnGroup, DirectoryAttributeOperation.Add, "memberuid", ntUserId);
-                ldapConnection.SendRequest(modifyRequest);
-                _consoleForm?.WriteSuccess("Added user to Linux share_group");
+                if (!string.IsNullOrEmpty(securityGroup))
+                {
+                    _consoleForm?.WriteInfo($"Adding user to security group: {securityGroup}");
+                    // Add user to Linux share_group
+                    string dnGroup = $"cn={securityGroup},ou=Groups,{BASE_DN}";
+
+                    // var modifyRequest = new ModifyRequest(dnGroup, DirectoryAttributeOperation.Add, "memberuid", ntUserId);
+                    var modifyRequest = new ModifyRequest(dnGroup, DirectoryAttributeOperation.Add, "uniqueMember", dnUser);
+                    ldapConnection.SendRequest(modifyRequest);
+                    _consoleForm?.WriteSuccess($"Added user to {securityGroup}");
+                }
+                else
+                {
+                    _consoleForm?.WriteInfo("No security group specified. User created without group membership");
+                }
             }
             catch (Exception ex)
             {
@@ -554,6 +626,99 @@ namespace SA_ToolBelt
             return results;
         }
 
+        #endregion
+
+        #region Directory Services Shit
+        /// <summary>
+        /// Browse Red Hat Directory Services for Organizational Units
+        /// </summary>
+        public List<string> BrowseOrganizationalUnits()
+        {
+            var organizationalUnits = new List<string>();
+
+            try
+            {
+                _consoleForm?.WriteInfo("Browsing Directory Services for Organizational Units...");
+
+                using (var ldapConnection = GetSecureConnection())
+                {
+                    var searchRequest = new SearchRequest(
+                        BASE_DN,
+                        "(objectClass=organizationalUnit)",
+                        System.DirectoryServices.Protocols.SearchScope.Subtree,
+                        "distinguishedName", "ou"
+                    );
+
+                    searchRequest.SizeLimit = 1000;
+
+                    var searchResponse = (SearchResponse)ldapConnection.SendRequest(searchRequest);
+
+                    foreach (SearchResultEntry entry in searchResponse.Entries)
+                    {
+                        string distinguishedName = entry.DistinguishedName;
+                        organizationalUnits.Add(distinguishedName);
+                    }
+                }
+
+                // Sort alphabetically for easier browsing
+                organizationalUnits.Sort();
+
+                _consoleForm?.WriteSuccess($"Found {organizationalUnits.Count} Organizational Units in Directory Services");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error browsing Organizational Units: {ex.Message}");
+                throw new Exception($"Error browsing Organizational Units in RHDS: {ex.Message}", ex);
+            }
+
+            return organizationalUnits;
+        }
+        /// <summary>
+        /// Get the Group ID (gidNumber) for a specific Security Group in Directory Services
+        /// </summary>
+        public string GetGroupGidNumber(string groupName, string securityGroupsOU = null)
+        {
+            try
+            {
+                _consoleForm?.WriteInfo($"Getting gidNumber for group: {groupName}");
+
+                using (var ldapConnection = GetSecureConnection())
+                {
+                    var searchBase = string.IsNullOrEmpty(securityGroupsOU)
+                        ? $"ou=Groups,{BASE_DN}"
+                        : securityGroupsOU;
+
+                    var searchRequest = new SearchRequest(
+                        searchBase,
+                        $"(cn={groupName})",
+                        System.DirectoryServices.Protocols.SearchScope.Subtree,
+                        "gidNumber"
+                    );
+
+                    var searchResponse = (SearchResponse)ldapConnection.SendRequest(searchRequest);
+
+                    if (searchResponse.Entries.Count > 0)
+                    {
+                        var entry = searchResponse.Entries[0];
+
+                        if (entry.Attributes.Contains("gidNumber"))
+                        {
+                            string gidNumber = entry.Attributes["gidNumber"][0].ToString();
+                            _consoleForm?.WriteSuccess($"Found gidNumber: {gidNumber} for group: {groupName}");
+                            return gidNumber;
+                        }
+                    }
+
+                    _consoleForm?.WriteWarning($"No gidNumber found for group: {groupName}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error getting group gidNumber: {ex.Message}");
+                throw new Exception($"Error getting gidNumber for Group {groupName}: {ex.Message}", ex);
+            }
+        }
         #endregion
     }
 }

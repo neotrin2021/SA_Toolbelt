@@ -157,13 +157,17 @@
             pkrAcntExpDateTimePicker = new DateTimePicker();
             tabLDAP = new TabPage();
             gbxUserAccountCreation = new GroupBox();
-            cbxDefaultSecurityGroups = new ComboBox();
+            rbnSecurityGroupOther = new RadioButton();
+            txbSecurityGroupOther = new TextBox();
+            txbSecurityGroupId = new TextBox();
+            lblDefaultSecurityGroupId = new Label();
+            cbxDefaultSecurityGroups = new CheckedListBox();
             lblDefaultSecurityGroup = new Label();
             lblLdapTempPass = new Label();
             lblLdapFirstName = new Label();
             txbLdapTempPass = new TextBox();
             txbLdapPhone = new TextBox();
-            btnLdapClearForm = new Button();
+            btnClearAccountCreationForm = new Button();
             btnLdapGetUid = new Button();
             lblLdapLinuxUid = new Label();
             txbLdapLinuxUid = new TextBox();
@@ -193,7 +197,7 @@
             lbxOfficeExempt = new ListBox();
             lbxCriticalWindows = new ListBox();
             lbxCriticalNas = new ListBox();
-            lbxWindows = new ListBox();
+            lbxWindowsServers = new ListBox();
             lblCriticalNAS = new Label();
             lblOfficeExempt = new Label();
             lblGangs = new Label();
@@ -208,7 +212,7 @@
             dgvPpComputerName = new DataGridViewTextBoxColumn();
             clmPpUserName = new DataGridViewTextBoxColumn();
             clmPpLocation = new DataGridViewTextBoxColumn();
-            lblWindows = new Label();
+            lblWindowsServers = new Label();
             tabSAPMIsSpice = new TabPage();
             btnPerformHealthChk = new Button();
             btnCheckFileSystem = new Button();
@@ -294,6 +298,10 @@
             tabStartupShutdownPt1 = new TabPage();
             tabStartupShutdownPt2 = new TabPage();
             tabConfiguration = new TabPage();
+            gbxImportantVariables = new GroupBox();
+            btnSubmitVars = new Button();
+            txbSecurityGroupKW = new TextBox();
+            lblSecurityGroupKW = new Label();
             gbxComputerList = new GroupBox();
             lblLinuxSelectionList = new Label();
             cbxIsVm = new CheckBox();
@@ -322,7 +330,7 @@
             cbxListSecurityGroupsOu = new CheckedListBox();
             lblSecurityGroups = new Label();
             btnAddGangsOu = new Button();
-            btnAddWindowsOu = new Button();
+            btnAddWindowsServersOu = new Button();
             btnAddPatriotParkOu = new Button();
             btnAddWorkstationOu = new Button();
             cbxListWorkStationOu = new CheckedListBox();
@@ -330,13 +338,13 @@
             lblWorkstationOu = new Label();
             cbxListGangsOu = new CheckedListBox();
             lblGangsOu = new Label();
-            cbxListWindowsOu = new CheckedListBox();
+            cbxListWindowsServersOu = new CheckedListBox();
             lblPatriotParkOu = new Label();
-            lblWindowsOu = new Label();
+            lblWindowsServersOu = new Label();
             cbxListPatriotParkOu = new CheckedListBox();
             tabConsole = new TabPage();
-            richTextBox1 = new RichTextBox();
             btnUndockConsole = new Button();
+            btnLogout = new Button();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -381,9 +389,9 @@
             tabCcesa2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvCcesa2).BeginInit();
             tabConfiguration.SuspendLayout();
+            gbxImportantVariables.SuspendLayout();
             gbxComputerList.SuspendLayout();
             gbxImportantOUs.SuspendLayout();
-            tabConsole.SuspendLayout();
             SuspendLayout();
             // 
             // tabControlMain
@@ -421,7 +429,6 @@
             // 
             // panelLogin
             // 
-            panelLogin.Anchor = AnchorStyles.None;
             panelLogin.BackColor = SystemColors.Control;
             panelLogin.Controls.Add(btnShowPassword);
             panelLogin.Controls.Add(btnLogin);
@@ -429,7 +436,7 @@
             panelLogin.Controls.Add(lblPassword);
             panelLogin.Controls.Add(txtUsername);
             panelLogin.Controls.Add(lblUsername);
-            panelLogin.Location = new Point(683, 315);
+            panelLogin.Location = new Point(589, 318);
             panelLogin.Name = "panelLogin";
             panelLogin.Size = new Size(300, 200);
             panelLogin.TabIndex = 0;
@@ -1813,13 +1820,17 @@
             // 
             // gbxUserAccountCreation
             // 
+            gbxUserAccountCreation.Controls.Add(rbnSecurityGroupOther);
+            gbxUserAccountCreation.Controls.Add(txbSecurityGroupOther);
+            gbxUserAccountCreation.Controls.Add(txbSecurityGroupId);
+            gbxUserAccountCreation.Controls.Add(lblDefaultSecurityGroupId);
             gbxUserAccountCreation.Controls.Add(cbxDefaultSecurityGroups);
             gbxUserAccountCreation.Controls.Add(lblDefaultSecurityGroup);
             gbxUserAccountCreation.Controls.Add(lblLdapTempPass);
             gbxUserAccountCreation.Controls.Add(lblLdapFirstName);
             gbxUserAccountCreation.Controls.Add(txbLdapTempPass);
             gbxUserAccountCreation.Controls.Add(txbLdapPhone);
-            gbxUserAccountCreation.Controls.Add(btnLdapClearForm);
+            gbxUserAccountCreation.Controls.Add(btnClearAccountCreationForm);
             gbxUserAccountCreation.Controls.Add(btnLdapGetUid);
             gbxUserAccountCreation.Controls.Add(lblLdapLinuxUid);
             gbxUserAccountCreation.Controls.Add(txbLdapLinuxUid);
@@ -1835,24 +1846,62 @@
             gbxUserAccountCreation.Controls.Add(txbLdapNtUserId);
             gbxUserAccountCreation.Location = new Point(13, 71);
             gbxUserAccountCreation.Name = "gbxUserAccountCreation";
-            gbxUserAccountCreation.Size = new Size(481, 265);
+            gbxUserAccountCreation.Size = new Size(900, 710);
             gbxUserAccountCreation.TabIndex = 18;
             gbxUserAccountCreation.TabStop = false;
             // 
+            // rbnSecurityGroupOther
+            // 
+            rbnSecurityGroupOther.AutoSize = true;
+            rbnSecurityGroupOther.Location = new Point(78, 631);
+            rbnSecurityGroupOther.Name = "rbnSecurityGroupOther";
+            rbnSecurityGroupOther.Size = new Size(55, 19);
+            rbnSecurityGroupOther.TabIndex = 28;
+            rbnSecurityGroupOther.TabStop = true;
+            rbnSecurityGroupOther.Text = "Other";
+            rbnSecurityGroupOther.UseVisualStyleBackColor = true;
+            // 
+            // txbSecurityGroupOther
+            // 
+            txbSecurityGroupOther.Location = new Point(139, 630);
+            txbSecurityGroupOther.Name = "txbSecurityGroupOther";
+            txbSecurityGroupOther.Size = new Size(195, 23);
+            txbSecurityGroupOther.TabIndex = 27;
+            // 
+            // txbSecurityGroupId
+            // 
+            txbSecurityGroupId.Location = new Point(242, 180);
+            txbSecurityGroupId.Name = "txbSecurityGroupId";
+            txbSecurityGroupId.Size = new Size(121, 23);
+            txbSecurityGroupId.TabIndex = 26;
+            // 
+            // lblDefaultSecurityGroupId
+            // 
+            lblDefaultSecurityGroupId.AutoSize = true;
+            lblDefaultSecurityGroupId.Location = new Point(95, 183);
+            lblDefaultSecurityGroupId.Name = "lblDefaultSecurityGroupId";
+            lblDefaultSecurityGroupId.Size = new Size(136, 15);
+            lblDefaultSecurityGroupId.TabIndex = 25;
+            lblDefaultSecurityGroupId.Text = "Deault Security Group ID";
+            // 
             // cbxDefaultSecurityGroups
             // 
+            cbxDefaultSecurityGroups.ColumnWidth = 210;
             cbxDefaultSecurityGroups.FormattingEnabled = true;
-            cbxDefaultSecurityGroups.Location = new Point(141, 186);
+            cbxDefaultSecurityGroups.Location = new Point(6, 237);
+            cbxDefaultSecurityGroups.MultiColumn = true;
             cbxDefaultSecurityGroups.Name = "cbxDefaultSecurityGroups";
-            cbxDefaultSecurityGroups.Size = new Size(293, 23);
+            cbxDefaultSecurityGroups.Size = new Size(449, 382);
             cbxDefaultSecurityGroups.TabIndex = 23;
+            cbxDefaultSecurityGroups.ItemCheck += cbxDefaultSecurityGroups_ItemCheck;
             // 
             // lblDefaultSecurityGroup
             // 
             lblDefaultSecurityGroup.AutoSize = true;
-            lblDefaultSecurityGroup.Location = new Point(6, 189);
+            lblDefaultSecurityGroup.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            lblDefaultSecurityGroup.Location = new Point(112, 209);
             lblDefaultSecurityGroup.Name = "lblDefaultSecurityGroup";
-            lblDefaultSecurityGroup.Size = new Size(129, 15);
+            lblDefaultSecurityGroup.Size = new Size(222, 25);
             lblDefaultSecurityGroup.TabIndex = 22;
             lblDefaultSecurityGroup.Text = "Default Security Group:";
             // 
@@ -1878,25 +1927,26 @@
             // 
             txbLdapTempPass.Location = new Point(334, 142);
             txbLdapTempPass.Name = "txbLdapTempPass";
-            txbLdapTempPass.Size = new Size(100, 23);
+            txbLdapTempPass.Size = new Size(121, 23);
             txbLdapTempPass.TabIndex = 12;
+            txbLdapTempPass.Text = "!QW@AZXS1qw2azxs";
             // 
             // txbLdapPhone
             // 
             txbLdapPhone.Location = new Point(334, 103);
             txbLdapPhone.Name = "txbLdapPhone";
-            txbLdapPhone.Size = new Size(100, 23);
+            txbLdapPhone.Size = new Size(121, 23);
             txbLdapPhone.TabIndex = 14;
             // 
-            // btnLdapClearForm
+            // btnClearAccountCreationForm
             // 
-            btnLdapClearForm.Location = new Point(334, 229);
-            btnLdapClearForm.Name = "btnLdapClearForm";
-            btnLdapClearForm.Size = new Size(100, 30);
-            btnLdapClearForm.TabIndex = 2;
-            btnLdapClearForm.Text = "Clear Form";
-            btnLdapClearForm.UseVisualStyleBackColor = true;
-            btnLdapClearForm.Click += btnLdapClearForm_Click;
+            btnClearAccountCreationForm.Location = new Point(298, 674);
+            btnClearAccountCreationForm.Name = "btnClearAccountCreationForm";
+            btnClearAccountCreationForm.Size = new Size(100, 30);
+            btnClearAccountCreationForm.TabIndex = 2;
+            btnClearAccountCreationForm.Text = "Clear Form";
+            btnClearAccountCreationForm.UseVisualStyleBackColor = true;
+            btnClearAccountCreationForm.Click += btnClearAccountCreationForm_Click;
             // 
             // btnLdapGetUid
             // 
@@ -1926,7 +1976,7 @@
             // 
             // btnLdapCreateAccount
             // 
-            btnLdapCreateAccount.Location = new Point(96, 229);
+            btnLdapCreateAccount.Location = new Point(112, 674);
             btnLdapCreateAccount.Name = "btnLdapCreateAccount";
             btnLdapCreateAccount.Size = new Size(100, 30);
             btnLdapCreateAccount.TabIndex = 1;
@@ -1938,21 +1988,21 @@
             // 
             txbLdapEmail.Location = new Point(96, 63);
             txbLdapEmail.Name = "txbLdapEmail";
-            txbLdapEmail.Size = new Size(338, 23);
+            txbLdapEmail.Size = new Size(359, 23);
             txbLdapEmail.TabIndex = 16;
             // 
             // txbLdapLastName
             // 
             txbLdapLastName.Location = new Point(334, 33);
             txbLdapLastName.Name = "txbLdapLastName";
-            txbLdapLastName.Size = new Size(100, 23);
+            txbLdapLastName.Size = new Size(121, 23);
             txbLdapLastName.TabIndex = 17;
             // 
             // txbLdapFirstName
             // 
             txbLdapFirstName.Location = new Point(96, 30);
             txbLdapFirstName.Name = "txbLdapFirstName";
-            txbLdapFirstName.Size = new Size(100, 23);
+            txbLdapFirstName.Size = new Size(121, 23);
             txbLdapFirstName.TabIndex = 11;
             // 
             // lblLdapLastName
@@ -2079,7 +2129,7 @@
             tabOnlineOffline.Controls.Add(lbxOfficeExempt);
             tabOnlineOffline.Controls.Add(lbxCriticalWindows);
             tabOnlineOffline.Controls.Add(lbxCriticalNas);
-            tabOnlineOffline.Controls.Add(lbxWindows);
+            tabOnlineOffline.Controls.Add(lbxWindowsServers);
             tabOnlineOffline.Controls.Add(lblCriticalNAS);
             tabOnlineOffline.Controls.Add(lblOfficeExempt);
             tabOnlineOffline.Controls.Add(lblGangs);
@@ -2088,7 +2138,7 @@
             tabOnlineOffline.Controls.Add(dgvWorkstations);
             tabOnlineOffline.Controls.Add(lblPatriotPark);
             tabOnlineOffline.Controls.Add(dgvPatriotPark);
-            tabOnlineOffline.Controls.Add(lblWindows);
+            tabOnlineOffline.Controls.Add(lblWindowsServers);
             tabOnlineOffline.Location = new Point(4, 24);
             tabOnlineOffline.Name = "tabOnlineOffline";
             tabOnlineOffline.Padding = new Padding(3);
@@ -2101,7 +2151,7 @@
             // 
             lbxCriticalLinux.FormattingEnabled = true;
             lbxCriticalLinux.ItemHeight = 15;
-            lbxCriticalLinux.Location = new Point(989, 482);
+            lbxCriticalLinux.Location = new Point(1321, 473);
             lbxCriticalLinux.Name = "lbxCriticalLinux";
             lbxCriticalLinux.Size = new Size(150, 109);
             lbxCriticalLinux.TabIndex = 113;
@@ -2110,7 +2160,7 @@
             // 
             lbxLinux.FormattingEnabled = true;
             lbxLinux.ItemHeight = 15;
-            lbxLinux.Location = new Point(989, 45);
+            lbxLinux.Location = new Point(1321, 45);
             lbxLinux.Name = "lbxLinux";
             lbxLinux.Size = new Size(150, 394);
             lbxLinux.TabIndex = 112;
@@ -2119,7 +2169,7 @@
             // 
             lblCriticalLinux.AutoSize = true;
             lblCriticalLinux.Font = new Font("Segoe UI", 15F);
-            lblCriticalLinux.Location = new Point(1007, 451);
+            lblCriticalLinux.Location = new Point(1339, 442);
             lblCriticalLinux.Name = "lblCriticalLinux";
             lblCriticalLinux.Size = new Size(122, 28);
             lblCriticalLinux.TabIndex = 111;
@@ -2129,7 +2179,7 @@
             // 
             lblLinux.AutoSize = true;
             lblLinux.Font = new Font("Segoe UI", 15F);
-            lblLinux.Location = new Point(1037, 14);
+            lblLinux.Location = new Point(1369, 14);
             lblLinux.Name = "lblLinux";
             lblLinux.Size = new Size(57, 28);
             lblLinux.TabIndex = 110;
@@ -2138,7 +2188,7 @@
             // btnOnOffline
             // 
             btnOnOffline.Font = new Font("Segoe UI", 12F);
-            btnOnOffline.Location = new Point(1160, 415);
+            btnOnOffline.Location = new Point(1079, 608);
             btnOnOffline.Name = "btnOnOffline";
             btnOnOffline.Size = new Size(239, 64);
             btnOnOffline.TabIndex = 53;
@@ -2150,7 +2200,7 @@
             // 
             lbxGangs.FormattingEnabled = true;
             lbxGangs.ItemHeight = 15;
-            lbxGangs.Location = new Point(776, 482);
+            lbxGangs.Location = new Point(1113, 473);
             lbxGangs.Name = "lbxGangs";
             lbxGangs.Size = new Size(187, 109);
             lbxGangs.TabIndex = 51;
@@ -2159,7 +2209,7 @@
             // 
             lbxOfficeExempt.FormattingEnabled = true;
             lbxOfficeExempt.ItemHeight = 15;
-            lbxOfficeExempt.Location = new Point(776, 678);
+            lbxOfficeExempt.Location = new Point(910, 418);
             lbxOfficeExempt.Name = "lbxOfficeExempt";
             lbxOfficeExempt.Size = new Size(187, 139);
             lbxOfficeExempt.TabIndex = 50;
@@ -2168,7 +2218,7 @@
             // 
             lbxCriticalWindows.FormattingEnabled = true;
             lbxCriticalWindows.ItemHeight = 15;
-            lbxCriticalWindows.Location = new Point(574, 678);
+            lbxCriticalWindows.Location = new Point(910, 222);
             lbxCriticalWindows.Name = "lbxCriticalWindows";
             lbxCriticalWindows.Size = new Size(187, 139);
             lbxCriticalWindows.TabIndex = 49;
@@ -2177,25 +2227,25 @@
             // 
             lbxCriticalNas.FormattingEnabled = true;
             lbxCriticalNas.ItemHeight = 15;
-            lbxCriticalNas.Location = new Point(369, 678);
+            lbxCriticalNas.Location = new Point(910, 45);
             lbxCriticalNas.Name = "lbxCriticalNas";
             lbxCriticalNas.Size = new Size(187, 139);
             lbxCriticalNas.TabIndex = 47;
             // 
-            // lbxWindows
+            // lbxWindowsServers
             // 
-            lbxWindows.FormattingEnabled = true;
-            lbxWindows.ItemHeight = 15;
-            lbxWindows.Location = new Point(776, 45);
-            lbxWindows.Name = "lbxWindows";
-            lbxWindows.Size = new Size(187, 394);
-            lbxWindows.TabIndex = 46;
+            lbxWindowsServers.FormattingEnabled = true;
+            lbxWindowsServers.ItemHeight = 15;
+            lbxWindowsServers.Location = new Point(1113, 45);
+            lbxWindowsServers.Name = "lbxWindowsServers";
+            lbxWindowsServers.Size = new Size(187, 394);
+            lbxWindowsServers.TabIndex = 46;
             // 
             // lblCriticalNAS
             // 
             lblCriticalNAS.AutoSize = true;
             lblCriticalNAS.Font = new Font("Segoe UI", 15F);
-            lblCriticalNAS.Location = new Point(369, 641);
+            lblCriticalNAS.Location = new Point(934, 14);
             lblCriticalNAS.Name = "lblCriticalNAS";
             lblCriticalNAS.Size = new Size(116, 28);
             lblCriticalNAS.TabIndex = 45;
@@ -2205,7 +2255,7 @@
             // 
             lblOfficeExempt.AutoSize = true;
             lblOfficeExempt.Font = new Font("Segoe UI", 15F);
-            lblOfficeExempt.Location = new Point(800, 644);
+            lblOfficeExempt.Location = new Point(934, 384);
             lblOfficeExempt.Name = "lblOfficeExempt";
             lblOfficeExempt.Size = new Size(133, 28);
             lblOfficeExempt.TabIndex = 44;
@@ -2215,7 +2265,7 @@
             // 
             lblGangs.AutoSize = true;
             lblGangs.Font = new Font("Segoe UI", 15F);
-            lblGangs.Location = new Point(828, 451);
+            lblGangs.Location = new Point(1165, 442);
             lblGangs.Name = "lblGangs";
             lblGangs.Size = new Size(67, 28);
             lblGangs.TabIndex = 43;
@@ -2225,7 +2275,7 @@
             // 
             lblCriticalWindows.AutoSize = true;
             lblCriticalWindows.Font = new Font("Segoe UI", 14F);
-            lblCriticalWindows.Location = new Point(589, 647);
+            lblCriticalWindows.Location = new Point(925, 191);
             lblCriticalWindows.Name = "lblCriticalWindows";
             lblCriticalWindows.Size = new Size(154, 25);
             lblCriticalWindows.TabIndex = 41;
@@ -2235,7 +2285,7 @@
             // 
             lblWorkstations.AutoSize = true;
             lblWorkstations.Font = new Font("Segoe UI", 15F);
-            lblWorkstations.Location = new Point(105, 14);
+            lblWorkstations.Location = new Point(144, 14);
             lblWorkstations.Name = "lblWorkstations";
             lblWorkstations.Size = new Size(129, 28);
             lblWorkstations.TabIndex = 40;
@@ -2247,29 +2297,32 @@
             dgvWorkstations.Columns.AddRange(new DataGridViewColumn[] { clmWksComputerName, clmWksUserName, clmWksLocation });
             dgvWorkstations.Location = new Point(8, 45);
             dgvWorkstations.Name = "dgvWorkstations";
-            dgvWorkstations.Size = new Size(343, 772);
+            dgvWorkstations.Size = new Size(435, 723);
             dgvWorkstations.TabIndex = 39;
             // 
             // clmWksComputerName
             // 
             clmWksComputerName.HeaderText = "Computer Name";
             clmWksComputerName.Name = "clmWksComputerName";
+            clmWksComputerName.Width = 130;
             // 
             // clmWksUserName
             // 
             clmWksUserName.HeaderText = "User Name";
             clmWksUserName.Name = "clmWksUserName";
+            clmWksUserName.Width = 130;
             // 
             // clmWksLocation
             // 
             clmWksLocation.HeaderText = "Location";
             clmWksLocation.Name = "clmWksLocation";
+            clmWksLocation.Width = 130;
             // 
             // lblPatriotPark
             // 
             lblPatriotPark.AutoSize = true;
             lblPatriotPark.Font = new Font("Segoe UI", 15F);
-            lblPatriotPark.Location = new Point(510, 14);
+            lblPatriotPark.Location = new Point(604, 14);
             lblPatriotPark.Name = "lblPatriotPark";
             lblPatriotPark.Size = new Size(112, 28);
             lblPatriotPark.TabIndex = 38;
@@ -2279,35 +2332,38 @@
             // 
             dgvPatriotPark.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvPatriotPark.Columns.AddRange(new DataGridViewColumn[] { dgvPpComputerName, clmPpUserName, clmPpLocation });
-            dgvPatriotPark.Location = new Point(369, 45);
+            dgvPatriotPark.Location = new Point(459, 45);
             dgvPatriotPark.Name = "dgvPatriotPark";
-            dgvPatriotPark.Size = new Size(343, 576);
+            dgvPatriotPark.Size = new Size(435, 576);
             dgvPatriotPark.TabIndex = 37;
             // 
             // dgvPpComputerName
             // 
             dgvPpComputerName.HeaderText = "Computer Name";
             dgvPpComputerName.Name = "dgvPpComputerName";
+            dgvPpComputerName.Width = 130;
             // 
             // clmPpUserName
             // 
             clmPpUserName.HeaderText = "User Name";
             clmPpUserName.Name = "clmPpUserName";
+            clmPpUserName.Width = 130;
             // 
             // clmPpLocation
             // 
             clmPpLocation.HeaderText = "Location";
             clmPpLocation.Name = "clmPpLocation";
+            clmPpLocation.Width = 130;
             // 
-            // lblWindows
+            // lblWindowsServers
             // 
-            lblWindows.AutoSize = true;
-            lblWindows.Font = new Font("Segoe UI", 15F);
-            lblWindows.Location = new Point(828, 14);
-            lblWindows.Name = "lblWindows";
-            lblWindows.Size = new Size(93, 28);
-            lblWindows.TabIndex = 35;
-            lblWindows.Text = "Windows";
+            lblWindowsServers.AutoSize = true;
+            lblWindowsServers.Font = new Font("Segoe UI", 15F);
+            lblWindowsServers.Location = new Point(1128, 14);
+            lblWindowsServers.Name = "lblWindowsServers";
+            lblWindowsServers.Size = new Size(161, 28);
+            lblWindowsServers.TabIndex = 35;
+            lblWindowsServers.Text = "Windows Servers";
             // 
             // tabSAPMIsSpice
             // 
@@ -2946,6 +3002,7 @@
             // 
             // tabConfiguration
             // 
+            tabConfiguration.Controls.Add(gbxImportantVariables);
             tabConfiguration.Controls.Add(gbxComputerList);
             tabConfiguration.Controls.Add(gbxImportantOUs);
             tabConfiguration.Location = new Point(4, 24);
@@ -2955,6 +3012,44 @@
             tabConfiguration.TabIndex = 11;
             tabConfiguration.Text = "Configuration";
             tabConfiguration.UseVisualStyleBackColor = true;
+            // 
+            // gbxImportantVariables
+            // 
+            gbxImportantVariables.Controls.Add(btnSubmitVars);
+            gbxImportantVariables.Controls.Add(txbSecurityGroupKW);
+            gbxImportantVariables.Controls.Add(lblSecurityGroupKW);
+            gbxImportantVariables.Location = new Point(908, 20);
+            gbxImportantVariables.Name = "gbxImportantVariables";
+            gbxImportantVariables.Size = new Size(503, 218);
+            gbxImportantVariables.TabIndex = 127;
+            gbxImportantVariables.TabStop = false;
+            gbxImportantVariables.Text = "Important Variables";
+            // 
+            // btnSubmitVars
+            // 
+            btnSubmitVars.Location = new Point(171, 97);
+            btnSubmitVars.Name = "btnSubmitVars";
+            btnSubmitVars.Size = new Size(114, 33);
+            btnSubmitVars.TabIndex = 2;
+            btnSubmitVars.Text = "Submit Variables";
+            btnSubmitVars.UseVisualStyleBackColor = true;
+            btnSubmitVars.Click += btnSubmitVars_Click;
+            // 
+            // txbSecurityGroupKW
+            // 
+            txbSecurityGroupKW.Location = new Point(84, 68);
+            txbSecurityGroupKW.Name = "txbSecurityGroupKW";
+            txbSecurityGroupKW.Size = new Size(287, 23);
+            txbSecurityGroupKW.TabIndex = 1;
+            // 
+            // lblSecurityGroupKW
+            // 
+            lblSecurityGroupKW.AllowDrop = true;
+            lblSecurityGroupKW.Location = new Point(6, 27);
+            lblSecurityGroupKW.Name = "lblSecurityGroupKW";
+            lblSecurityGroupKW.Size = new Size(491, 38);
+            lblSecurityGroupKW.TabIndex = 0;
+            lblSecurityGroupKW.Text = "Variable to look for in each security groups \"Notes\" property to determine if it should be a selectable item in the Security Groups Checked ListBox when creating a new user.";
             // 
             // gbxComputerList
             // 
@@ -3183,7 +3278,7 @@
             gbxImportantOUs.Controls.Add(cbxListSecurityGroupsOu);
             gbxImportantOUs.Controls.Add(lblSecurityGroups);
             gbxImportantOUs.Controls.Add(btnAddGangsOu);
-            gbxImportantOUs.Controls.Add(btnAddWindowsOu);
+            gbxImportantOUs.Controls.Add(btnAddWindowsServersOu);
             gbxImportantOUs.Controls.Add(btnAddPatriotParkOu);
             gbxImportantOUs.Controls.Add(btnAddWorkstationOu);
             gbxImportantOUs.Controls.Add(cbxListWorkStationOu);
@@ -3191,9 +3286,9 @@
             gbxImportantOUs.Controls.Add(lblWorkstationOu);
             gbxImportantOUs.Controls.Add(cbxListGangsOu);
             gbxImportantOUs.Controls.Add(lblGangsOu);
-            gbxImportantOUs.Controls.Add(cbxListWindowsOu);
+            gbxImportantOUs.Controls.Add(cbxListWindowsServersOu);
             gbxImportantOUs.Controls.Add(lblPatriotParkOu);
-            gbxImportantOUs.Controls.Add(lblWindowsOu);
+            gbxImportantOUs.Controls.Add(lblWindowsServersOu);
             gbxImportantOUs.Controls.Add(cbxListPatriotParkOu);
             gbxImportantOUs.Location = new Point(8, 6);
             gbxImportantOUs.Name = "gbxImportantOUs";
@@ -3238,15 +3333,17 @@
             btnAddGangsOu.TabIndex = 105;
             btnAddGangsOu.Text = "Add Gangs OU";
             btnAddGangsOu.UseVisualStyleBackColor = true;
+            btnAddGangsOu.Click += btnAddGangsOu_Click;
             // 
-            // btnAddWindowsOu
+            // btnAddWindowsServersOu
             // 
-            btnAddWindowsOu.Location = new Point(10, 339);
-            btnAddWindowsOu.Name = "btnAddWindowsOu";
-            btnAddWindowsOu.Size = new Size(412, 23);
-            btnAddWindowsOu.TabIndex = 104;
-            btnAddWindowsOu.Text = "Add Windows OU";
-            btnAddWindowsOu.UseVisualStyleBackColor = true;
+            btnAddWindowsServersOu.Location = new Point(10, 339);
+            btnAddWindowsServersOu.Name = "btnAddWindowsServersOu";
+            btnAddWindowsServersOu.Size = new Size(412, 23);
+            btnAddWindowsServersOu.TabIndex = 104;
+            btnAddWindowsServersOu.Text = "Add Windows Servers OU";
+            btnAddWindowsServersOu.UseVisualStyleBackColor = true;
+            btnAddWindowsServersOu.Click += btnAddWindowsServersOu_Click;
             // 
             // btnAddPatriotParkOu
             // 
@@ -3256,6 +3353,7 @@
             btnAddPatriotParkOu.TabIndex = 103;
             btnAddPatriotParkOu.Text = "Add Patriot Park OU";
             btnAddPatriotParkOu.UseVisualStyleBackColor = true;
+            btnAddPatriotParkOu.Click += btnAddPatriotParkOu_Click;
             // 
             // btnAddWorkstationOu
             // 
@@ -3265,6 +3363,7 @@
             btnAddWorkstationOu.TabIndex = 102;
             btnAddWorkstationOu.Text = "Add Workstation OU";
             btnAddWorkstationOu.UseVisualStyleBackColor = true;
+            btnAddWorkstationOu.Click += btnAddWorkStationOu_Click;
             // 
             // cbxListWorkStationOu
             // 
@@ -3276,7 +3375,7 @@
             // 
             // btnRemoveSelectedOus
             // 
-            btnRemoveSelectedOus.Location = new Point(6, 746);
+            btnRemoveSelectedOus.Location = new Point(10, 746);
             btnRemoveSelectedOus.Name = "btnRemoveSelectedOus";
             btnRemoveSelectedOus.Size = new Size(416, 23);
             btnRemoveSelectedOus.TabIndex = 101;
@@ -3311,13 +3410,13 @@
             lblGangsOu.TabIndex = 81;
             lblGangsOu.Text = "Gangs OU:";
             // 
-            // cbxListWindowsOu
+            // cbxListWindowsServersOu
             // 
-            cbxListWindowsOu.FormattingEnabled = true;
-            cbxListWindowsOu.Location = new Point(10, 370);
-            cbxListWindowsOu.Name = "cbxListWindowsOu";
-            cbxListWindowsOu.Size = new Size(416, 76);
-            cbxListWindowsOu.TabIndex = 93;
+            cbxListWindowsServersOu.FormattingEnabled = true;
+            cbxListWindowsServersOu.Location = new Point(10, 370);
+            cbxListWindowsServersOu.Name = "cbxListWindowsServersOu";
+            cbxListWindowsServersOu.Size = new Size(416, 76);
+            cbxListWindowsServersOu.TabIndex = 93;
             // 
             // lblPatriotParkOu
             // 
@@ -3329,15 +3428,15 @@
             lblPatriotParkOu.TabIndex = 79;
             lblPatriotParkOu.Text = "Patriot Park OU:";
             // 
-            // lblWindowsOu
+            // lblWindowsServersOu
             // 
-            lblWindowsOu.AutoSize = true;
-            lblWindowsOu.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            lblWindowsOu.Location = new Point(6, 315);
-            lblWindowsOu.Name = "lblWindowsOu";
-            lblWindowsOu.Size = new Size(113, 21);
-            lblWindowsOu.TabIndex = 80;
-            lblWindowsOu.Text = "Windows OU:";
+            lblWindowsServersOu.AutoSize = true;
+            lblWindowsServersOu.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblWindowsServersOu.Location = new Point(6, 315);
+            lblWindowsServersOu.Name = "lblWindowsServersOu";
+            lblWindowsServersOu.Size = new Size(173, 21);
+            lblWindowsServersOu.TabIndex = 80;
+            lblWindowsServersOu.Text = "Windows Servers OU:";
             // 
             // cbxListPatriotParkOu
             // 
@@ -3349,7 +3448,6 @@
             // 
             // tabConsole
             // 
-            tabConsole.Controls.Add(richTextBox1);
             tabConsole.Location = new Point(4, 24);
             tabConsole.Name = "tabConsole";
             tabConsole.Padding = new Padding(3);
@@ -3358,19 +3456,9 @@
             tabConsole.Text = "Console";
             tabConsole.UseVisualStyleBackColor = true;
             // 
-            // richTextBox1
-            // 
-            richTextBox1.BackColor = SystemColors.MenuText;
-            richTextBox1.ForeColor = SystemColors.Window;
-            richTextBox1.Location = new Point(6, 3);
-            richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(1467, 763);
-            richTextBox1.TabIndex = 1;
-            richTextBox1.Text = "";
-            // 
             // btnUndockConsole
             // 
-            btnUndockConsole.Location = new Point(719, 821);
+            btnUndockConsole.Location = new Point(571, 821);
             btnUndockConsole.Name = "btnUndockConsole";
             btnUndockConsole.Size = new Size(110, 39);
             btnUndockConsole.TabIndex = 0;
@@ -3378,11 +3466,22 @@
             btnUndockConsole.UseVisualStyleBackColor = true;
             btnUndockConsole.Click += btnUndockConsole_Click;
             // 
+            // btnLogout
+            // 
+            btnLogout.Location = new Point(732, 821);
+            btnLogout.Name = "btnLogout";
+            btnLogout.Size = new Size(110, 39);
+            btnLogout.TabIndex = 1;
+            btnLogout.Text = "Log Out";
+            btnLogout.UseVisualStyleBackColor = true;
+            btnLogout.Click += btnLogout_Click;
+            // 
             // SAToolBelt
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1487, 863);
+            Controls.Add(btnLogout);
             Controls.Add(tabControlMain);
             Controls.Add(btnUndockConsole);
             Name = "SAToolBelt";
@@ -3449,11 +3548,12 @@
             tabCcesa2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvCcesa2).EndInit();
             tabConfiguration.ResumeLayout(false);
+            gbxImportantVariables.ResumeLayout(false);
+            gbxImportantVariables.PerformLayout();
             gbxComputerList.ResumeLayout(false);
             gbxComputerList.PerformLayout();
             gbxImportantOUs.ResumeLayout(false);
             gbxImportantOUs.PerformLayout();
-            tabConsole.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -3602,7 +3702,7 @@
         private Label lblLdapPhone;
         private Label lblNewUserAcntCreation;
         private Button btnLdapGetUid;
-        private Button btnLdapClearForm;
+        private Button btnClearAccountCreationForm;
         private Button btnLdapCreateAccount;
         private Button btnLdapGenerate;
         private GroupBox gbxUserAccountCreation;
@@ -3623,12 +3723,12 @@
         private DataGridView dgvWorkstations;
         private Label lblPatriotPark;
         private DataGridView dgvPatriotPark;
-        private Label lblWindows;
+        private Label lblWindowsServers;
         private ListBox lbxGangs;
         private ListBox lbxOfficeExempt;
         private ListBox lbxCriticalWindows;
         private ListBox lbxCriticalNas;
-        private ListBox lbxWindows;
+        private ListBox lbxWindowsServers;
         private Button btnOnOffline;
         private TabPage tabConfiguration;
         private GroupBox gbxImportantOUs;
@@ -3642,9 +3742,9 @@
         private Button btnSelectWorkStationOu;
         private Button btnRemoveWorkstationOu;
         private Button btnAddWorkStationOU;
-        private CheckedListBox cbxListWindowsOu;
+        private CheckedListBox cbxListWindowsServersOu;
         private Label lblPatriotParkOu;
-        private Label lblWindowsOu;
+        private Label lblWindowsServersOu;
         private Button btnSelectWindowsOu;
         private Button btnSelectPatriotParkOu;
         private CheckedListBox cbxListPatriotParkOu;
@@ -3786,25 +3886,33 @@
         private GroupBox gbxComputerList;
         private CheckBox cbxIsVm;
         private Button btnAddGangsOu;
-        private Button btnAddWindowsOu;
+        private Button btnAddWindowsServersOu;
         private Button btnAddPatriotParkOu;
         private Button btnAddWorkstationOu;
         private Button btnRemoveSelectedOus;
-        private DataGridViewTextBoxColumn clmWksComputerName;
-        private DataGridViewTextBoxColumn clmWksUserName;
-        private DataGridViewTextBoxColumn clmWksLocation;
-        private DataGridViewTextBoxColumn dgvPpComputerName;
-        private DataGridViewTextBoxColumn clmPpUserName;
-        private DataGridViewTextBoxColumn clmPpLocation;
         private Button btnRemoveSelectedComputers;
         private Button btnLoadSelectedUser;
         private TabPage tabConsole;
         private Button btnUndockConsole;
-        private RichTextBox richTextBox1;
         private Button btnAddSecurityGroupsOU;
         private CheckedListBox cbxListSecurityGroupsOu;
         private Label lblSecurityGroups;
         private Label lblDefaultSecurityGroup;
-        private ComboBox cbxDefaultSecurityGroups;
+        private DataGridViewTextBoxColumn dgvPpComputerName;
+        private DataGridViewTextBoxColumn clmPpUserName;
+        private DataGridViewTextBoxColumn clmPpLocation;
+        private DataGridViewTextBoxColumn clmWksComputerName;
+        private DataGridViewTextBoxColumn clmWksUserName;
+        private DataGridViewTextBoxColumn clmWksLocation;
+        private Button btnLogout;
+        private CheckedListBox cbxDefaultSecurityGroups;
+        private TextBox txbSecurityGroupId;
+        private Label lblDefaultSecurityGroupId;
+        private TextBox txbSecurityGroupOther;
+        private RadioButton rbnSecurityGroupOther;
+        private GroupBox gbxImportantVariables;
+        private Label lblSecurityGroupKW;
+        private Button btnSubmitVars;
+        private TextBox txbSecurityGroupKW;
     }
 }
