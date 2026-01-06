@@ -262,5 +262,78 @@ MODIFIED METHODS:
       - Change: Updated success message to include home directory status
 
 ================================================================================
+ISSUE #1 FOR USER HOME DIRECTORY FEATURE ADDITION
+================================================================================
+Date: 2026-01-06
+Issue: Directory creation failed during LDAP account creation process
+
+PROBLEM DESCRIPTION:
+-------------------
+When the home directory creation feature was tested, it appeared to SSH into the
+Linux server successfully, but failed to create the directory without providing
+a specific error message. The issue was that sudo commands were waiting for
+password authentication, but no password was being provided.
+
+ROOT CAUSE:
+----------
+The SSH password successfully authenticated the SSH connection to the server,
+but when the code executed sudo commands (mkdir, chmod, chown), those commands
+required separate authentication. The sudo commands were hanging, waiting for
+password input that was never provided.
+
+Original Command (Lines 466-469 in Linux_Service.cs):
+    sudo mkdir -p '{directoryPath}' &&
+    sudo chmod 755 '{directoryPath}' &&
+    sudo chown {ntUserId}:share_Group '{directoryPath}'
+
+This implementation did not pass the password to sudo, causing the commands to
+wait indefinitely for interactive password input.
+
+SOLUTION IMPLEMENTED:
+--------------------
+Modified the CreateHomeDirectoryAsync method in Linux_Service.cs to pipe the
+SSH password to each sudo command using the -S flag, which tells sudo to read
+the password from standard input (stdin).
+
+Fixed Command (Lines 467-469 in Linux_Service.cs):
+    echo '{password}' | sudo -S mkdir -p '{directoryPath}' &&
+    echo '{password}' | sudo -S chmod 755 '{directoryPath}' &&
+    echo '{password}' | sudo -S chown {ntUserId}:share_Group '{directoryPath}'
+
+Technical Details:
+- Added: echo '{password}' | before each sudo command
+- Added: -S flag to sudo to read password from stdin
+- This mimics the behavior when manually SSHing and entering the sudo password
+
+FILES MODIFIED:
+--------------
+1. Linux_Service.cs
+   - Method: CreateHomeDirectoryAsync (Lines 466-469)
+   - Change: Added password piping to sudo commands
+   - Added comment explaining the sudo -S usage
+
+COMMIT INFORMATION:
+------------------
+Commit: 128cdf6
+Message: Fix sudo authentication in CreateHomeDirectoryAsync
+Branch: claude/review-repo-files-QPEbK
+
+TESTING RECOMMENDATIONS:
+------------------------
+After this fix, test the following scenarios:
+1. Create a new LDAP account with home directory creation
+2. Verify the directory is created at /net/cce-data/home/{ntUserId}
+3. Verify permissions are set to 755 (rwxr-xr-x)
+4. Verify ownership is set to {ntUserId}:share_Group
+5. Check console output for success messages
+
+NOTES:
+------
+- The SSH user account must have sudo privileges on the Linux server
+- The password used for SSH must also be valid for sudo authentication
+- If the SSH password differs from the sudo password, this approach will fail
+- The -S flag is standard across most Linux distributions
+
+================================================================================
 END OF SUMMARY
 ================================================================================
