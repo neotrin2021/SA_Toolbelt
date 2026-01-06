@@ -451,11 +451,42 @@ namespace SA_ToolBelt
             try
             {
                 _consoleForm?.WriteInfo($"Creating home directory for user: {ntUserId}");
+                _consoleForm?.WriteInfo($"SSH Connection - Host: {hostname}, User: {username}");
 
                 // Directory path where we'll create the user's home directory
                 string directoryPath = $"/net/cce-data/home/{ntUserId}";
 
                 _consoleForm?.WriteInfo($"Target directory: {directoryPath}");
+
+                // First, test if user has sudo privileges
+                _consoleForm?.WriteInfo($"Testing sudo access for user '{username}'...");
+                string sudoTestCommand = $"echo '{password}' | sudo -S -v 2>&1";
+                string sudoTestOutput = await ExecuteSSHCommandAsync(hostname, username, password, sudoTestCommand);
+
+                _consoleForm?.WriteInfo($"Sudo test output: {sudoTestOutput.Trim()}");
+
+                // Check for common sudo issues
+                if (sudoTestOutput.Contains("Sorry, try again") || sudoTestOutput.Contains("authentication failure"))
+                {
+                    _consoleForm?.WriteError($"PERMISSION DENIED: Sudo password is incorrect.");
+                    _consoleForm?.WriteError($"The password provided does not have sudo privileges on {hostname}");
+                    return false;
+                }
+                else if (sudoTestOutput.Contains("not in the sudoers file"))
+                {
+                    _consoleForm?.WriteError($"PERMISSION DENIED: User '{username}' is not in the sudoers file.");
+                    _consoleForm?.WriteError($"The user '{username}' does not have sudo privileges on {hostname}");
+                    _consoleForm?.WriteError($"Contact your system administrator to grant sudo access.");
+                    return false;
+                }
+                else if (sudoTestOutput.Contains("command not found"))
+                {
+                    _consoleForm?.WriteError($"ERROR: 'sudo' command not found on {hostname}");
+                    _consoleForm?.WriteError($"The target server may not have sudo installed.");
+                    return false;
+                }
+
+                _consoleForm?.WriteSuccess($"Sudo access verified for user '{username}'");
 
                 // Build command to:
                 // 1. Check if directory already exists
@@ -464,15 +495,18 @@ namespace SA_ToolBelt
                 // 4. Set ownership to ntUserId:share_Group
                 // Note: Using 'echo password | sudo -S' to provide password to sudo
                 string command = $"if [ ! -d '{directoryPath}' ]; then " +
-                                $"echo '{password}' | sudo -S mkdir -p '{directoryPath}' && " +
-                                $"echo '{password}' | sudo -S chmod 755 '{directoryPath}' && " +
-                                $"echo '{password}' | sudo -S chown {ntUserId}:share_Group '{directoryPath}' && " +
+                                $"echo '{password}' | sudo -S mkdir -p '{directoryPath}' 2>&1 && " +
+                                $"echo '{password}' | sudo -S chmod 755 '{directoryPath}' 2>&1 && " +
+                                $"echo '{password}' | sudo -S chown {ntUserId}:share_Group '{directoryPath}' 2>&1 && " +
                                 $"echo 'Directory created successfully' || echo 'Failed to create directory'; " +
                                 $"else echo 'Directory already exists'; fi";
 
                 _consoleForm?.WriteInfo($"Executing directory creation command...");
 
                 string output = await ExecuteSSHCommandAsync(hostname, username, password, command);
+
+                // Log the raw output for debugging
+                _consoleForm?.WriteInfo($"Command output: {output.Trim()}");
 
                 // Check the output for success indicators
                 bool success = output.Contains("Directory created successfully") ||
@@ -498,13 +532,52 @@ namespace SA_ToolBelt
                 }
                 else
                 {
-                    _consoleForm?.WriteError($"Failed to create home directory: {output}");
+                    // Provide detailed error analysis
+                    _consoleForm?.WriteError($"=== HOME DIRECTORY CREATION FAILED ===");
+                    _consoleForm?.WriteError($"Raw output from server: {output.Trim()}");
+
+                    // Check for specific error patterns
+                    if (output.Contains("Permission denied") || output.Contains("permission denied"))
+                    {
+                        _consoleForm?.WriteError($"CAUSE: Permission denied");
+                        _consoleForm?.WriteError($"Possible reasons:");
+                        _consoleForm?.WriteError($"  1. User '{username}' lacks sudo privileges for mkdir/chmod/chown");
+                        _consoleForm?.WriteError($"  2. The parent directory '/net/cce-data/home' doesn't exist");
+                        _consoleForm?.WriteError($"  3. The parent directory '/net/cce-data/home' has restricted permissions");
+                        _consoleForm?.WriteError($"  4. The filesystem is mounted read-only");
+                    }
+                    else if (output.Contains("No such file or directory"))
+                    {
+                        _consoleForm?.WriteError($"CAUSE: Directory path does not exist");
+                        _consoleForm?.WriteError($"The parent directory '/net/cce-data/home' may not exist on {hostname}");
+                        _consoleForm?.WriteError($"Verify the path exists: ls -ld /net/cce-data/home");
+                    }
+                    else if (output.Contains("Unknown user") || output.Contains("invalid user"))
+                    {
+                        _consoleForm?.WriteError($"CAUSE: User '{ntUserId}' does not exist on the Linux system");
+                        _consoleForm?.WriteError($"The chown command requires that user '{ntUserId}' exists on {hostname}");
+                    }
+                    else if (output.Contains("group") && (output.Contains("invalid") || output.Contains("not found")))
+                    {
+                        _consoleForm?.WriteError($"CAUSE: Group 'share_Group' does not exist on the Linux system");
+                        _consoleForm?.WriteError($"The chown command requires that group 'share_Group' exists on {hostname}");
+                    }
+                    else
+                    {
+                        _consoleForm?.WriteError($"CAUSE: Unknown error");
+                        _consoleForm?.WriteError($"Review the output above for details");
+                    }
+
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                _consoleForm?.WriteError($"Error creating home directory for {ntUserId}: {ex.Message}");
+                _consoleForm?.WriteError($"=== EXCEPTION DURING HOME DIRECTORY CREATION ===");
+                _consoleForm?.WriteError($"User: {ntUserId}");
+                _consoleForm?.WriteError($"Exception Type: {ex.GetType().Name}");
+                _consoleForm?.WriteError($"Error Message: {ex.Message}");
+                _consoleForm?.WriteError($"Stack Trace: {ex.StackTrace}");
                 return false;
             }
         }
