@@ -68,7 +68,7 @@ namespace SA_ToolBelt
 
             _consoleForm = new ConsoleForm();
             _adService = new AD_Service(_consoleForm);
-            _linuxService = new Linux_Service();
+            _linuxService = new Linux_Service(_consoleForm);
             _rhdsService = new RHDS_Service(_consoleForm);
 
             this.KeyPreview = true;
@@ -2850,6 +2850,45 @@ namespace SA_ToolBelt
                     }
                 }
 
+                // Step 6: Create home directory on Linux server
+                bool homeDirectoryCreated = false;
+                try
+                {
+                    _consoleForm?.WriteInfo("Prompting for Linux SSH credentials to create home directory...");
+
+                    // Prompt user for Linux SSH credentials
+                    var (success, hostname, sshUsername, sshPassword) = LinuxCredentialDialog.GetCredentials();
+
+                    if (success)
+                    {
+                        _consoleForm?.WriteInfo($"Creating home directory on {hostname}...");
+
+                        homeDirectoryCreated = await _linuxService.CreateHomeDirectoryAsync(
+                            hostname,
+                            sshUsername,
+                            sshPassword,
+                            ntUserId
+                        );
+
+                        if (homeDirectoryCreated)
+                        {
+                            _consoleForm?.WriteSuccess($"Home directory created successfully for {ntUserId}");
+                        }
+                        else
+                        {
+                            _consoleForm?.WriteError($"Failed to create home directory for {ntUserId}");
+                        }
+                    }
+                    else
+                    {
+                        _consoleForm?.WriteWarning("Linux SSH credentials not provided. Home directory creation skipped.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _consoleForm?.WriteError($"Error during home directory creation: {ex.Message}");
+                }
+
                 // Comprehensive success messaging
                 _consoleForm?.WriteSuccess("Account creation process completed!");
 
@@ -2892,6 +2931,16 @@ namespace SA_ToolBelt
                 else
                 {
                     successMessage += "\nNo security group was selected.";
+                }
+
+                // Add home directory creation status
+                if (homeDirectoryCreated)
+                {
+                    successMessage += $"✓ Home directory created at /net/cce-data/home/{ntUserId}\n";
+                }
+                else
+                {
+                    successMessage += "⚠ Home directory creation was skipped or failed\n";
                 }
 
                 MessageBox.Show(successMessage, "Account Created Successfully",
