@@ -462,10 +462,11 @@ namespace SA_ToolBelt
                 // 2. Create directory if it doesn't exist
                 // 3. Set chmod to 755 (rwxr-xr-x)
                 // 4. Set ownership to ntUserId:share_Group
+                // Note: Using 'echo password | sudo -S' to provide password to sudo
                 string command = $"if [ ! -d '{directoryPath}' ]; then " +
-                                $"sudo mkdir -p '{directoryPath}' && " +
-                                $"sudo chmod 755 '{directoryPath}' && " +
-                                $"sudo chown {ntUserId}:share_Group '{directoryPath}' && " +
+                                $"echo '{password}' | sudo -S mkdir -p '{directoryPath}' && " +
+                                $"echo '{password}' | sudo -S chmod 755 '{directoryPath}' && " +
+                                $"echo '{password}' | sudo -S chown {ntUserId}:share_Group '{directoryPath}' && " +
                                 $"echo 'Directory created successfully' || echo 'Failed to create directory'; " +
                                 $"else echo 'Directory already exists'; fi";
 
