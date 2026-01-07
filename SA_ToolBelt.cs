@@ -2973,18 +2973,19 @@ namespace SA_ToolBelt
 
                 // Commands to check LDAP replication health
                 // These are typical Red Hat Directory Service replication commands
+                // Note: Using the hostname from the credential dialog instead of "localhost"
                 string[] healthCommands = {
             // Check replication status
-            "dsctl localhost status",
-            
+            $"dsctl {hostname} status",
+
             // Check replication agreements
-            "dsconf localhost replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
-            
+            $"dsconf {hostname} replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+
             // Check replication lag
-            "dsconf localhost replication monitor --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+            $"dsconf {hostname} replication monitor --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
 
             // Check last update times
-            "dsconf localhost replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
+            $"dsconf {hostname} replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
         };
 
                 var results = await _linuxService.ExecuteMultipleSSHCommandsAsync(hostname, username, password, healthCommands);
@@ -3486,47 +3487,36 @@ namespace SA_ToolBelt
                     return;
                 }
 
-                // Server connection details
-                string username = CredentialManager.GetUsername();
-                string password = CredentialManager.GetPassword();
-                string server1 = "ccesa1";
-                string server2 = "ccesa2";
+                // Prompt user for Linux SSH credentials
+                _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
+                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
+
+                if (!success)
+                {
+                    _consoleForm.WriteWarning("Replication health check cancelled by user.");
+                    return;
+                }
+
+                _consoleForm.WriteInfo($"Credentials provided for server: {hostname}");
 
                 // Clear previous results
                 ClearReplicationResults();
 
-                // Test connections first
-                _consoleForm.WriteInfo("Testing SSH connections to Red Hat Directory Service servers...");
+                // Test connection first
+                _consoleForm.WriteInfo($"Testing SSH connection to {hostname}...");
 
-                bool server1Connected = await _linuxService.TestSSHConnectionAsync(server1, username, password);
-                bool server2Connected = await _linuxService.TestSSHConnectionAsync(server2, username, password);
+                bool serverConnected = await _linuxService.TestSSHConnectionAsync(hostname, username, password);
 
-                if (!server1Connected && !server2Connected)
+                if (!serverConnected)
                 {
-                    _consoleForm.WriteError("Failed to connect to both servers. Please check credentials and network connectivity.");
+                    _consoleForm.WriteError($"Failed to connect to {hostname}. Please check credentials and network connectivity.");
                     return;
                 }
 
-                if (!server1Connected)
-                {
-                    _consoleForm.WriteWarning($"Failed to connect to {server1}. Will check {server2} only.");
-                }
+                _consoleForm.WriteSuccess($"Successfully connected to {hostname}");
 
-                if (!server2Connected)
-                {
-                    _consoleForm.WriteWarning($"Failed to connect to {server2}. Will check {server1} only.");
-                }
-
-                // Check replication health on each server
-                if (server1Connected)
-                {
-                    await CheckServerReplicationHealth(server1, username, password, "SA1");
-                }
-
-                if (server2Connected)
-                {
-                    await CheckServerReplicationHealth(server2, username, password, "SA2");
-                }
+                // Check replication health on the server
+                await CheckServerReplicationHealth(hostname, username, password, hostname);
 
                 _consoleForm.WriteSuccess("LDAP Replication Health Check completed.");
             }
