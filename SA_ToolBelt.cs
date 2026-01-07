@@ -2974,18 +2974,19 @@ namespace SA_ToolBelt
                 // Commands to check LDAP replication health
                 // These are typical Red Hat Directory Service replication commands
                 // Note: Using the hostname from the credential dialog instead of "localhost"
+                // dsconf commands require bind DN and password for LDAP authentication
                 string[] healthCommands = {
-            // Check replication status
+            // Check replication status (dsctl doesn't need bind credentials)
             $"dsctl {hostname} status",
 
-            // Check replication agreements
-            $"dsconf {hostname} replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+            // Check replication agreements (requires Directory Manager credentials)
+            $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
 
-            // Check replication lag
-            $"dsconf {hostname} replication monitor",
+            // Check replication lag (requires Directory Manager credentials)
+            $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor",
 
-            // Check last update times
-            $"dsconf {hostname} replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
+            // Check last update times (requires Directory Manager credentials)
+            $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
         };
 
                 var results = await _linuxService.ExecuteMultipleSSHCommandsAsync(hostname, username, password, healthCommands);
