@@ -2982,7 +2982,7 @@ namespace SA_ToolBelt
             $"dsconf {hostname} replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
 
             // Check replication lag
-            $"dsconf {hostname} replication monitor --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+            $"dsconf {hostname} replication monitor",
 
             // Check last update times
             $"dsconf {hostname} replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
