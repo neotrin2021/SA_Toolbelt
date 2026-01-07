@@ -2978,13 +2978,13 @@ namespace SA_ToolBelt
             "dsctl localhost status",
             
             // Check replication agreements
-            "dsconf localhost replication get-ruv -s dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+            "dsconf localhost replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
             
             // Check replication lag
-            "dsconf localhost replication monitor -s dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
-            
+            "dsconf localhost replication monitor --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+
             // Check last update times
-            "dsconf localhost replication status -s dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
+            "dsconf localhost replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
         };
 
                 var results = await _linuxService.ExecuteMultipleSSHCommandsAsync(hostname, username, password, healthCommands);
