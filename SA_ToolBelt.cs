@@ -3325,44 +3325,42 @@ namespace SA_ToolBelt
             // Update the appropriate labels based on server (SA1 or SA2)
             if (serverLabel == "SA1")
             {
-                lblLastUpdatedStatusSa1.Text = status;
-                lblUpdateStartTimeSa1.Text = startTime;
-                lblUpdateEndedTimeSa1.Text = endTime;
-                lblTargetCcesa1.Text = "ccesa1";
+                lblLastUpdateStatusDataSa1.Text = status;
+                lblLastUpdateStartDataSa1.Text = startTime;
+                lblLastUpdateEndDataSa1.Text = endTime;
 
                 // Set color based on status
-                if (status.ToLower().Contains("running") || status.ToLower().Contains("active"))
+                if (status.ToLower().Contains("success") || status.ToLower().Contains("synchronization"))
                 {
-                    lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Green;
+                    lblLastUpdateStatusDataSa1.ForeColor = System.Drawing.Color.Green;
                 }
-                else if (status.ToLower().Contains("error") || status.ToLower().Contains("stopped"))
+                else if (status.ToLower().Contains("error") || status.ToLower().Contains("failed"))
                 {
-                    lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Red;
+                    lblLastUpdateStatusDataSa1.ForeColor = System.Drawing.Color.Red;
                 }
                 else
                 {
-                    lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Orange;
+                    lblLastUpdateStatusDataSa1.ForeColor = System.Drawing.Color.Orange;
                 }
             }
             else if (serverLabel == "SA2")
             {
-                lblUpdateStatusSa2.Text = status;
-                lblUpdateStartTimeSa2.Text = startTime;
-                lblUpdateEndTimeSa2.Text = endTime;
-                lblTargetCcesa2.Text = "ccesa2";
+                lblLastUpdateStatusDataSa2.Text = status;
+                lblLastUpdateStartDataSa2.Text = startTime;
+                lblLastUpdateEndDataSa2.Text = endTime;
 
                 // Set color based on status
-                if (status.ToLower().Contains("running") || status.ToLower().Contains("active"))
+                if (status.ToLower().Contains("success") || status.ToLower().Contains("synchronization"))
                 {
-                    lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Green;
+                    lblLastUpdateStatusDataSa2.ForeColor = System.Drawing.Color.Green;
                 }
-                else if (status.ToLower().Contains("error") || status.ToLower().Contains("stopped"))
+                else if (status.ToLower().Contains("error") || status.ToLower().Contains("failed"))
                 {
-                    lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Red;
+                    lblLastUpdateStatusDataSa2.ForeColor = System.Drawing.Color.Red;
                 }
                 else
                 {
-                    lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Orange;
+                    lblLastUpdateStatusDataSa2.ForeColor = System.Drawing.Color.Orange;
                 }
             }
         }
