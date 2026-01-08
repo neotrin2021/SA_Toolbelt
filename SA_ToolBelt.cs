@@ -3244,12 +3244,18 @@ namespace SA_ToolBelt
 
         private string ExtractValueFlexible(string line, string searchText)
         {
+            // Handle null or empty input
+            if (string.IsNullOrEmpty(line))
+                return string.Empty;
+
             // Find the search text (case insensitive) and extract everything after it
             int index = line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase);
             if (index >= 0)
             {
                 return line.Substring(index + searchText.Length).Trim();
             }
+
+            // Default: return the whole line trimmed
             return line.Trim();
         }
 
