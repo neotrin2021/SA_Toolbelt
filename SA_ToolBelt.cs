@@ -2965,42 +2965,311 @@ namespace SA_ToolBelt
         #endregion
 
         #region Spice PMI Tab Functions
+        // VERSION 1: With auto-fill for Bind DN (ACTIVE)
         private async Task CheckServerReplicationHealth(string hostname, string username, string password, string serverLabel)
         {
             try
             {
-                _consoleForm.WriteInfo($"Checking replication health on {hostname} ({serverLabel})...");
+                _consoleForm.WriteInfo($"Checking replication health on {hostname}...");
 
-                // Commands to check LDAP replication health
-                // These are typical Red Hat Directory Service replication commands
-                // Note: Using the hostname from the credential dialog instead of "localhost"
-                // Only the monitor command requires explicit Directory Manager authentication
-                string[] healthCommands = {
-            // Check replication status (dsctl doesn't need bind credentials)
-            $"dsctl {hostname} status",
+                // Single command to get all replication information
+                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
 
-            // Check replication agreements
-            $"dsconf {hostname} replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+                // Prepare inputs for the interactive prompts:
+                // 1. Bind DN for the other server (ccesa2 or ccesa1)
+                // 2. Password for the other server
+                // 3. Bind DN for the main server (the one we're connecting to)
+                // 4. Password for the main server
+                string[] inputs = new string[]
+                {
+                    "cn=Directory Manager",  // Bind DN for other server
+                    password,                // Password for other server
+                    "cn=Directory Manager",  // Bind DN for main server
+                    password                 // Password for main server
+                };
 
-            // Check replication lag (requires Directory Manager credentials)
-            $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor",
+                // Execute the interactive command
+                string output = await _linuxService.ExecuteInteractiveSSHCommandAsync(hostname, username, password, command, inputs);
 
-            // Check last update times
-            $"dsconf {hostname} replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
-        };
+                _consoleForm.WriteInfo($"Replication monitor output received ({output.Length} characters)");
 
-                var results = await _linuxService.ExecuteMultipleSSHCommandsAsync(hostname, username, password, healthCommands);
-
-                // Parse and display results
-                ParseAndDisplayReplicationResults(results, serverLabel);
+                // Parse and display the results
+                ParseReplicationMonitorOutput(output);
             }
             catch (Exception ex)
             {
                 _consoleForm.WriteError($"Failed to check replication health on {hostname}: {ex.Message}");
 
-                // Update UI to show error status
-                UpdateServerStatus(serverLabel, "ERROR", "Connection Failed", "N/A");
+                // Set all labels to error state
+                SetReplicationLabelsToError();
             }
+        }
+
+        /* VERSION 2: Without auto-fill for Bind DN (BACKUP - COMMENTED OUT)
+         * Uncomment this version and comment out VERSION 1 if auto-fill doesn't work
+         *
+        private async Task CheckServerReplicationHealth(string hostname, string username, string password, string serverLabel)
+        {
+            try
+            {
+                _consoleForm.WriteInfo($"Checking replication health on {hostname}...");
+
+                // Single command to get all replication information
+                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
+
+                // Prepare inputs for the interactive prompts:
+                // The command will prompt 4 times:
+                // 1. Bind DN for the other server
+                // 2. Password for the other server
+                // 3. Bind DN for the main server
+                // 4. Password for the main server
+                string[] inputs = new string[]
+                {
+                    password,  // Password for other server (will need to manually enter bind DN)
+                    password   // Password for main server (will need to manually enter bind DN)
+                };
+
+                // Execute the interactive command
+                string output = await _linuxService.ExecuteInteractiveSSHCommandAsync(hostname, username, password, command, inputs);
+
+                _consoleForm.WriteInfo($"Replication monitor output received ({output.Length} characters)");
+
+                // Parse and display the results
+                ParseReplicationMonitorOutput(output);
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to check replication health on {hostname}: {ex.Message}");
+
+                // Set all labels to error state
+                SetReplicationLabelsToError();
+            }
+        }
+        */
+
+        private void ParseReplicationMonitorOutput(string output)
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Parsing replication monitor output...");
+
+                // Split output into lines
+                var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                // Track which server section we're in (SA1 or SA2)
+                int currentServer = 0; // 0 = none, 1 = SA1, 2 = SA2
+                bool inSupplierSection = false;
+
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.Trim();
+
+                    // Detect supplier sections
+                    if (trimmedLine.StartsWith("Supplier:"))
+                    {
+                        inSupplierSection = true;
+                        currentServer++;
+                        _consoleForm.WriteInfo($"Found supplier section {currentServer}: {trimmedLine}");
+                        continue;
+                    }
+
+                    if (!inSupplierSection || currentServer == 0)
+                        continue;
+
+                    // Parse each field and update the appropriate labels
+                    if (trimmedLine.StartsWith("Replica Enabled:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica Enabled:");
+                        if (currentServer == 1)
+                            lblReplicaEnabledDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReplicaEnabledDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Update In Progress:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Update In Progress:");
+                        if (currentServer == 1)
+                            lblUpdateInProgressDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblUpdateInProgressDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Last Update Start:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Update Start:");
+                        if (currentServer == 1)
+                            lblLastUpdateStartDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastUpdateStartDataSa2.Text = FormatLdapTimestamp(value);
+                    }
+                    else if (trimmedLine.StartsWith("Last Update End:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Update End:");
+                        if (currentServer == 1)
+                            lblLastUpdateEndDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastUpdateEndDataSa2.Text = FormatLdapTimestamp(value);
+                    }
+                    else if (trimmedLine.StartsWith("Number of Changes Sent:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Number of Changes Sent:");
+                        if (currentServer == 1)
+                            lblChangesSentDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblChangesSentDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Number of Changes Skipped:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Number of Changes Skipped:");
+                        if (currentServer == 1)
+                            lblChangesSkippedDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblChangesSkippedDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Last Update Status:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Update Status:");
+                        if (currentServer == 1)
+                            lblLastUpdateStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblLastUpdateStatusDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Last Init Start:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Init Start:");
+                        if (currentServer == 1)
+                            lblLastInitStartDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastInitStartDataSa2.Text = FormatLdapTimestamp(value);
+                    }
+                    else if (trimmedLine.StartsWith("Last Init End:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Init End:");
+                        if (currentServer == 1)
+                            lblLastInitEndDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastInitEndDataSa2.Text = FormatLdapTimestamp(value);
+                    }
+                    else if (trimmedLine.StartsWith("Last Init Status:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Init Status:");
+                        if (currentServer == 1)
+                            lblLastInitStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblLastInitStatusDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Reap Active:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Reap Active:");
+                        if (currentServer == 1)
+                            lblReapActiveDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReapActiveDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Replication Status:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replication Status:");
+                        if (currentServer == 1)
+                            lblReplicationStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReplicationStatusDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Replication Lag Time:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replication Lag Time:");
+                        if (currentServer == 1)
+                            lblReplicationLagTimeDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReplicationLagTimeDataSa2.Text = value;
+                    }
+                    else if (trimmedLine.StartsWith("Status For Agreement:"))
+                    {
+                        string value = ExtractValue(trimmedLine, "Status For Agreement:");
+                        if (currentServer == 1)
+                            lblStatusAgreementDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblStatusAgreementDataSa2.Text = value;
+                    }
+                }
+
+                _consoleForm.WriteSuccess($"Successfully parsed replication data for {currentServer} server(s)");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error parsing replication output: {ex.Message}");
+            }
+        }
+
+        private string ExtractValue(string line, string prefix)
+        {
+            if (line.StartsWith(prefix))
+            {
+                return line.Substring(prefix.Length).Trim();
+            }
+            return line.Trim();
+        }
+
+        private string FormatLdapTimestamp(string ldapTimestamp)
+        {
+            // LDAP timestamp format: 20260108185252Z
+            // Convert to readable format: 2026/01/08 18:52:52
+            try
+            {
+                if (string.IsNullOrWhiteSpace(ldapTimestamp) || ldapTimestamp == "unavailable")
+                    return ldapTimestamp;
+
+                if (ldapTimestamp.Length >= 14)
+                {
+                    string year = ldapTimestamp.Substring(0, 4);
+                    string month = ldapTimestamp.Substring(4, 2);
+                    string day = ldapTimestamp.Substring(6, 2);
+                    string hour = ldapTimestamp.Substring(8, 2);
+                    string minute = ldapTimestamp.Substring(10, 2);
+                    string second = ldapTimestamp.Substring(12, 2);
+
+                    return $"{year}/{month}/{day} {hour}:{minute}:{second}";
+                }
+
+                return ldapTimestamp;
+            }
+            catch
+            {
+                return ldapTimestamp;
+            }
+        }
+
+        private void SetReplicationLabelsToError()
+        {
+            // Set SA1 labels to error
+            lblReplicationStatusDataSa1.Text = "ERROR";
+            lblStatusAgreementDataSa1.Text = "ERROR";
+            lblUpdateInProgressDataSa1.Text = "ERROR";
+            lblReplicaEnabledDataSa1.Text = "ERROR";
+            lblChangesSentDataSa1.Text = "ERROR";
+            lblChangesSkippedDataSa1.Text = "ERROR";
+            lblLastUpdateStartDataSa1.Text = "ERROR";
+            lblLastUpdateEndDataSa1.Text = "ERROR";
+            lblLastUpdateStatusDataSa1.Text = "ERROR";
+            lblReapActiveDataSa1.Text = "ERROR";
+            lblReplicationLagTimeDataSa1.Text = "ERROR";
+            lblLastInitStartDataSa1.Text = "ERROR";
+            lblLastInitEndDataSa1.Text = "ERROR";
+            lblLastInitStatusDataSa1.Text = "ERROR";
+
+            // Set SA2 labels to error
+            lblReplicationStatusDataSa2.Text = "ERROR";
+            lblStatusAgreementDataSa2.Text = "ERROR";
+            lblUpdateInProgressDataSa2.Text = "ERROR";
+            lblReplicaEnabledDataSa2.Text = "ERROR";
+            lblChangesSentDataSa2.Text = "ERROR";
+            lblChangesSkippedDataSa2.Text = "ERROR";
+            lblLastUpdateStartDataSa2.Text = "ERROR";
+            lblLastUpdateEndDataSa2.Text = "ERROR";
+            lblLastUpdateStatusDataSa2.Text = "ERROR";
+            lblReapActiveDataSa2.Text = "ERROR";
+            lblReplicationLagTimeDataSa2.Text = "ERROR";
+            lblLastInitStartDataSa2.Text = "ERROR";
+            lblLastInitEndDataSa2.Text = "ERROR";
+            lblLastInitStatusDataSa2.Text = "ERROR";
         }
 
         private void ParseAndDisplayReplicationResults(Dictionary<string, string> results, string serverLabel)
@@ -3100,17 +3369,37 @@ namespace SA_ToolBelt
 
         private void ClearReplicationResults()
         {
-            // Clear SA1 labels
-            lblLastUpdatedStatusSa1.Text = "Checking...";
-            lblUpdateStartTimeSa1.Text = "Checking...";
-            lblUpdateEndedTimeSa1.Text = "Checking...";
-            lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Black;
+            // Clear SA1 data labels
+            lblReplicationStatusDataSa1.Text = "Checking...";
+            lblStatusAgreementDataSa1.Text = "Checking...";
+            lblUpdateInProgressDataSa1.Text = "Checking...";
+            lblReplicaEnabledDataSa1.Text = "Checking...";
+            lblChangesSentDataSa1.Text = "Checking...";
+            lblChangesSkippedDataSa1.Text = "Checking...";
+            lblLastUpdateStartDataSa1.Text = "Checking...";
+            lblLastUpdateEndDataSa1.Text = "Checking...";
+            lblLastUpdateStatusDataSa1.Text = "Checking...";
+            lblReapActiveDataSa1.Text = "Checking...";
+            lblReplicationLagTimeDataSa1.Text = "Checking...";
+            lblLastInitStartDataSa1.Text = "Checking...";
+            lblLastInitEndDataSa1.Text = "Checking...";
+            lblLastInitStatusDataSa1.Text = "Checking...";
 
-            // Clear SA2 labels
-            lblUpdateStatusSa2.Text = "Checking...";
-            lblUpdateStartTimeSa2.Text = "Checking...";
-            lblUpdateEndTimeSa2.Text = "Checking...";
-            lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Black;
+            // Clear SA2 data labels
+            lblReplicationStatusDataSa2.Text = "Checking...";
+            lblStatusAgreementDataSa2.Text = "Checking...";
+            lblUpdateInProgressDataSa2.Text = "Checking...";
+            lblReplicaEnabledDataSa2.Text = "Checking...";
+            lblChangesSentDataSa2.Text = "Checking...";
+            lblChangesSkippedDataSa2.Text = "Checking...";
+            lblLastUpdateStartDataSa2.Text = "Checking...";
+            lblLastUpdateEndDataSa2.Text = "Checking...";
+            lblLastUpdateStatusDataSa2.Text = "Checking...";
+            lblReapActiveDataSa2.Text = "Checking...";
+            lblReplicationLagTimeDataSa2.Text = "Checking...";
+            lblLastInitStartDataSa2.Text = "Checking...";
+            lblLastInitEndDataSa2.Text = "Checking...";
+            lblLastInitStatusDataSa2.Text = "Checking...";
         }
         private Task UpdateDataGridView(DataGridView dgv, List<Linux_Service.DiskInfo> diskInfo)
         {

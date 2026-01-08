@@ -152,6 +152,111 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
+        /// Execute an interactive SSH command that prompts for input
+        /// </summary>
+        /// <param name="hostname">Target server hostname</param>
+        /// <param name="username">SSH username</param>
+        /// <param name="password">SSH password</param>
+        /// <param name="command">Command to execute</param>
+        /// <param name="inputs">Array of inputs to send when prompted (e.g., bind DN, passwords)</param>
+        /// <returns>Command output</returns>
+        public async Task<string> ExecuteInteractiveSSHCommandAsync(string hostname, string username, string password, string command, string[] inputs = null)
+        {
+            try
+            {
+                _consoleForm?.WriteInfo($"Connecting to {hostname} via SSH for interactive command...");
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "plink.exe",
+                    Arguments = $"{username}@{hostname} -pw {password}",
+                    UseShellExecute = false,
+                    RedirectStandardInput = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                };
+
+                _consoleForm?.WriteInfo($"Executing interactive command: {command}");
+
+                using (var process = new Process { StartInfo = processInfo })
+                {
+                    var output = new StringBuilder();
+                    var error = new StringBuilder();
+                    var allOutput = new StringBuilder();
+
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            output.AppendLine(e.Data);
+                            allOutput.AppendLine(e.Data);
+                        }
+                    };
+
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            error.AppendLine(e.Data);
+                            allOutput.AppendLine(e.Data);
+                        }
+                    };
+
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    // Send the command
+                    await process.StandardInput.WriteLineAsync(command);
+
+                    // Send inputs if provided (for interactive prompts)
+                    if (inputs != null && inputs.Length > 0)
+                    {
+                        _consoleForm?.WriteInfo($"Sending {inputs.Length} input responses...");
+                        foreach (var input in inputs)
+                        {
+                            // Wait a bit for the prompt to appear
+                            await Task.Delay(500);
+                            await process.StandardInput.WriteLineAsync(input);
+                        }
+                    }
+
+                    // Wait a bit for command to process
+                    await Task.Delay(1000);
+
+                    // Send exit command
+                    await process.StandardInput.WriteLineAsync("exit");
+                    await process.StandardInput.FlushAsync();
+
+                    // Wait for process to complete with timeout
+                    var completed = await Task.Run(() => process.WaitForExit(60000)); // 60 second timeout for interactive
+
+                    if (!completed)
+                    {
+                        process.Kill();
+                        throw new TimeoutException("Interactive SSH command timed out after 60 seconds");
+                    }
+
+                    string result = output.ToString();
+                    string errorOutput = error.ToString();
+
+                    _consoleForm?.WriteInfo($"Interactive command completed with exit code: {process.ExitCode}");
+
+                    // For interactive commands, we return the output even if exit code is non-zero
+                    // because the command itself might succeed but the shell exit might have issues
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Interactive SSH command error: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Test SSH connection to a server
         /// </summary>
         public async Task<bool> TestSSHConnectionAsync(string hostname, string username, string password)
