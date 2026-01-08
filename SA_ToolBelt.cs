@@ -3052,142 +3052,174 @@ namespace SA_ToolBelt
             try
             {
                 _consoleForm.WriteInfo("Parsing replication monitor output...");
+                _consoleForm.WriteInfo($"Output length: {output.Length} characters");
+
+                // Log the raw output for debugging
+                _consoleForm.WriteInfo("=== RAW OUTPUT START ===");
+                _consoleForm.WriteInfo(output);
+                _consoleForm.WriteInfo("=== RAW OUTPUT END ===");
 
                 // Split output into lines
                 var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                _consoleForm.WriteInfo($"Total lines to parse: {lines.Length}");
 
                 // Track which server section we're in (SA1 or SA2)
                 int currentServer = 0; // 0 = none, 1 = SA1, 2 = SA2
                 bool inSupplierSection = false;
 
+                int lineNumber = 0;
                 foreach (var line in lines)
                 {
+                    lineNumber++;
                     var trimmedLine = line.Trim();
 
                     // Detect supplier sections
-                    if (trimmedLine.StartsWith("Supplier:"))
+                    if (trimmedLine.StartsWith("Supplier:", StringComparison.OrdinalIgnoreCase))
                     {
                         inSupplierSection = true;
                         currentServer++;
-                        _consoleForm.WriteInfo($"Found supplier section {currentServer}: {trimmedLine}");
+                        _consoleForm.WriteSuccess($"[Line {lineNumber}] Found Supplier Section #{currentServer}: {trimmedLine}");
                         continue;
                     }
 
                     if (!inSupplierSection || currentServer == 0)
                         continue;
 
+                    // Log what we're parsing
+                    if (!string.IsNullOrWhiteSpace(trimmedLine) && trimmedLine.Contains(":"))
+                    {
+                        _consoleForm.WriteInfo($"[Server {currentServer}, Line {lineNumber}] Parsing: {trimmedLine}");
+                    }
+
                     // Parse each field and update the appropriate labels
-                    if (trimmedLine.StartsWith("Replica Enabled:"))
+                    // Using case-insensitive comparisons for more flexibility
+                    if (trimmedLine.StartsWith("Replica Enabled:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Replica Enabled:");
                         if (currentServer == 1)
                             lblReplicaEnabledDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblReplicaEnabledDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica Enabled for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Update In Progress:"))
+                    else if (trimmedLine.StartsWith("Update In Progress:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Update In Progress:");
                         if (currentServer == 1)
                             lblUpdateInProgressDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblUpdateInProgressDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Update In Progress for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Last Update Start:"))
+                    else if (trimmedLine.StartsWith("Last Update Start:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Last Update Start:");
                         if (currentServer == 1)
                             lblLastUpdateStartDataSa1.Text = FormatLdapTimestamp(value);
                         else if (currentServer == 2)
                             lblLastUpdateStartDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Update Start for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Last Update End:"))
+                    else if (trimmedLine.StartsWith("Last Update End:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Last Update End:");
                         if (currentServer == 1)
                             lblLastUpdateEndDataSa1.Text = FormatLdapTimestamp(value);
                         else if (currentServer == 2)
                             lblLastUpdateEndDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Update End for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Number of Changes Sent:"))
+                    // More flexible matching for "Number of Changes Sent" - handles variations
+                    else if (trimmedLine.IndexOf("Changes Sent:", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        string value = ExtractValue(trimmedLine, "Number of Changes Sent:");
+                        string value = ExtractValueFlexible(trimmedLine, "Changes Sent:");
                         if (currentServer == 1)
                             lblChangesSentDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblChangesSentDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Changes Sent for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Number of Changes Skipped:"))
+                    // More flexible matching for "Number of Changes Skipped"
+                    else if (trimmedLine.IndexOf("Changes Skipped:", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        string value = ExtractValue(trimmedLine, "Number of Changes Skipped:");
+                        string value = ExtractValueFlexible(trimmedLine, "Changes Skipped:");
                         if (currentServer == 1)
                             lblChangesSkippedDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblChangesSkippedDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Changes Skipped for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Last Update Status:"))
+                    else if (trimmedLine.StartsWith("Last Update Status:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Last Update Status:");
                         if (currentServer == 1)
                             lblLastUpdateStatusDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblLastUpdateStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Last Update Status for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Last Init Start:"))
+                    else if (trimmedLine.StartsWith("Last Init Start:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Last Init Start:");
                         if (currentServer == 1)
                             lblLastInitStartDataSa1.Text = FormatLdapTimestamp(value);
                         else if (currentServer == 2)
                             lblLastInitStartDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Init Start for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Last Init End:"))
+                    else if (trimmedLine.StartsWith("Last Init End:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Last Init End:");
                         if (currentServer == 1)
                             lblLastInitEndDataSa1.Text = FormatLdapTimestamp(value);
                         else if (currentServer == 2)
                             lblLastInitEndDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Init End for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Last Init Status:"))
+                    else if (trimmedLine.StartsWith("Last Init Status:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Last Init Status:");
                         if (currentServer == 1)
                             lblLastInitStatusDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblLastInitStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Last Init Status for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Reap Active:"))
+                    else if (trimmedLine.StartsWith("Reap Active:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Reap Active:");
                         if (currentServer == 1)
                             lblReapActiveDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblReapActiveDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Reap Active for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Replication Status:"))
+                    else if (trimmedLine.StartsWith("Replication Status:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Replication Status:");
                         if (currentServer == 1)
                             lblReplicationStatusDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblReplicationStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replication Status for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Replication Lag Time:"))
+                    else if (trimmedLine.StartsWith("Replication Lag Time:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Replication Lag Time:");
                         if (currentServer == 1)
                             lblReplicationLagTimeDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblReplicationLagTimeDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replication Lag Time for SA{currentServer}: {value}");
                     }
-                    else if (trimmedLine.StartsWith("Status For Agreement:"))
+                    else if (trimmedLine.StartsWith("Status For Agreement:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Status For Agreement:");
                         if (currentServer == 1)
                             lblStatusAgreementDataSa1.Text = value;
                         else if (currentServer == 2)
                             lblStatusAgreementDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Status Agreement for SA{currentServer}: {value}");
                     }
                 }
 
@@ -3196,14 +3228,27 @@ namespace SA_ToolBelt
             catch (Exception ex)
             {
                 _consoleForm.WriteError($"Error parsing replication output: {ex.Message}");
+                _consoleForm.WriteError($"Stack trace: {ex.StackTrace}");
             }
         }
 
         private string ExtractValue(string line, string prefix)
         {
-            if (line.StartsWith(prefix))
+            int index = line.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (index >= 0)
             {
-                return line.Substring(prefix.Length).Trim();
+                return line.Substring(index + prefix.Length).Trim();
+            }
+            return line.Trim();
+        }
+
+        private string ExtractValueFlexible(string line, string searchText)
+        {
+            // Find the search text (case insensitive) and extract everything after it
+            int index = line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase);
+            if (index >= 0)
+            {
+                return line.Substring(index + searchText.Length).Trim();
             }
             return line.Trim();
         }
