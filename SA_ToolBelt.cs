@@ -3844,20 +3844,7 @@ namespace SA_ToolBelt
                 // Clear previous results
                 ClearReplicationResults();
 
-                // Test connection first
-                _consoleForm.WriteInfo($"Testing SSH connection to {hostname}...");
-
-                bool serverConnected = await _linuxService.TestSSHConnectionAsync(hostname, username, password);
-
-                if (!serverConnected)
-                {
-                    _consoleForm.WriteError($"Failed to connect to {hostname}. Please check credentials and network connectivity.");
-                    return;
-                }
-
-                _consoleForm.WriteSuccess($"Successfully connected to {hostname}");
-
-                // Check replication health on the server
+                // Check replication health on the server (connection test happens within the interactive command)
                 await CheckServerReplicationHealth(hostname, username, password, hostname);
 
                 _consoleForm.WriteSuccess("LDAP Replication Health Check completed.");

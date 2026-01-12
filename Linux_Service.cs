@@ -210,11 +210,40 @@ namespace SA_ToolBelt
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();
 
-                    // Send the command
+                    // Wait for shell prompt to appear before sending command
+                    // Red Hat typically shows prompts ending with $ or ]$ or #
+                    _consoleForm?.WriteInfo("Waiting for shell prompt...");
+                    int waitTime = 0;
+                    int maxWaitTime = 15000; // 15 seconds max wait
+                    int checkInterval = 500; // Check every 500ms
+
+                    while (waitTime < maxWaitTime)
+                    {
+                        await Task.Delay(checkInterval);
+                        waitTime += checkInterval;
+
+                        string currentOutput = allOutput.ToString();
+
+                        // Check if we have a shell prompt (typical Red Hat prompts)
+                        if (currentOutput.Contains("]$") || currentOutput.Contains("# ") ||
+                            currentOutput.EndsWith("$ ") || currentOutput.EndsWith("# ") ||
+                            currentOutput.Contains("[" + username + "@"))
+                        {
+                            _consoleForm?.WriteInfo("Shell prompt detected. Sending command...");
+                            break;
+                        }
+                    }
+
+                    if (waitTime >= maxWaitTime)
+                    {
+                        _consoleForm?.WriteWarning("Shell prompt not detected within timeout. Proceeding anyway...");
+                    }
+
+                    // Now send the command
                     await process.StandardInput.WriteLineAsync(command);
                     await process.StandardInput.FlushAsync();
 
-                    // Wait longer for the command to start and first prompt to appear
+                    // Wait for the command to start and first prompt to appear
                     await Task.Delay(2000);
 
                     // Send inputs if provided (for interactive prompts)
