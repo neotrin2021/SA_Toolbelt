@@ -3808,57 +3808,7 @@ namespace SA_ToolBelt
 
         private async void btnCheckRepHealth_Click(object sender, EventArgs e)
         {
-            try
-            {
-                // Disable button during operation
-                btnCheckRepHealth.Enabled = false;
-                btnCheckRepHealth.Text = "Checking...";
-
-                _consoleForm.WriteInfo("Starting LDAP Replication Health Check...");
-
-                // Initialize LinuxService if not already done
-                if (_linuxService == null)
-                {
-                    _linuxService = new Linux_Service(_consoleForm);
-                }
-
-                // Check if plink is available
-                if (!_linuxService.IsPlinkAvailable())
-                {
-                    _consoleForm.WriteError("Plink.exe not found. Please ensure PuTTY is installed and plink.exe is in PATH or current directory.");
-                    return;
-                }
-
-                // Prompt user for Linux SSH credentials
-                _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
-                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
-
-                if (!success)
-                {
-                    _consoleForm.WriteWarning("Replication health check cancelled by user.");
-                    return;
-                }
-
-                _consoleForm.WriteInfo($"Credentials provided for server: {hostname}");
-
-                // Clear previous results
-                ClearReplicationResults();
-
-                // Check replication health on the server (connection test happens within the interactive command)
-                await CheckServerReplicationHealth(hostname, username, password, hostname);
-
-                _consoleForm.WriteSuccess("LDAP Replication Health Check completed.");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error during replication health check: {ex.Message}");
-            }
-            finally
-            {
-                // Re-enable button
-                btnCheckRepHealth.Enabled = true;
-                btnCheckRepHealth.Text = "Check Replication Health";
-            }
+            // Starting fresh - to be implemented
         }
         #endregion
 
