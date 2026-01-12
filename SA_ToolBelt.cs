@@ -3863,6 +3863,9 @@ namespace SA_ToolBelt
                 await process.StandardInput.WriteLineAsync(command);
                 await process.StandardInput.FlushAsync();
 
+                // Close StandardInput so manual input works in the visible window
+                process.StandardInput.Close();
+
                 _consoleForm.WriteSuccess($"SSH window opened and dsconf command sent. Enter credentials when prompted.");
             }
             catch (Exception ex)
