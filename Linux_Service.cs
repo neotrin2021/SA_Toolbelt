@@ -212,21 +212,30 @@ namespace SA_ToolBelt
 
                     // Send the command
                     await process.StandardInput.WriteLineAsync(command);
+                    await process.StandardInput.FlushAsync();
+
+                    // Wait longer for the command to start and first prompt to appear
+                    await Task.Delay(2000);
 
                     // Send inputs if provided (for interactive prompts)
                     if (inputs != null && inputs.Length > 0)
                     {
                         _consoleForm?.WriteInfo($"Sending {inputs.Length} input responses (credentials masked)...");
+                        int inputNumber = 0;
                         foreach (var input in inputs)
                         {
-                            // Wait a bit for the prompt to appear
-                            await Task.Delay(500);
+                            inputNumber++;
+                            _consoleForm?.WriteInfo($"Sending input #{inputNumber}...");
                             await process.StandardInput.WriteLineAsync(input);
+                            await process.StandardInput.FlushAsync();
+
+                            // Wait longer between inputs to ensure prompts are ready
+                            await Task.Delay(1500);
                         }
                     }
 
-                    // Wait a bit for command to process
-                    await Task.Delay(1000);
+                    // Wait longer for command to finish processing
+                    await Task.Delay(3000);
 
                     // Send exit command
                     await process.StandardInput.WriteLineAsync("exit");
