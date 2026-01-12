@@ -178,7 +178,9 @@ namespace SA_ToolBelt
                     WorkingDirectory = Directory.GetCurrentDirectory()
                 };
 
-                _consoleForm?.WriteInfo($"Executing interactive command: {command}");
+                // Sanitize command for logging - replace password with ***
+                string sanitizedCommand = command.Replace(password, "***");
+                _consoleForm?.WriteInfo($"Executing interactive command: {sanitizedCommand}");
 
                 using (var process = new Process { StartInfo = processInfo })
                 {
@@ -214,7 +216,7 @@ namespace SA_ToolBelt
                     // Send inputs if provided (for interactive prompts)
                     if (inputs != null && inputs.Length > 0)
                     {
-                        _consoleForm?.WriteInfo($"Sending {inputs.Length} input responses...");
+                        _consoleForm?.WriteInfo($"Sending {inputs.Length} input responses (credentials masked)...");
                         foreach (var input in inputs)
                         {
                             // Wait a bit for the prompt to appear
