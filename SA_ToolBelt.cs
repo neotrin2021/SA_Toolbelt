@@ -2993,8 +2993,8 @@ namespace SA_ToolBelt
 
                 _consoleForm.WriteInfo($"Replication monitor output received ({output.Length} characters)");
 
-                // Parse and display the results
-                ParseReplicationMonitorOutput(output);
+                // Parse and display the results (password will be sanitized in parser)
+                ParseReplicationMonitorOutput(output, password);
             }
             catch (Exception ex)
             {
@@ -3047,16 +3047,19 @@ namespace SA_ToolBelt
         }
         */
 
-        private void ParseReplicationMonitorOutput(string output)
+        private void ParseReplicationMonitorOutput(string output, string password)
         {
             try
             {
                 _consoleForm.WriteInfo("Parsing replication monitor output...");
                 _consoleForm.WriteInfo($"Output length: {output.Length} characters");
 
-                // Log the raw output for debugging
-                _consoleForm.WriteInfo("=== RAW OUTPUT START ===");
-                _consoleForm.WriteInfo(output);
+                // Sanitize output before logging - replace password with ***
+                string sanitizedOutput = output.Replace(password, "***");
+
+                // Log the sanitized raw output for debugging
+                _consoleForm.WriteInfo("=== RAW OUTPUT START (passwords masked) ===");
+                _consoleForm.WriteInfo(sanitizedOutput);
                 _consoleForm.WriteInfo("=== RAW OUTPUT END ===");
 
                 // Split output into lines
