@@ -222,12 +222,22 @@ namespace SA_ToolBelt
                     // THEN it connects to both servers and gathers information
                     if (inputs != null && inputs.Length > 0)
                     {
-                        _consoleForm?.WriteInfo($"Sending {inputs.Length} input responses (credentials masked)...");
+                        _consoleForm?.WriteInfo($"=== DEBUG: Starting to send {inputs.Length} input responses ===");
                         int inputNumber = 0;
                         foreach (var input in inputs)
                         {
                             inputNumber++;
-                            _consoleForm?.WriteInfo($"Sending input #{inputNumber}...");
+
+                            // Show what's currently on screen (the prompt)
+                            string currentOutput = output.ToString();
+                            _consoleForm?.WriteInfo($"=== DEBUG: Current screen output BEFORE input #{inputNumber} ===");
+                            _consoleForm?.WriteInfo(currentOutput);
+                            _consoleForm?.WriteInfo($"=== END current output ===");
+
+                            // Mask password inputs for logging (inputs 2 and 4 are passwords)
+                            string inputToLog = (inputNumber == 2 || inputNumber == 4) ? "***" : input;
+                            _consoleForm?.WriteInfo($"DEBUG: Sending input #{inputNumber}: {inputToLog}");
+
                             await process.StandardInput.WriteLineAsync(input);
                             await process.StandardInput.FlushAsync();
 
@@ -237,7 +247,7 @@ namespace SA_ToolBelt
 
                         // After all credentials are entered, the command connects to servers
                         // This is where we need the long wait
-                        _consoleForm?.WriteInfo($"All credentials sent. Waiting for servers to connect and gather data...");
+                        _consoleForm?.WriteInfo($"=== DEBUG: All credentials sent. Waiting for servers to connect and gather data... ===");
                     }
 
                     // Wait much longer for command to connect to both servers and gather all data
