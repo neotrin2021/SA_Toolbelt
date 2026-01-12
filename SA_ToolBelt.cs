@@ -3840,33 +3840,28 @@ namespace SA_ToolBelt
                 }
 
                 _consoleForm.WriteInfo($"Opening visible SSH session to {hostname}...");
-                _consoleForm.WriteInfo("The dsconf command will be sent automatically. You can enter credentials when prompted.");
+                _consoleForm.WriteInfo("The dsconf command will be typed for you. Press ENTER to execute it.");
 
-                // Open a visible command window with SSH connection and send the dsconf command
+                // Open a visible command window with SSH connection
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
-                    UseShellExecute = false,
-                    RedirectStandardInput = true, // So we can send the command
+                    UseShellExecute = true, // Let Windows handle the window
                     CreateNoWindow = false, // Make it visible
                     WorkingDirectory = Directory.GetCurrentDirectory()
                 };
 
-                var process = Process.Start(processInfo);
+                Process.Start(processInfo);
 
                 // Wait for SSH connection to establish and shell prompt to appear
                 await Task.Delay(3000); // 3 seconds for SSH banner and prompt
 
-                // Send the dsconf command
+                // Type the dsconf command using SendKeys (but don't press Enter)
                 string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
-                await process.StandardInput.WriteLineAsync(command);
-                await process.StandardInput.FlushAsync();
+                System.Windows.Forms.SendKeys.SendWait(command);
 
-                // Close StandardInput so manual input works in the visible window
-                process.StandardInput.Close();
-
-                _consoleForm.WriteSuccess($"SSH window opened and dsconf command sent. Enter credentials when prompted.");
+                _consoleForm.WriteSuccess($"SSH window opened and command typed. Press ENTER to run it, then enter credentials when prompted.");
             }
             catch (Exception ex)
             {
