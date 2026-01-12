@@ -3808,7 +3808,64 @@ namespace SA_ToolBelt
 
         private async void btnCheckRepHealth_Click(object sender, EventArgs e)
         {
-            // Starting fresh - to be implemented
+            try
+            {
+                // Disable button during operation
+                btnCheckRepHealth.Enabled = false;
+                btnCheckRepHealth.Text = "Opening SSH...";
+
+                _consoleForm.WriteInfo("Starting LDAP Replication Health Check...");
+
+                // Initialize LinuxService if not already done
+                if (_linuxService == null)
+                {
+                    _linuxService = new Linux_Service(_consoleForm);
+                }
+
+                // Check if plink is available
+                if (!_linuxService.IsPlinkAvailable())
+                {
+                    _consoleForm.WriteError("Plink.exe not found. Please ensure PuTTY is installed and plink.exe is in PATH or current directory.");
+                    return;
+                }
+
+                // Prompt user for Linux SSH credentials
+                _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
+                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
+
+                if (!success)
+                {
+                    _consoleForm.WriteWarning("Replication health check cancelled by user.");
+                    return;
+                }
+
+                _consoleForm.WriteInfo($"Opening visible SSH session to {hostname}...");
+                _consoleForm.WriteInfo("You can manually run: dsconf -D 'cn=Directory Manager' -w 'yourpassword' ldap://ccesa1:389 replication monitor");
+
+                // Open a visible command window with SSH connection
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
+                    UseShellExecute = false,
+                    CreateNoWindow = false, // Make it visible
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                };
+
+                Process.Start(processInfo);
+
+                _consoleForm.WriteSuccess($"SSH window opened to {hostname}. You can now run the dsconf command manually.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error opening SSH session: {ex.Message}");
+            }
+            finally
+            {
+                // Re-enable button
+                btnCheckRepHealth.Enabled = true;
+                btnCheckRepHealth.Text = "Check Replication Health";
+            }
         }
         #endregion
 
