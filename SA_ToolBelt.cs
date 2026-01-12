@@ -3847,19 +3847,24 @@ namespace SA_ToolBelt
                 {
                     FileName = "cmd.exe",
                     Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
-                    UseShellExecute = true, // Let Windows handle the window
+                    UseShellExecute = false,
+                    RedirectStandardInput = true, // So we can type the command
                     CreateNoWindow = false, // Make it visible
                     WorkingDirectory = Directory.GetCurrentDirectory()
                 };
 
-                Process.Start(processInfo);
+                var process = Process.Start(processInfo);
 
                 // Wait for SSH connection to establish and shell prompt to appear
                 await Task.Delay(3000); // 3 seconds for SSH banner and prompt
 
-                // Type the dsconf command using SendKeys (but don't press Enter)
+                // Type the dsconf command (without pressing Enter)
                 string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
-                System.Windows.Forms.SendKeys.SendWait(command);
+                await process.StandardInput.WriteAsync(command); // Write, not WriteLine (no Enter)
+                await process.StandardInput.FlushAsync();
+
+                // Close StandardInput so manual input works
+                process.StandardInput.Close();
 
                 _consoleForm.WriteSuccess($"SSH window opened and command typed. Press ENTER to run it, then enter credentials when prompted.");
             }
