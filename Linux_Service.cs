@@ -218,6 +218,8 @@ namespace SA_ToolBelt
                     await Task.Delay(2000);
 
                     // Send inputs if provided (for interactive prompts)
+                    // The dsconf monitor command asks for credentials TWICE upfront (back to back)
+                    // THEN it connects to both servers and gathers information
                     if (inputs != null && inputs.Length > 0)
                     {
                         _consoleForm?.WriteInfo($"Sending {inputs.Length} input responses (credentials masked)...");
@@ -229,13 +231,17 @@ namespace SA_ToolBelt
                             await process.StandardInput.WriteLineAsync(input);
                             await process.StandardInput.FlushAsync();
 
-                            // Wait longer between inputs to ensure prompts are ready
-                            await Task.Delay(1500);
+                            // Short delay between prompts - they come back-to-back
+                            await Task.Delay(1000);
                         }
+
+                        // After all credentials are entered, the command connects to servers
+                        // This is where we need the long wait
+                        _consoleForm?.WriteInfo($"All credentials sent. Waiting for servers to connect and gather data...");
                     }
 
-                    // Wait longer for command to finish processing
-                    await Task.Delay(3000);
+                    // Wait much longer for command to connect to both servers and gather all data
+                    await Task.Delay(10000); // 10 seconds for server connections and data gathering
 
                     // Send exit command
                     await process.StandardInput.WriteLineAsync("exit");
