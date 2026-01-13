@@ -3873,6 +3873,13 @@ namespace SA_ToolBelt
 
                 await Task.Delay(200); // Small delay after focusing
 
+                // Send Enter to get past the "Access Granted. Press Return to begin session" prompt
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                _consoleForm.WriteInfo("Sent Enter to bypass Access Granted prompt...");
+
+                // Wait for shell prompt to appear
+                await Task.Delay(2000);
+
                 // Type the dsconf command using SendKeys (but don't press Enter)
                 string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
                 System.Windows.Forms.SendKeys.SendWait(command);
