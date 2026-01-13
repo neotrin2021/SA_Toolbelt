@@ -5,12 +5,17 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace SA_ToolBelt
 {
     public class Linux_Service
     {
         private readonly ConsoleForm _consoleForm;
+
+        // Windows API for setting window focus
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         public Linux_Service(ConsoleForm consoleForm = null)
         {
@@ -168,105 +173,116 @@ namespace SA_ToolBelt
 
                 var processInfo = new ProcessStartInfo
                 {
-                    FileName = "plink.exe",
-                    Arguments = $"{username}@{hostname} -pw {password}",
+                    FileName = "cmd.exe",
+                    Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
                     UseShellExecute = false,
-                    RedirectStandardInput = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    CreateNoWindow = true,
+                    CreateNoWindow = false, // Keep it visible so SendKeys works
                     WorkingDirectory = Directory.GetCurrentDirectory()
                 };
 
-                using (var process = new Process { StartInfo = processInfo })
+                var process = Process.Start(processInfo);
+
+                var output = new StringBuilder();
+                var error = new StringBuilder();
+
+                // Start reading output asynchronously
+                Task.Run(async () =>
                 {
-                    var output = new StringBuilder();
-                    var error = new StringBuilder();
-
-                    process.OutputDataReceived += (sender, e) =>
+                    using (var reader = process.StandardOutput)
                     {
-                        if (e.Data != null)
+                        char[] buffer = new char[1024];
+                        int bytesRead;
+                        while ((bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
                         {
-                            output.AppendLine(e.Data);
+                            output.Append(buffer, 0, bytesRead);
                         }
-                    };
+                    }
+                });
 
-                    process.ErrorDataReceived += (sender, e) =>
+                Task.Run(async () =>
+                {
+                    using (var reader = process.StandardError)
                     {
-                        if (e.Data != null)
+                        char[] buffer = new char[1024];
+                        int bytesRead;
+                        while ((bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
                         {
-                            error.AppendLine(e.Data);
+                            error.Append(buffer, 0, bytesRead);
                         }
-                    };
-
-                    process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-
-                    // Wait for SSH connection and "Access Granted" prompt
-                    _consoleForm?.WriteInfo("Waiting for SSH connection...");
-                    await Task.Delay(12000); // 12 seconds for SSH connection
-
-                    // Send Enter to bypass "Access Granted. Press Return to begin session" prompt
-                    _consoleForm?.WriteInfo("Bypassing Access Granted prompt...");
-                    await process.StandardInput.WriteLineAsync("");
-                    await process.StandardInput.FlushAsync();
-                    await Task.Delay(2000); // Wait for shell prompt
-
-                    // Send the dsconf command
-                    string sanitizedCommand = command.Replace(password, "***");
-                    _consoleForm?.WriteInfo($"Sending command: {sanitizedCommand}");
-                    await process.StandardInput.WriteLineAsync(command);
-                    await process.StandardInput.FlushAsync();
-                    await Task.Delay(1000); // Wait for first Bind DN prompt
-
-                    // Send credentials (twice - once for each server)
-                    if (inputs != null && inputs.Length >= 4)
-                    {
-                        // First server credentials
-                        _consoleForm?.WriteInfo("Sending first Bind DN...");
-                        await process.StandardInput.WriteLineAsync(inputs[0]); // cn=Directory Manager
-                        await process.StandardInput.FlushAsync();
-                        await Task.Delay(1000);
-
-                        _consoleForm?.WriteInfo("Sending first password...");
-                        await process.StandardInput.WriteLineAsync(inputs[1]); // password
-                        await process.StandardInput.FlushAsync();
-                        await Task.Delay(1000);
-
-                        // Second server credentials
-                        _consoleForm?.WriteInfo("Sending second Bind DN...");
-                        await process.StandardInput.WriteLineAsync(inputs[2]); // cn=Directory Manager
-                        await process.StandardInput.FlushAsync();
-                        await Task.Delay(1000);
-
-                        _consoleForm?.WriteInfo("Sending second password...");
-                        await process.StandardInput.WriteLineAsync(inputs[3]); // password
-                        await process.StandardInput.FlushAsync();
                     }
+                });
 
-                    // Wait for replication monitor to gather data from both servers
-                    _consoleForm?.WriteInfo("Waiting for replication data...");
-                    await Task.Delay(7000); // 7 seconds for data gathering
+                // Wait for SSH connection and "Access Granted" prompt
+                _consoleForm?.WriteInfo("Waiting for SSH connection...");
+                await Task.Delay(12000); // 12 seconds for SSH connection
 
-                    // Send exit command
-                    await process.StandardInput.WriteLineAsync("exit");
-                    await process.StandardInput.FlushAsync();
-
-                    // Wait for process to complete
-                    var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
-
-                    if (!completed)
-                    {
-                        process.Kill();
-                        _consoleForm?.WriteWarning("Process killed due to timeout");
-                    }
-
-                    string result = output.ToString();
-                    _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
-
-                    return result;
+                // Bring window to foreground for SendKeys
+                if (process.MainWindowHandle != IntPtr.Zero)
+                {
+                    SetForegroundWindow(process.MainWindowHandle);
                 }
+                await Task.Delay(200);
+
+                // Send Enter to bypass "Access Granted. Press Return to begin session" prompt
+                _consoleForm?.WriteInfo("Bypassing Access Granted prompt...");
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(2000); // Wait for shell prompt
+
+                // Send the dsconf command and press Enter
+                string sanitizedCommand = command.Replace(password, "***");
+                _consoleForm?.WriteInfo($"Sending command: {sanitizedCommand}");
+                System.Windows.Forms.SendKeys.SendWait(command);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(1000); // Wait for first Bind DN prompt
+
+                // Send credentials (twice - once for each server) using SendKeys
+                if (inputs != null && inputs.Length >= 4)
+                {
+                    // First server credentials
+                    _consoleForm?.WriteInfo("Sending first Bind DN...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[0]); // cn=Directory Manager
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                    await Task.Delay(1000);
+
+                    _consoleForm?.WriteInfo("Sending first password...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[1]); // password
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                    await Task.Delay(1000);
+
+                    // Second server credentials
+                    _consoleForm?.WriteInfo("Sending second Bind DN...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[2]); // cn=Directory Manager
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                    await Task.Delay(1000);
+
+                    _consoleForm?.WriteInfo("Sending second password...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[3]); // password
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                }
+
+                // Wait for replication monitor to gather data from both servers
+                _consoleForm?.WriteInfo("Waiting for replication data...");
+                await Task.Delay(7000); // 7 seconds for data gathering
+
+                // Send exit command using SendKeys
+                System.Windows.Forms.SendKeys.SendWait("exit");
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+
+                // Wait for process to complete
+                var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
+
+                if (!completed)
+                {
+                    process.Kill();
+                    _consoleForm?.WriteWarning("Process killed due to timeout");
+                }
+
+                string result = output.ToString();
+                _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
+
+                return result;
             }
             catch (Exception ex)
             {
