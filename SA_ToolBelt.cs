@@ -3100,7 +3100,52 @@ namespace SA_ToolBelt
 
                     // Parse each field and update the appropriate labels
                     // Using case-insensitive comparisons for more flexibility
-                    if (trimmedLine.StartsWith("Replica Enabled:", StringComparison.OrdinalIgnoreCase))
+                    if (trimmedLine.StartsWith("Replica Root:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica Root:");
+                        if (currentServer == 1)
+                            lblReplicaRootDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReplicaRootDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica Root for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replica ID:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica ID:");
+                        if (currentServer == 1)
+                            lblReplicaIDDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReplicaIDDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica ID for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replica Status:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica Status:");
+                        if (currentServer == 1)
+                            lblReplicaStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReplicaStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica Status for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Max CSN:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Max CSN:");
+                        if (currentServer == 1)
+                            lblMaxCSNDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblMaxCSNDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Max CSN for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Status For Agreement:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Status For Agreement:");
+                        if (currentServer == 1)
+                            lblStatusForAgreementDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblStatusForAgreementDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Status For Agreement for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replica Enabled:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Replica Enabled:");
                         if (currentServer == 1)
@@ -3218,15 +3263,6 @@ namespace SA_ToolBelt
                         else if (currentServer == 2)
                             lblReplicationLagTimeDataSa2.Text = value;
                         _consoleForm.WriteSuccess($"  -> Set Replication Lag Time for SA{currentServer}: {value}");
-                    }
-                    else if (trimmedLine.StartsWith("Status For Agreement:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string value = ExtractValue(trimmedLine, "Status For Agreement:");
-                        if (currentServer == 1)
-                            lblStatusAgreementDataSa1.Text = value;
-                        else if (currentServer == 2)
-                            lblStatusAgreementDataSa2.Text = value;
-                        _consoleForm.WriteSuccess($"  -> Set Status Agreement for SA{currentServer}: {value}");
                     }
                 }
 
@@ -3426,8 +3462,12 @@ namespace SA_ToolBelt
         private void ClearReplicationResults()
         {
             // Clear SA1 data labels
+            lblReplicaRootDataSa1.Text = "Checking...";
+            lblReplicaIDDataSa1.Text = "Checking...";
+            lblReplicaStatusDataSa1.Text = "Checking...";
+            lblMaxCSNDataSa1.Text = "Checking...";
+            lblStatusForAgreementDataSa1.Text = "Checking...";
             lblReplicationStatusDataSa1.Text = "Checking...";
-            lblStatusAgreementDataSa1.Text = "Checking...";
             lblUpdateInProgressDataSa1.Text = "Checking...";
             lblReplicaEnabledDataSa1.Text = "Checking...";
             lblChangesSentDataSa1.Text = "Checking...";
@@ -3435,15 +3475,11 @@ namespace SA_ToolBelt
             lblLastUpdateStartDataSa1.Text = "Checking...";
             lblLastUpdateEndDataSa1.Text = "Checking...";
             lblLastUpdateStatusDataSa1.Text = "Checking...";
-            lblReapActiveDataSa1.Text = "Checking...";
             lblReplicationLagTimeDataSa1.Text = "Checking...";
-            lblLastInitStartDataSa1.Text = "Checking...";
-            lblLastInitEndDataSa1.Text = "Checking...";
-            lblLastInitStatusDataSa1.Text = "Checking...";
 
             // Clear SA2 data labels
             lblReplicationStatusDataSa2.Text = "Checking...";
-            lblStatusAgreementDataSa2.Text = "Checking...";
+            lblStatusForAgreementDataSa2.Text = "Checking...";
             lblUpdateInProgressDataSa2.Text = "Checking...";
             lblReplicaEnabledDataSa2.Text = "Checking...";
             lblChangesSentDataSa2.Text = "Checking...";
@@ -3451,11 +3487,11 @@ namespace SA_ToolBelt
             lblLastUpdateStartDataSa2.Text = "Checking...";
             lblLastUpdateEndDataSa2.Text = "Checking...";
             lblLastUpdateStatusDataSa2.Text = "Checking...";
-            lblReapActiveDataSa2.Text = "Checking...";
             lblReplicationLagTimeDataSa2.Text = "Checking...";
-            lblLastInitStartDataSa2.Text = "Checking...";
-            lblLastInitEndDataSa2.Text = "Checking...";
-            lblLastInitStatusDataSa2.Text = "Checking...";
+            lblReplicaRootDataSa2.Text = "Checking...";
+            lblReplicaIDDataSa2.Text = "Checking...";
+            lblReplicaStatusDataSa2.Text = "Checking...";
+            lblMaxCSNDataSa2.Text = "Checking...";
         }
         private Task UpdateDataGridView(DataGridView dgv, List<Linux_Service.DiskInfo> diskInfo)
         {
@@ -3816,7 +3852,7 @@ namespace SA_ToolBelt
             {
                 // Disable button during operation
                 btnCheckRepHealth.Enabled = false;
-                btnCheckRepHealth.Text = "Opening SSH...";
+                btnCheckRepHealth.Text = "Checking...";
 
                 _consoleForm.WriteInfo("Starting LDAP Replication Health Check...");
 
@@ -3843,69 +3879,32 @@ namespace SA_ToolBelt
                     return;
                 }
 
-                _consoleForm.WriteInfo($"Opening visible SSH session to {hostname}...");
-                _consoleForm.WriteInfo("Command will be typed for you. Press ENTER to execute it.");
+                // Clear previous results
+                ClearReplicationResults();
 
-                // Open a visible command window with SSH connection - NO REDIRECTION
-                var processInfo = new ProcessStartInfo
+                // Build the dsconf command
+                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
+
+                // Prepare credentials for both servers (2 prompts each = 4 total)
+                string[] inputs = new string[]
                 {
-                    FileName = "cmd.exe",
-                    Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
-                    UseShellExecute = true, // Let Windows handle it natively
-                    CreateNoWindow = false, // Make it visible
-                    WorkingDirectory = Directory.GetCurrentDirectory()
+                    "cn=Directory Manager",  // First server Bind DN
+                    password,                // First server password
+                    "cn=Directory Manager",  // Second server Bind DN
+                    password                 // Second server password
                 };
 
-                var process = Process.Start(processInfo);
+                // Execute the interactive command and capture output
+                string output = await _linuxService.ExecuteInteractiveSSHCommandAsync(hostname, username, password, command, inputs);
 
-                // Wait for SSH connection to establish and shell prompt to appear
-                await Task.Delay(12000); // 12 seconds for SSH connection and Access Granted prompt
+                // Parse and display the results
+                ParseReplicationMonitorOutput(output, password);
 
-                // Bring the cmd window to the foreground
-                if (process.MainWindowHandle != IntPtr.Zero)
-                {
-                    SetForegroundWindow(process.MainWindowHandle);
-                }
-
-                await Task.Delay(200); // Small delay after focusing
-
-                // Send Enter to get past the "Access Granted. Press Return to begin session" prompt
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                _consoleForm.WriteInfo("Sent Enter to bypass Access Granted prompt...");
-
-                // Wait for shell prompt to appear
-                await Task.Delay(2000);
-
-                // Type the dsconf command and press Enter
-                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
-                System.Windows.Forms.SendKeys.SendWait(command);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                _consoleForm.WriteInfo("Sent dsconf command...");
-
-                // Wait for Bind DN prompt
-                await Task.Delay(1000);
-
-                // Type Bind DN and press Enter
-                System.Windows.Forms.SendKeys.SendWait("cn=Directory Manager");
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                _consoleForm.WriteInfo("Sent Bind DN...");
-
-                // Wait for password prompt
-                await Task.Delay(1000);
-
-                // Type password and press Enter
-                System.Windows.Forms.SendKeys.SendWait(password);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                _consoleForm.WriteInfo("Sent password...");
-
-                // Wait for replication monitor to gather data
-                await Task.Delay(7000);
-
-                _consoleForm.WriteSuccess($"Replication monitor command executed. Check SSH window for results.");
+                _consoleForm.WriteSuccess("LDAP Replication Health Check completed.");
             }
             catch (Exception ex)
             {
-                _consoleForm.WriteError($"Error opening SSH session: {ex.Message}");
+                _consoleForm.WriteError($"Error during replication health check: {ex.Message}");
             }
             finally
             {

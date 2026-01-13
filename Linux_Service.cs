@@ -162,8 +162,117 @@ namespace SA_ToolBelt
         /// <returns>Command output</returns>
         public async Task<string> ExecuteInteractiveSSHCommandAsync(string hostname, string username, string password, string command, string[] inputs = null)
         {
-            // Starting fresh - to be implemented
-            return string.Empty;
+            try
+            {
+                _consoleForm?.WriteInfo($"Connecting to {hostname} via SSH for interactive command...");
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "plink.exe",
+                    Arguments = $"{username}@{hostname} -pw {password}",
+                    UseShellExecute = false,
+                    RedirectStandardInput = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                };
+
+                using (var process = new Process { StartInfo = processInfo })
+                {
+                    var output = new StringBuilder();
+                    var error = new StringBuilder();
+
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            output.AppendLine(e.Data);
+                        }
+                    };
+
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            error.AppendLine(e.Data);
+                        }
+                    };
+
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    // Wait for SSH connection and "Access Granted" prompt
+                    _consoleForm?.WriteInfo("Waiting for SSH connection...");
+                    await Task.Delay(12000); // 12 seconds for SSH connection
+
+                    // Send Enter to bypass "Access Granted. Press Return to begin session" prompt
+                    _consoleForm?.WriteInfo("Bypassing Access Granted prompt...");
+                    await process.StandardInput.WriteLineAsync("");
+                    await process.StandardInput.FlushAsync();
+                    await Task.Delay(2000); // Wait for shell prompt
+
+                    // Send the dsconf command
+                    string sanitizedCommand = command.Replace(password, "***");
+                    _consoleForm?.WriteInfo($"Sending command: {sanitizedCommand}");
+                    await process.StandardInput.WriteLineAsync(command);
+                    await process.StandardInput.FlushAsync();
+                    await Task.Delay(1000); // Wait for first Bind DN prompt
+
+                    // Send credentials (twice - once for each server)
+                    if (inputs != null && inputs.Length >= 4)
+                    {
+                        // First server credentials
+                        _consoleForm?.WriteInfo("Sending first Bind DN...");
+                        await process.StandardInput.WriteLineAsync(inputs[0]); // cn=Directory Manager
+                        await process.StandardInput.FlushAsync();
+                        await Task.Delay(1000);
+
+                        _consoleForm?.WriteInfo("Sending first password...");
+                        await process.StandardInput.WriteLineAsync(inputs[1]); // password
+                        await process.StandardInput.FlushAsync();
+                        await Task.Delay(1000);
+
+                        // Second server credentials
+                        _consoleForm?.WriteInfo("Sending second Bind DN...");
+                        await process.StandardInput.WriteLineAsync(inputs[2]); // cn=Directory Manager
+                        await process.StandardInput.FlushAsync();
+                        await Task.Delay(1000);
+
+                        _consoleForm?.WriteInfo("Sending second password...");
+                        await process.StandardInput.WriteLineAsync(inputs[3]); // password
+                        await process.StandardInput.FlushAsync();
+                    }
+
+                    // Wait for replication monitor to gather data from both servers
+                    _consoleForm?.WriteInfo("Waiting for replication data...");
+                    await Task.Delay(7000); // 7 seconds for data gathering
+
+                    // Send exit command
+                    await process.StandardInput.WriteLineAsync("exit");
+                    await process.StandardInput.FlushAsync();
+
+                    // Wait for process to complete
+                    var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
+
+                    if (!completed)
+                    {
+                        process.Kill();
+                        _consoleForm?.WriteWarning("Process killed due to timeout");
+                    }
+
+                    string result = output.ToString();
+                    _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
+
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Interactive SSH command error: {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
