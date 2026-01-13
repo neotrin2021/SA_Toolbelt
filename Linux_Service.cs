@@ -171,9 +171,9 @@ namespace SA_ToolBelt
             {
                 _consoleForm?.WriteInfo($"Connecting to {hostname} via SSH for interactive command...");
 
-                // Modify command to redirect output to a temporary file
+                // Modify command to redirect output to a temporary file, filtering out interactive prompts
                 string outputFile = $"/tmp/repl_output_{DateTime.Now.Ticks}.txt";
-                string commandWithRedirect = $"{command} > {outputFile} 2>&1";
+                string commandWithRedirect = $"{command} 2>&1 | grep -v 'Enter a bind DN' | grep -v 'Enter a password' > {outputFile}";
 
                 // === PART 1: Run the command with SendKeys (visible window) ===
                 var processInfo = new ProcessStartInfo
