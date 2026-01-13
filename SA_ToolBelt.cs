@@ -3876,11 +3876,32 @@ namespace SA_ToolBelt
                 // Wait for shell prompt to appear
                 await Task.Delay(2000);
 
-                // Type the dsconf command using SendKeys (but don't press Enter)
+                // Type the dsconf command and press Enter
                 string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
                 System.Windows.Forms.SendKeys.SendWait(command);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                _consoleForm.WriteInfo("Sent dsconf command...");
 
-                _consoleForm.WriteSuccess($"Command typed in SSH window. Press ENTER when ready, then enter credentials manually.");
+                // Wait for Bind DN prompt
+                await Task.Delay(1000);
+
+                // Type Bind DN and press Enter
+                System.Windows.Forms.SendKeys.SendWait("cn=Directory Manager");
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                _consoleForm.WriteInfo("Sent Bind DN...");
+
+                // Wait for password prompt
+                await Task.Delay(1000);
+
+                // Type password and press Enter
+                System.Windows.Forms.SendKeys.SendWait(password);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                _consoleForm.WriteInfo("Sent password...");
+
+                // Wait for replication monitor to gather data
+                await Task.Delay(7000);
+
+                _consoleForm.WriteSuccess($"Replication monitor command executed. Check SSH window for results.");
             }
             catch (Exception ex)
             {
