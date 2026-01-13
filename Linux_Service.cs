@@ -188,7 +188,7 @@ namespace SA_ToolBelt
                 var error = new StringBuilder();
 
                 // Start reading output asynchronously
-                Task.Run(async () =>
+                var outputTask = Task.Run(async () =>
                 {
                     using (var reader = process.StandardOutput)
                     {
@@ -201,7 +201,7 @@ namespace SA_ToolBelt
                     }
                 });
 
-                Task.Run(async () =>
+                var errorTask = Task.Run(async () =>
                 {
                     using (var reader = process.StandardError)
                     {
@@ -278,6 +278,9 @@ namespace SA_ToolBelt
                     process.Kill();
                     _consoleForm?.WriteWarning("Process killed due to timeout");
                 }
+
+                // Wait for output reading tasks to complete
+                await Task.WhenAll(outputTask, errorTask);
 
                 string result = output.ToString();
                 _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
