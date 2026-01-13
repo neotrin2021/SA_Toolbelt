@@ -173,7 +173,7 @@ namespace SA_ToolBelt
 
                 // Modify command to redirect output to a temporary file, filtering out interactive prompts
                 string outputFile = $"/tmp/repl_output_{DateTime.Now.Ticks}.txt";
-                string commandWithRedirect = $"{command} 2>&1 | grep -v 'Enter a bind DN' | grep -v 'Enter a password' > {outputFile}";
+                string commandWithRedirect = $"{command} 2>&1 | grep -v 'bind DN' | grep -v 'password for' > {outputFile}";
 
                 // === PART 1: Run the command with SendKeys (visible window) ===
                 var processInfo = new ProcessStartInfo
