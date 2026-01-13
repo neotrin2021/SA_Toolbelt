@@ -171,48 +171,21 @@ namespace SA_ToolBelt
             {
                 _consoleForm?.WriteInfo($"Connecting to {hostname} via SSH for interactive command...");
 
+                // Modify command to redirect output to a temporary file
+                string outputFile = $"/tmp/repl_output_{DateTime.Now.Ticks}.txt";
+                string commandWithRedirect = $"{command} > {outputFile} 2>&1";
+
+                // === PART 1: Run the command with SendKeys (visible window) ===
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
+                    UseShellExecute = true, // Required for SendKeys to work
                     CreateNoWindow = false, // Keep it visible so SendKeys works
                     WorkingDirectory = Directory.GetCurrentDirectory()
                 };
 
                 var process = Process.Start(processInfo);
-
-                var output = new StringBuilder();
-                var error = new StringBuilder();
-
-                // Start reading output asynchronously
-                var outputTask = Task.Run(async () =>
-                {
-                    using (var reader = process.StandardOutput)
-                    {
-                        char[] buffer = new char[1024];
-                        int bytesRead;
-                        while ((bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                        {
-                            output.Append(buffer, 0, bytesRead);
-                        }
-                    }
-                });
-
-                var errorTask = Task.Run(async () =>
-                {
-                    using (var reader = process.StandardError)
-                    {
-                        char[] buffer = new char[1024];
-                        int bytesRead;
-                        while ((bytesRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                        {
-                            error.Append(buffer, 0, bytesRead);
-                        }
-                    }
-                });
 
                 // Wait for SSH connection and "Access Granted" prompt
                 _consoleForm?.WriteInfo("Waiting for SSH connection...");
@@ -230,10 +203,10 @@ namespace SA_ToolBelt
                 System.Windows.Forms.SendKeys.SendWait("{ENTER}");
                 await Task.Delay(2000); // Wait for shell prompt
 
-                // Send the dsconf command and press Enter
-                string sanitizedCommand = command.Replace(password, "***");
+                // Send the dsconf command with output redirection and press Enter
+                string sanitizedCommand = commandWithRedirect.Replace(password, "***");
                 _consoleForm?.WriteInfo($"Sending command: {sanitizedCommand}");
-                System.Windows.Forms.SendKeys.SendWait(command);
+                System.Windows.Forms.SendKeys.SendWait(commandWithRedirect);
                 System.Windows.Forms.SendKeys.SendWait("{ENTER}");
                 await Task.Delay(1000); // Wait for first Bind DN prompt
 
@@ -270,19 +243,14 @@ namespace SA_ToolBelt
                 System.Windows.Forms.SendKeys.SendWait("exit");
                 System.Windows.Forms.SendKeys.SendWait("{ENTER}");
 
-                // Wait for process to complete
-                var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
+                // Wait a bit for process to exit
+                await Task.Delay(2000);
 
-                if (!completed)
-                {
-                    process.Kill();
-                    _consoleForm?.WriteWarning("Process killed due to timeout");
-                }
+                // === PART 2: Read the output file back using a second SSH session ===
+                _consoleForm?.WriteInfo($"Reading output from {outputFile} via second SSH session...");
+                string catCommand = $"cat {outputFile} && rm {outputFile}"; // Read and delete in one go
+                string result = await ExecuteSSHCommandAsync(hostname, username, password, catCommand);
 
-                // Wait for output reading tasks to complete
-                await Task.WhenAll(outputTask, errorTask);
-
-                string result = output.ToString();
                 _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
 
                 return result;
