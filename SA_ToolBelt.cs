@@ -3859,11 +3859,7 @@ namespace SA_ToolBelt
                 var process = Process.Start(processInfo);
 
                 // Wait for SSH connection to establish and shell prompt to appear
-                await Task.Delay(3000); // 3 seconds for SSH banner and prompt
-
-                // Wait for the window to be ready and get focus
-                process.WaitForInputIdle();
-                await Task.Delay(500); // Extra time to ensure window is active
+                await Task.Delay(12000); // 12 seconds for SSH connection and Access Granted prompt
 
                 // Bring the cmd window to the foreground
                 if (process.MainWindowHandle != IntPtr.Zero)
