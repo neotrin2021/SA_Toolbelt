@@ -29,6 +29,7 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using System.Numerics;
 using System.Security.Principal;
+using System.Runtime.InteropServices;
 
 // Surpresses warning about an object possibly being null
 #pragma warning disable CS8602
@@ -37,6 +38,9 @@ namespace SA_ToolBelt
 {
     public partial class SAToolBelt : Form
     {
+        // Windows API for setting window focus
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         private readonly AD_Service _adService;
         private readonly RHDS_Service _rhdsService;
@@ -3840,15 +3844,14 @@ namespace SA_ToolBelt
                 }
 
                 _consoleForm.WriteInfo($"Opening visible SSH session to {hostname}...");
-                _consoleForm.WriteInfo("Command will be sent automatically. You'll enter credentials manually.");
+                _consoleForm.WriteInfo("Command will be typed for you. Press ENTER to execute it.");
 
-                // Open a visible command window with SSH connection
+                // Open a visible command window with SSH connection - NO REDIRECTION
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
-                    UseShellExecute = false,
-                    RedirectStandardInput = true, // So we can send the command
+                    UseShellExecute = true, // Let Windows handle it natively
                     CreateNoWindow = false, // Make it visible
                     WorkingDirectory = Directory.GetCurrentDirectory()
                 };
@@ -3858,14 +3861,23 @@ namespace SA_ToolBelt
                 // Wait for SSH connection to establish and shell prompt to appear
                 await Task.Delay(3000); // 3 seconds for SSH banner and prompt
 
-                // Send the dsconf command with Enter
+                // Wait for the window to be ready and get focus
+                process.WaitForInputIdle();
+                await Task.Delay(500); // Extra time to ensure window is active
+
+                // Bring the cmd window to the foreground
+                if (process.MainWindowHandle != IntPtr.Zero)
+                {
+                    SetForegroundWindow(process.MainWindowHandle);
+                }
+
+                await Task.Delay(200); // Small delay after focusing
+
+                // Type the dsconf command using SendKeys (but don't press Enter)
                 string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
-                await process.StandardInput.WriteLineAsync(command);
-                await process.StandardInput.FlushAsync();
+                System.Windows.Forms.SendKeys.SendWait(command);
 
-                // DON'T close StandardInput - leave it open so the window remains interactive
-
-                _consoleForm.WriteSuccess($"Command sent. The SSH window should now prompt for credentials.");
+                _consoleForm.WriteSuccess($"Command typed in SSH window. Press ENTER when ready, then enter credentials manually.");
             }
             catch (Exception ex)
             {
