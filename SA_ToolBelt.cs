@@ -3840,21 +3840,32 @@ namespace SA_ToolBelt
                 }
 
                 _consoleForm.WriteInfo($"Opening visible SSH session to {hostname}...");
-                _consoleForm.WriteInfo($"Manually run: dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor");
+                _consoleForm.WriteInfo("Command will be sent automatically. You'll enter credentials manually.");
 
-                // Open a visible command window with SSH connection - fully manual
+                // Open a visible command window with SSH connection
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
-                    UseShellExecute = true, // No redirection, fully interactive
+                    UseShellExecute = false,
+                    RedirectStandardInput = true, // So we can send the command
                     CreateNoWindow = false, // Make it visible
                     WorkingDirectory = Directory.GetCurrentDirectory()
                 };
 
-                Process.Start(processInfo);
+                var process = Process.Start(processInfo);
 
-                _consoleForm.WriteSuccess($"SSH window opened to {hostname}. Type the command manually and observe the behavior.");
+                // Wait for SSH connection to establish and shell prompt to appear
+                await Task.Delay(3000); // 3 seconds for SSH banner and prompt
+
+                // Send the dsconf command with Enter
+                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
+                await process.StandardInput.WriteLineAsync(command);
+                await process.StandardInput.FlushAsync();
+
+                // DON'T close StandardInput - leave it open so the window remains interactive
+
+                _consoleForm.WriteSuccess($"Command sent. The SSH window should now prompt for credentials.");
             }
             catch (Exception ex)
             {
