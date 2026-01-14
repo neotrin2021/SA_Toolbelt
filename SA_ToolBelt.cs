@@ -3749,6 +3749,12 @@ namespace SA_ToolBelt
                 string sshUsername = CredentialManager.GetUsername();
                 string sshPassword = CredentialManager.GetPassword();
 
+                // Cache host keys for all servers first (to avoid prompts during connection)
+                foreach (string host in hosts)
+                {
+                    await _linuxService.CacheHostKeyAsync(host, sshUsername, sshPassword);
+                }
+
                 foreach (string host in hosts)
                 {
                     try
@@ -3756,7 +3762,7 @@ namespace SA_ToolBelt
                         _consoleForm.WriteInfo($"Processing host: {host}");
 
                         // Find the corresponding DataGridView for this host
-                        DataGridView currentDgv = this.Controls.Find($"{host}Dgv", true).FirstOrDefault() as DataGridView;
+                        DataGridView currentDgv = this.Controls.Find($"dgv{host}", true).FirstOrDefault() as DataGridView;
 
                         if (currentDgv != null)
                         {

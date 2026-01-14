@@ -265,6 +265,17 @@ namespace SA_ToolBelt
 
                 _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
 
+                // Close the visible SSH window now that we have the data
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill();
+                        _consoleForm?.WriteInfo("Closed SSH window");
+                    }
+                }
+                catch { /* Ignore if already closed */ }
+
                 return result;
             }
             catch (Exception ex)
@@ -353,6 +364,49 @@ namespace SA_ToolBelt
             }
             catch
             {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Cache the SSH host key for a server (auto-accepts on first connection)
+        /// </summary>
+        public async Task<bool> CacheHostKeyAsync(string hostname, string username, string password)
+        {
+            try
+            {
+                _consoleForm?.WriteInfo($"Caching host key for {hostname}...");
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c echo y | plink.exe {username}@{hostname} -pw {password} exit",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                };
+
+                using (var process = new Process { StartInfo = processInfo })
+                {
+                    process.Start();
+                    var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
+
+                    if (!completed)
+                    {
+                        process.Kill();
+                        _consoleForm?.WriteWarning($"Host key caching timed out for {hostname}");
+                        return false;
+                    }
+
+                    _consoleForm?.WriteSuccess($"Host key cached for {hostname}");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error caching host key for {hostname}: {ex.Message}");
                 return false;
             }
         }

@@ -2447,6 +2447,7 @@
             btnCheckFileSystem.TabIndex = 5;
             btnCheckFileSystem.Text = "Check Filesystem";
             btnCheckFileSystem.UseVisualStyleBackColor = true;
+            btnCheckFileSystem.Click += btnCheckFileSystem_Click;
             // 
             // gbxLDAPReplicationChk
             // 
