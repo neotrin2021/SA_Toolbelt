@@ -251,6 +251,18 @@ namespace SA_ToolBelt
                 string catCommand = $"cat {outputFile} && rm {outputFile}"; // Read and delete in one go
                 string result = await ExecuteSSHCommandAsync(hostname, username, password, catCommand);
 
+                // Post-process: Strip first 2 lines (bind DN prompts) and insert clean Supplier line
+                var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length > 2)
+                {
+                    // Skip first 2 lines, keep the rest
+                    var cleanedLines = lines.Skip(2).ToList();
+                    // Insert clean Supplier line at the beginning
+                    cleanedLines.Insert(0, $"Supplier: {hostname}:389");
+                    result = string.Join(Environment.NewLine, cleanedLines);
+                    _consoleForm?.WriteInfo("Cleaned output: removed prompt lines and inserted clean Supplier header");
+                }
+
                 _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
 
                 return result;
