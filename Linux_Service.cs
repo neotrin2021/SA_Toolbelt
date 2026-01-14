@@ -265,6 +265,17 @@ namespace SA_ToolBelt
 
                 _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
 
+                // Close the visible SSH window now that we have the data
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill();
+                        _consoleForm?.WriteInfo("Closed SSH window");
+                    }
+                }
+                catch { /* Ignore if already closed */ }
+
                 return result;
             }
             catch (Exception ex)
