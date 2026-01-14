@@ -3756,9 +3756,7 @@ namespace SA_ToolBelt
                         _consoleForm.WriteInfo($"Processing host: {host}");
 
                         // Find the corresponding DataGridView for this host
-                        // dgvCcelpro1, dgvCcesec1, etc. - prepend "dgv" and capitalize first letter
-                        string dgvName = $"dgv{char.ToUpper(host[0])}{host.Substring(1)}";
-                        DataGridView currentDgv = this.Controls.Find(dgvName, true).FirstOrDefault() as DataGridView;
+                        DataGridView currentDgv = this.Controls.Find($"dgv{host}", true).FirstOrDefault() as DataGridView;
 
                         if (currentDgv != null)
                         {
