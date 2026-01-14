@@ -179,7 +179,7 @@ namespace SA_ToolBelt
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/k title Replication Monitor && plink.exe {username}@{hostname} -pw {password}",
+                    Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
                     UseShellExecute = true, // Required for SendKeys to work
                     CreateNoWindow = false, // Keep it visible so SendKeys works
                     WorkingDirectory = Directory.GetCurrentDirectory()
