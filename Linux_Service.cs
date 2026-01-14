@@ -125,7 +125,7 @@ namespace SA_ToolBelt
                     // -batch handles the interactive prompt automatically
 
                     // Wait for process to complete with timeout
-                    var completed = await Task.Run(() => process.WaitForExit(30000)); // 30 second timeout
+                    var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
 
                     if (!completed)
                     {
@@ -391,7 +391,7 @@ namespace SA_ToolBelt
                 using (var process = new Process { StartInfo = processInfo })
                 {
                     process.Start();
-                    var completed = await Task.Run(() => process.WaitForExit(30000)); // 30 second timeout
+                    var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
 
                     if (!completed)
                     {

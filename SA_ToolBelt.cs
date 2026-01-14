@@ -3749,6 +3749,12 @@ namespace SA_ToolBelt
                 string sshUsername = CredentialManager.GetUsername();
                 string sshPassword = CredentialManager.GetPassword();
 
+                // Strip domain from username if present (e.g., "spectre\tbrown" -> "tbrown")
+                if (sshUsername.Contains("\\"))
+                {
+                    sshUsername = sshUsername.Split('\\').Last();
+                }
+
                 // Cache host keys for all servers first (to avoid prompts during connection)
                 foreach (string host in hosts)
                 {
