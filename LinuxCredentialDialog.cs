@@ -32,7 +32,7 @@ namespace SA_ToolBelt
             this.Width = 400;
             this.Height = 220;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.StartPosition = FormStartPosition.CenterParent;
+            this.StartPosition = FormStartPosition.CenterScreen; // Show on active monitor
             this.MaximizeBox = false;
             this.MinimizeBox = false;
 
@@ -118,6 +118,9 @@ namespace SA_ToolBelt
 
             this.AcceptButton = btnOK;
             this.CancelButton = btnCancel;
+
+            // Auto-select password field when dialog is shown
+            this.Shown += (s, e) => txbPassword.Focus();
         }
 
         private void BtnOK_Click(object sender, EventArgs e)
