@@ -3749,6 +3749,12 @@ namespace SA_ToolBelt
                 string sshUsername = CredentialManager.GetUsername();
                 string sshPassword = CredentialManager.GetPassword();
 
+                // Cache host keys for all servers first (to avoid prompts during connection)
+                foreach (string host in hosts)
+                {
+                    await _linuxService.CacheHostKeyAsync(host, sshUsername, sshPassword);
+                }
+
                 foreach (string host in hosts)
                 {
                     try
