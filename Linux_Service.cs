@@ -5,12 +5,17 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace SA_ToolBelt
 {
     public class Linux_Service
     {
         private readonly ConsoleForm _consoleForm;
+
+        // Windows API for setting windows focus
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         public Linux_Service(ConsoleForm consoleForm = null)
         {
@@ -152,6 +157,143 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
+        /// Execute an interactive SSH command that prompts for input
+        /// </summary>
+        /// <param name="hostname">Target server hostname</param>
+        /// <param name="username">SSH username</param>
+        /// <param name="password">SSH password</param>
+        /// <param name="command">Command to execute</param>
+        /// <param name="inputs">Array of inputs to send when prompted (e.g., bind DN, passwords)</param>
+        /// <returns>Command output</returns>
+        public async Task<string> ExecuteInteractiveSSHCommandAsync(string hostname, string username, string password, string command, string[] inputs = null)
+        {
+            try
+            {
+                // ISSUE: These 2 string lines have an issue.  The file capture includes prompt text mixed with data.
+                // EXAMPLE: Enter a bind DN for ccesa1.afspc.af.smil.mil:389 Supplier: ccesa1:389
+                // WHATS WRONG: Supplier: ccesa1:389 needs to be on it's own line
+                // Should fix the root cause (separate prompts from output at capture time)
+                // Modify command to redirect output to a temporary file
+                String outputFile = $"/tmp/repl_output_{DateTime.Now.Ticks}.txt";
+                // String commandWithRedirect = $"{command} 2>&1 | grep -v 'bind DN' | grep -v 'password for' > {outputFile}";
+                String commandWithRedirect = $"{command} > {outputFile}";
+
+                _consoleForm?.WriteInfo($"Connecting to {hostname} via SSH for interactive command...");
+
+                // === PART 1: Run the command with SendKeys (visible window) ===
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/k title Replication Monitor && plink.exe {username}@{hostname} -pw {password}",
+                    UseShellExecute = true, // Required for SendKeys to work
+                    CreateNoWindow = false, // Keep it visible so SendKeys works
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                };
+
+                var process = Process.Start(processInfo);
+
+                // Wait for SSH connection and "Access Granted" prompt
+                _consoleForm?.WriteInfo("Waiting for SSH connection...");
+                await Task.Delay(5000); // 12 seconds for SSH connection
+
+                // Bring window to foreground for SendKeys
+                if (process.MainWindowHandle != IntPtr.Zero)
+                {
+                    SetForegroundWindow(process.MainWindowHandle);
+                }
+                await Task.Delay(200);
+
+                // Send Enter to bypass "Access Granted. Press Return to begin session" prompt
+                _consoleForm?.WriteInfo("Bypassing Access Granted prompt...");
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(2000); // Wait for shell prompt
+
+                // Send the dsconf command with output redirection and press Enter
+                string sanitizedCommand = commandWithRedirect.Replace(password, "***");
+                _consoleForm?.WriteInfo($"Sending command: {sanitizedCommand}");
+                System.Windows.Forms.SendKeys.SendWait(commandWithRedirect);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(1000); // Wait for first Bind DN prompt
+
+                // Send credentials (twice - once for each server) using SendKeys
+                if (inputs != null && inputs.Length >= 4)
+                {
+                    // First server credentials
+                    _consoleForm?.WriteInfo("Sending first Bind DN...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[0]); // cn=Directory Manager
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                    await Task.Delay(1000);
+
+                    _consoleForm?.WriteInfo("Sending first password...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[1]); // password
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                    await Task.Delay(1000);
+
+                    // Second server credentials
+                    _consoleForm?.WriteInfo("Sending second Bind DN...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[2]); // cn=Directory Manager
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                    await Task.Delay(1000);
+
+                    _consoleForm?.WriteInfo("Sending second password...");
+                    System.Windows.Forms.SendKeys.SendWait(inputs[3]); // password
+                    System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                }
+
+                // Wait for replication monitor to gather data from both servers
+                _consoleForm?.WriteInfo("Waiting for replication data...");
+                await Task.Delay(7000); // 7 seconds for data gathering
+
+                // Send exit command using SendKeys
+                System.Windows.Forms.SendKeys.SendWait("exit");
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+
+                // Wait a bit for process to exit
+                await Task.Delay(2000);
+
+                // === PART 2: Read the output file back using a second SSH session ===
+                _consoleForm?.WriteInfo($"Reading output from {outputFile} via second SSH session...");
+                // string catCommand = $"cat {outputFile} && rm {outputFile}"; // Read and delete in one go
+                string catCommand = $"cat {outputFile}"; // Read and delete in one go
+                string result = await ExecuteSSHCommandAsync(hostname, username, password, catCommand);
+
+                // TODO: This is a workaround  the file capture includes prompt text mixed with data.
+                // Should fix the root cause (separate prompts from output at capture time) but this works for now
+                // Temp Fix: Post-process: Strip first 2 lines (bind DN prompts) and insert clean Supplier line
+                var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length > 2)
+                {
+                    // Skip first 2 lines, keep the rest
+                    var cleanedLines = lines.Skip(2).ToList();
+                    // Insert clean Supplier line at the beginning
+                    cleanedLines.Insert(0, $"Supplier: {hostname}:389");
+                    result = String.Join(Environment.NewLine, cleanedLines);
+                    _consoleForm?.WriteInfo("Cleaned output: removed prompt lines and inserted clean Supplier header");
+                }
+
+                _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
+                // Close the visible SSH window now that we have the data
+                try
+                {
+                    if (!process.HasExited)
+                    { 
+                        process.Kill();
+                        _consoleForm?.WriteInfo("Closed SSH window");
+                    }
+                }
+                catch {  /* Ignore if already closed */ }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Interactive SSH command error: {ex.Message}");
+                throw;
+            }
+
+        }
+        
+        /// <summary>
         /// Test SSH connection to a server
         /// </summary>
         public async Task<bool> TestSSHConnectionAsync(string hostname, string username, string password)
@@ -230,6 +372,49 @@ namespace SA_ToolBelt
             }
             catch
             {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Cache the SSH host key for a server (auto-accepts on first connection)
+        /// </summary>
+        public async Task<bool> CacheHostKeyAsync(string hostname, string username, string password)
+        {
+            try
+            {
+                _consoleForm?.WriteInfo($"Caching host key for {hostname}...");
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c echo y | plink.exe {username}@{hostname} -pw {password} exit",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                };
+
+                using (var process = new Process { StartInfo = processInfo })
+                {
+                    process.Start();
+                    var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
+
+                    if (!completed)
+                    {
+                        process.Kill();
+                        _consoleForm?.WriteWarning($"Host key caching timed out for {hostname}");
+                        return false;
+                    }
+
+                    _consoleForm?.WriteSuccess($"Host key cached for {hostname}");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error caching host key for {hostname}: {ex.Message}");
                 return false;
             }
         }

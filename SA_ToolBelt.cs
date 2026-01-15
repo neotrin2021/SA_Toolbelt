@@ -29,6 +29,7 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using System.Numerics;
 using System.Security.Principal;
+using System.Runtime.InteropServices;
 
 // Surpresses warning about an object possibly being null
 #pragma warning disable CS8602
@@ -277,14 +278,14 @@ namespace SA_ToolBelt
             tabControlMain.TabPages.Clear();
             tabControlMain.TabPages.Add(tabAD);
             tabControlMain.TabPages.Add(tabLDAP);
-            tabControlMain.TabPages.Add(tabRemoteTools);
-            tabControlMain.TabPages.Add(tabWindowsTools);
-            tabControlMain.TabPages.Add(tabLinuxTools);
-            tabControlMain.TabPages.Add(tabVMwareTools);
+            // tabControlMain.TabPages.Add(tabRemoteTools);
+            // tabControlMain.TabPages.Add(tabWindowsTools);
+            // tabControlMain.TabPages.Add(tabLinuxTools);
+            // tabControlMain.TabPages.Add(tabVMwareTools);
             tabControlMain.TabPages.Add(tabOnlineOffline);
             tabControlMain.TabPages.Add(tabSAPMIsSpice);
-            tabControlMain.TabPages.Add(tabStartupShutdownPt1);
-            tabControlMain.TabPages.Add(tabStartupShutdownPt2);
+            // tabControlMain.TabPages.Add(tabStartupShutdownPt1);
+            // tabControlMain.TabPages.Add(tabStartupShutdownPt2);
             tabControlMain.TabPages.Add(tabConfiguration);
             tabControlMain.TabPages.Add(tabConsole);
         }
@@ -340,9 +341,7 @@ namespace SA_ToolBelt
         /// <summary>
         /// Populate the Default Security Groups combobox from RHDS
         /// </summary>
-        /// <summary>
-        /// Populate the Default Security Groups combobox from RHDS (with filtering)
-        /// </summary>
+        /// 
         private async Task PopulateDefaultSecurityGroupsAsync()
         {
             try
@@ -478,7 +477,6 @@ namespace SA_ToolBelt
                 cbxDefaultSecurityGroups.Enabled = false;
             }
         }
-
         /*
         private async Task PopulateDefaultSecurityGroupsAsync()
         {
@@ -2405,110 +2403,6 @@ namespace SA_ToolBelt
             _consoleForm.WriteInfo("LDAP form cleared successfully.");
         }
 
-        /// <summary>
-        /// Create LDAP account and attempt to add to AD group
-        /// </summary>
-        /*
-        private async Task CreateLdapAccountAsync()
-        {
-            string userToFind = txbLdapNtUserId.Text.Trim();
-            int attempts = 0;
-            const int maxAttempts = 3;
-            bool userFound = false;
-
-            try
-            {
-                _consoleForm.WriteInfo($"Starting LDAP account creation for user: {userToFind}");
-
-                // First, create user in LDAP
-                try
-                {
-                    var ldapService = new LDAPService();
-
-                    // Create LDAP user
-                    ldapService.CreateNewUser(
-                        ntUserId: txbLdapNtUserId.Text.Trim(),
-                        email: txbLdapEmail.Text.Trim(),
-                        firstName: txbLdapFirstName.Text.Trim(),
-                        lastName: txbLdapLastName.Text.Trim(),
-                        phone: txbLdapPhone.Text.Trim(),
-                        tempPassword: txbLdapTempPass.Text,
-                        linuxUid: txbLdapLinuxUid.Text.Trim()
-                    );
-
-                    // Create user directory using plink
-                    ldapService.CreateUserDirectory(txbLdapNtUserId.Text.Trim());
-
-                    _consoleForm.WriteSuccess("LDAP user created successfully. Now attempting to add to AD...");
-                }
-                catch (Exception ex)
-                {
-                    _consoleForm.WriteError($"Error creating LDAP user: {ex.Message}");
-                    return; // Exit if LDAP creation fails
-                }
-
-                // Then proceed with AD operations
-                while (attempts < maxAttempts && !userFound)
-                {
-                    attempts++;
-                    _consoleForm.WriteInfo($"Attempting to find user in AD (attempt {attempts}/{maxAttempts})...");
-
-                    var userInfo = _adService.GetUserInfo(userToFind);
-
-                    if (userInfo != null)
-                    {
-                        userFound = true;
-                        _consoleForm.WriteSuccess($"Found user in AD: {userInfo.GetFullName()} ({userInfo.SamAccountName})");
-                        /*
-                        try
-                        {
-                            // Add user to Shared_Group using the DTO's SamAccountName
-                            bool result = _adService.AddUserToGroup(userInfo.SamAccountName, "Shared_Group");
-
-                            if (result)
-                            {
-                                _consoleForm.WriteSuccess($"User {userInfo.GetFullName()} successfully added to Shared_Group");
-                            }
-                            else
-                            {
-                                _consoleForm.WriteError($"Failed to add user {userInfo.GetFullName()} to Shared_Group");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _consoleForm.WriteError($"Error adding user to AD group: {ex.Message}");
-                        }
-                        */ /*
-                        break;
-                    }
-
-
-                    if (attempts < maxAttempts)
-                    {
-                        _consoleForm.WriteInfo($"User not found in AD. Waiting 6 seconds before next attempt...");
-                        await Task.Delay(6000); // Wait 6 seconds before next attempt
-                    }
-                    else
-                    {
-                        _consoleForm.WriteError($"User {userToFind} not found in AD after {maxAttempts} attempts");
-                    }
-                }
-
-                if (userFound)
-                {
-                    _consoleForm.WriteSuccess("LDAP account creation and AD integration completed successfully.");
-                }
-                else
-                {
-                    _consoleForm.WriteWarning("LDAP account created, but user was not found in AD for group assignment.");
-                }
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error during LDAP account creation process: {ex.Message}");
-            }
-        }
-        */
         #endregion
 
         #region LDAP Tab Button Event Handlers
@@ -2855,8 +2749,6 @@ namespace SA_ToolBelt
                 try
                 {
                     _consoleForm?.WriteInfo("Prompting for Linux SSH credentials to create home directory...");
-
-                    // Prompt user for Linux SSH credentials
                     var (success, hostname, sshUsername, sshPassword) = LinuxCredentialDialog.GetCredentials();
 
                     if (success)
@@ -2868,20 +2760,19 @@ namespace SA_ToolBelt
                             sshUsername,
                             sshPassword,
                             ntUserId
-                        );
-
+                            );
                         if (homeDirectoryCreated)
                         {
-                            _consoleForm?.WriteSuccess($"Home directory created successfully for {ntUserId}");
+                            _consoleForm?.WriteSuccess($"Home Directory created successfully for {ntUserId}");
                         }
                         else
                         {
-                            _consoleForm?.WriteError($"Failed to create home directory for {ntUserId}");
+                            _consoleForm?.WriteError($"Failed to create home direectory for {ntUserId}");
                         }
                     }
                     else
                     {
-                        _consoleForm?.WriteWarning("Linux SSH credentials not provided. Home directory creation skipped.");
+                        _consoleForm?.WriteError($"Linux SSH credentials not provided. Home directory creation skipped.");
                     }
                 }
                 catch (Exception ex)
@@ -2940,7 +2831,7 @@ namespace SA_ToolBelt
                 }
                 else
                 {
-                    successMessage += "⚠ Home directory creation was skipped or failed\n";
+                    successMessage += $"\"⚠ Home directory creation was skipped or failed\n";
                 }
 
                 MessageBox.Show(successMessage, "Account Created Successfully",
@@ -2965,151 +2856,404 @@ namespace SA_ToolBelt
         #endregion
 
         #region Spice PMI Tab Functions
+        // VERSION 1: With auto-fill for Bind DN (ACTIVE)
         private async Task CheckServerReplicationHealth(string hostname, string username, string password, string serverLabel)
         {
             try
             {
-                _consoleForm.WriteInfo($"Checking replication health on {hostname} ({serverLabel})...");
+                _consoleForm.WriteInfo($"Checking replication health on {hostname}...");
 
-                // Commands to check LDAP replication health
-                // These are typical Red Hat Directory Service replication commands
-                string[] healthCommands = {
-            // Check replication status
-            "dsctl localhost status",
-            
-            // Check replication agreements
-            "dsconf localhost replication get-ruv --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
-            
-            // Check replication lag
-            "dsconf localhost replication monitor --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil",
+                // Single command to get all replication information
+                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
 
-            // Check last update times
-            "dsconf localhost replication status --suffix dc=spectre,dc=afspc,dc=af,dc=smil,dc=mil"
-        };
+                // Prepare inputs for the interactive prompts:
+                // 1. Bind DN for the other server (ccesa2 or ccesa1)
+                // 2. Password for the other server
+                // 3. Bind DN for the main server (the one we're connecting to)
+                // 4. Password for the main server
+                string[] inputs = new string[]
+                {
+                    "cn=Directory Manager",  // Bind DN for other server
+                    password,                // Password for other server
+                    "cn=Directory Manager",  // Bind DN for main server
+                    password                 // Password for main server
+                };
 
-                var results = await _linuxService.ExecuteMultipleSSHCommandsAsync(hostname, username, password, healthCommands);
+                // Execute the interactive command
+                string output = await _linuxService.ExecuteInteractiveSSHCommandAsync(hostname, username, password, command, inputs);
 
-                // Parse and display results
-                ParseAndDisplayReplicationResults(results, serverLabel);
+                _consoleForm.WriteInfo($"Replication monitor output received ({output.Length} characters)");
+
+                // Parse and display the results
+                ParseReplicationMonitorOutput(output, password);
             }
             catch (Exception ex)
             {
                 _consoleForm.WriteError($"Failed to check replication health on {hostname}: {ex.Message}");
 
-                // Update UI to show error status
-                UpdateServerStatus(serverLabel, "ERROR", "Connection Failed", "N/A");
+                // Set all labels to error state
+                SetReplicationLabelsToError();
             }
         }
 
-        private void ParseAndDisplayReplicationResults(Dictionary<string, string> results, string serverLabel)
+        private void ParseReplicationMonitorOutput(string output, string password)
         {
             try
             {
-                // This is where you'll parse the command outputs and update the UI labels
-                // The exact parsing will depend on the actual command outputs
+                _consoleForm.WriteInfo("Parsing replication monitor output...");
+                _consoleForm.WriteInfo($"Output length: {output.Length} characters");
 
-                string status = "Unknown";
-                string lastUpdate = "Unknown";
-                string updateEnd = "Unknown";
+                // Sanitize output before logging - replace password with ***
+                string sanitizedOutput = output.Replace(password, "***");
 
-                // Parse results - you'll need to adjust this based on actual command outputs
-                foreach (var result in results)
+
+                // Log the sanitized raw output for debugging
+                _consoleForm.WriteInfo("=== RAW OUTPUT START (passwords masked) ===");
+                _consoleForm.WriteInfo(sanitizedOutput);
+                _consoleForm.WriteInfo("=== RAW OUTPUT END ===");
+
+                // Split output into lines
+                var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                _consoleForm.WriteInfo($"Total lines to parse: {lines.Length}");
+
+                // Track which server section we're in (SA1 or SA2)
+                int currentServer = 0; // 0 = none, 1 = SA1, 2 = SA2
+                bool inSupplierSection = false;
+
+                int lineNumber = 0;
+                foreach (var line in lines)
                 {
-                    string command = result.Key;
-                    string output = result.Value;
+                    lineNumber++;
+                    var trimmedLine = line.Trim();
 
-                    if (command.Contains("status"))
+                    // Detect supplier sections
+                    if (trimmedLine.StartsWith("Supplier:", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Parse status information
-                        if (output.Contains("running") || output.Contains("active"))
-                        {
-                            status = "Running";
-                        }
-                        else if (output.Contains("stopped") || output.Contains("inactive"))
-                        {
-                            status = "Stopped";
-                        }
+                        inSupplierSection = true;
+                        currentServer++;
+
+                        _consoleForm.WriteSuccess($"[Line {lineNumber}] Found Supplier Section #{currentServer}: {trimmedLine}");
+                        continue;
                     }
-                    else if (command.Contains("monitor") || command.Contains("ruv"))
+                    if (!inSupplierSection || currentServer == 0)
+                        continue;
+                    // Log what we're parsing
+                    if (!string.IsNullOrWhiteSpace(trimmedLine) && trimmedLine.Contains(":"))
                     {
-                        // Parse replication timing information
-                        // This will need to be customized based on actual output format
-                        // Look for timestamps, lag information, etc.
+                        _consoleForm.WriteInfo($"[Server {currentServer}, Line {lineNumber}] Parsing: {trimmedLine}");
+                    }
+
+                    // Parse each field and update the appropriate labels
+                    // Using case-insensitive comparisons for more flexibility
+                    if (trimmedLine.StartsWith("Replica Root:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica Root:");
+                        if (currentServer == 1)
+
+                            lblReplicaRootDataSa1.Text = value;
+                        else if (currentServer == 2)
+
+                            lblReplicaRootDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica Root for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replica ID:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica ID:");
+                        if (currentServer == 1)
+
+                            lblReplicaIDDataSa1.Text = value;
+                        else if (currentServer == 2)
+
+                            lblReplicaIDDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica ID for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replica Status:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica Status:");
+                        if (currentServer == 1)
+
+                            lblReplicaStatusSa1.Text = value;
+                        else if (currentServer == 2)
+
+                            lblReplicaStatusSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica Status for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Max CSN:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Max CSN:");
+                        if (currentServer == 1)
+
+                            lblMaxCSNDataSa1.Text = value;
+                        else if (currentServer == 2)
+
+                            lblMaxCSNDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Max CSN for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replica Enabled:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replica Enabled:");
+                        if (currentServer == 1)
+
+                            lblReplicaEnabledDataSa1.Text = value;
+                        else if (currentServer == 2)
+
+                            lblReplicaEnabledDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replica Enabled for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Update In Progress:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Update In Progress:");
+                        if (currentServer == 1)
+                            lblUpdateInProgressDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblUpdateInProgressDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Update In Progress for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Last Update Start:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Update Start:");
+                        if (currentServer == 1)
+                            lblLastUpdateStartDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastUpdateStartDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Update Start for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Last Update End:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Update End:");
+                        if (currentServer == 1)
+                            lblLastUpdateEndDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastUpdateEndDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Update End for SA{currentServer}: {value}");
+                    }
+                    // More flexible matching for "Number of Changes Sent" - handles variations
+                    else if (trimmedLine.IndexOf("Changes Sent:", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        string value = ExtractValueFlexible(trimmedLine, "Changes Sent:");
+                        if (currentServer == 1)
+                            lblChangesSentDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblChangesSentDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Changes Sent for SA{currentServer}: {value}");
+                    }
+                    // More flexible matching for "Number of Changes Skipped"
+                    else if (trimmedLine.IndexOf("Changes Skipped:", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        string value = ExtractValueFlexible(trimmedLine, "Changes Skipped:");
+                        if (currentServer == 1)
+                            lblChangesSkippedDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblChangesSkippedDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Changes Skipped for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Last Update Status:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Update Status:");
+                        if (currentServer == 1)
+                            txbLastUpdateStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            txbLastUpdateStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Last Update Status for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Last Init Start:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Init Start:");
+                        if (currentServer == 1)
+                            lblLastInitStartDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastInitStartDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Init Start for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Last Init End:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Init End:");
+                        if (currentServer == 1)
+                            lblLastInitEndDataSa1.Text = FormatLdapTimestamp(value);
+                        else if (currentServer == 2)
+                            lblLastInitEndDataSa2.Text = FormatLdapTimestamp(value);
+                        _consoleForm.WriteSuccess($"  -> Set Last Init End for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Last Init Status:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Last Init Status:");
+                        if (currentServer == 1)
+                            lblLastInitStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblLastInitStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Last Init Status for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Reap Active:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Reap Active:");
+                        if (currentServer == 1)
+                            lblReapActiveDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReapActiveDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Reap Active for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replication Status:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replication Status:");
+                        if (currentServer == 1)
+                            txbLastUpdateStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            txbLastUpdateStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replication Status for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Replication Lag Time:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Replication Lag Time:");
+                        if (currentServer == 1)
+                            lblReplicationStatusDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblReplicationStatusDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Replication Lag Time for SA{currentServer}: {value}");
+                    }
+                    else if (trimmedLine.StartsWith("Status For Agreement:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = ExtractValue(trimmedLine, "Status For Agreement:");
+                        if (currentServer == 1)
+                            lblStatusForAgreementDataSa1.Text = value;
+                        else if (currentServer == 2)
+                            lblStatusForAgreementDataSa2.Text = value;
+                        _consoleForm.WriteSuccess($"  -> Set Status Agreement for SA{currentServer}: {value}");
                     }
                 }
 
-                // Update the UI with parsed information
-                UpdateServerStatus(serverLabel, status, lastUpdate, updateEnd);
-
-                _consoleForm.WriteInfo($"Replication status for {serverLabel}: {status}");
+                _consoleForm.WriteSuccess($"Successfully parsed replication data for {currentServer} server(s)");
             }
             catch (Exception ex)
             {
-                _consoleForm.WriteError($"Error parsing replication results for {serverLabel}: {ex.Message}");
+                _consoleForm.WriteError($"Error parsing replication output: {ex.Message}");
+                _consoleForm.WriteError($"Stack trace: {ex.StackTrace}");
+            }
+        }
+        private string ExtractValue(string line, string prefix)
+        {
+            int index = line.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (index >= 0)
+            {
+                return line.Substring(index + prefix.Length).Trim();
+            }
+            return line.Trim();
+        }
+        private string ExtractValueFlexible(string line, string searchText)
+        {
+            // Handle null or empty input
+            if (string.IsNullOrEmpty(line))
+                return string.Empty;
+
+            // Find the search text (case insensitive) and extract everything after it
+            int index = line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase);
+            if (index >= 0)
+            {
+                return line.Substring(index + searchText.Length).Trim();
+            }
+
+            // Default: return the whole line trimmed
+            return line.Trim();
+        }
+
+        private string FormatLdapTimestamp(string ldapTimestamp)
+        {
+            // LDAP timestamp format: 20260108185252Z
+            // Convert to readable format: 2026/01/08 18:52:52
+            try
+            {
+                if (string.IsNullOrWhiteSpace(ldapTimestamp) || ldapTimestamp == "unavailable")
+                    return ldapTimestamp;
+
+                if (ldapTimestamp.Length >= 14)
+                {
+                    string year = ldapTimestamp.Substring(0, 4);
+                    string month = ldapTimestamp.Substring(4, 2);
+                    string day = ldapTimestamp.Substring(6, 2);
+                    string hour = ldapTimestamp.Substring(8, 2);
+                    string minute = ldapTimestamp.Substring(10, 2);
+                    string second = ldapTimestamp.Substring(12, 2);
+
+                    return $"{year}/{month}/{day} {hour}:{minute}:{second}";
+                }
+
+                return ldapTimestamp;
+            }
+            catch
+            {
+                return ldapTimestamp;
             }
         }
 
-        private void UpdateServerStatus(string serverLabel, string status, string startTime, string endTime)
+        private void SetReplicationLabelsToError()
         {
-            // Update the appropriate labels based on server (SA1 or SA2)
-            if (serverLabel == "SA1")
-            {
-                lblLastUpdatedStatusSa1.Text = status;
-                lblUpdateStartTimeSa1.Text = startTime;
-                lblUpdateEndedTimeSa1.Text = endTime;
-                lblTargetCcesa1.Text = "ccesa1";
+            // Set SA1 labels to error
+            lblReplicaRootDataSa1.Text = "ERROR";
+            lblReplicaIDDataSa1.Text = "ERROR";
+            lblReplicaStatusDataSa1.Text = "ERROR";
+            lblMaxCSNDataSa1.Text = "ERROR";
+            lblStatusForAgreementDataSa1.Text = "ERROR";
+            txbLastUpdateStatusDataSa1.Text = "ERROR";
+            lblUpdateInProgressDataSa1.Text = "ERROR";
+            lblReplicaEnabledDataSa1.Text = "ERROR";
+            lblChangesSentDataSa1.Text = "ERROR";
+            lblChangesSkippedDataSa1.Text = "ERROR";
+            lblLastUpdateStartDataSa1.Text = "ERROR";
+            lblLastUpdateEndDataSa1.Text = "ERROR";
+            lblReplicationStatusDataSa1.Text = "ERROR";
+            lblReplicationLagTimeDataSa1.Text = "ERROR";
 
-                // Set color based on status
-                if (status.ToLower().Contains("running") || status.ToLower().Contains("active"))
-                {
-                    lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Green;
-                }
-                else if (status.ToLower().Contains("error") || status.ToLower().Contains("stopped"))
-                {
-                    lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Orange;
-                }
-            }
-            else if (serverLabel == "SA2")
-            {
-                lblUpdateStatusSa2.Text = status;
-                lblUpdateStartTimeSa2.Text = startTime;
-                lblUpdateEndTimeSa2.Text = endTime;
-                lblTargetCcesa2.Text = "ccesa2";
-
-                // Set color based on status
-                if (status.ToLower().Contains("running") || status.ToLower().Contains("active"))
-                {
-                    lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Green;
-                }
-                else if (status.ToLower().Contains("error") || status.ToLower().Contains("stopped"))
-                {
-                    lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Red;
-                }
-                else
-                {
-                    lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Orange;
-                }
-            }
+            // Set SA1 labels to error
+            txbLastUpdateStatusDataSa2.Text = "ERROR";
+            lblStatusForAgreementDataSa2.Text = "ERROR";
+            lblUpdateInProgressDataSa2.Text = "ERROR";
+            lblReplicaEnabledDataSa2.Text = "ERROR";
+            lblChangesSentDataSa2.Text = "ERROR";
+            lblChangesSkippedDataSa2.Text = "ERROR";
+            lblLastUpdateStartDataSa2.Text = "ERROR";
+            lblLastUpdateEndDataSa2.Text = "ERROR";
+            lblReplicationStatusDataSa2.Text = "ERROR";
+            lblReplicationLagTimeDataSa2.Text = "ERROR";
+            lblReplicaRootDataSa2.Text = "ERROR";
+            lblReplicaIDDataSa2.Text = "ERROR";
+            lblReplicaStatusDataSa2.Text = "ERROR";
+            lblMaxCSNDataSa2.Text = "ERROR";
         }
 
         private void ClearReplicationResults()
         {
-            // Clear SA1 labels
-            lblLastUpdatedStatusSa1.Text = "Checking...";
-            lblUpdateStartTimeSa1.Text = "Checking...";
-            lblUpdateEndedTimeSa1.Text = "Checking...";
-            lblLastUpdatedStatusSa1.ForeColor = System.Drawing.Color.Black;
+            // Clear SA1 data labels
+            lblReplicaRootDataSa1.Text = "Checking...";
+            lblReplicaIDDataSa1.Text = "Checking...";
+            lblReplicaStatusDataSa1.Text = "Checking...";
+            lblMaxCSNDataSa1.Text = "Checking...";
+            lblStatusForAgreementDataSa1.Text = "Checking...";
+            txbLastUpdateStatusDataSa1.Text = "Checking...";
+            lblUpdateInProgressDataSa1.Text = "Checking...";
+            lblReplicaEnabledDataSa1.Text = "Checking...";
+            lblChangesSentDataSa1.Text = "Checking...";
+            lblChangesSkippedDataSa1.Text = "Checking...";
+            lblLastUpdateStartDataSa1.Text = "Checking...";
+            lblLastUpdateEndDataSa1.Text = "Checking...";
+            lblReplicationStatusDataSa1.Text = "Checking...";
+            lblReplicationLagTimeDataSa1.Text = "Checking...";
 
-            // Clear SA2 labels
-            lblUpdateStatusSa2.Text = "Checking...";
-            lblUpdateStartTimeSa2.Text = "Checking...";
-            lblUpdateEndTimeSa2.Text = "Checking...";
-            lblUpdateStatusSa2.ForeColor = System.Drawing.Color.Black;
+            // Clear SA2 data labels
+            txbLastUpdateStatusDataSa2.Text = "Checking...";
+            lblStatusForAgreementDataSa2.Text = "Checking...";
+            lblUpdateInProgressDataSa2.Text = "Checking...";
+            lblReplicaEnabledDataSa2.Text = "Checking...";
+            lblChangesSentDataSa2.Text = "Checking...";
+            lblChangesSkippedDataSa2.Text = "Checking...";
+            lblLastUpdateStartDataSa2.Text = "Checking...";
+            lblLastUpdateEndDataSa2.Text = "Checking...";
+            lblReplicationStatusDataSa2.Text = "Checking...";
+            lblReplicationLagTimeDataSa2.Text = "Checking...";
+            lblReplicaRootDataSa2.Text = "Checking...";
+            lblReplicaIDDataSa2.Text = "Checking...";
+            lblReplicaStatusDataSa2.Text = "Checking...";
+            lblMaxCSNDataSa2.Text = "Checking...";
         }
+
         private Task UpdateDataGridView(DataGridView dgv, List<Linux_Service.DiskInfo> diskInfo)
         {
             // Ensure UI updates happen on the UI thread
@@ -3328,8 +3472,6 @@ namespace SA_ToolBelt
         #endregion
 
         #region Spice PMI tab button events
-        // Add this to your SA_ToolBelt.cs file in the SPICE event handlers region
-
         private async void btnCheckFileSystem_Click(object sender, EventArgs e)
         {
             try
@@ -3366,6 +3508,18 @@ namespace SA_ToolBelt
                 string sshUsername = CredentialManager.GetUsername();
                 string sshPassword = CredentialManager.GetPassword();
 
+                // Strip domain from username if present (e.g., "spectre\jblow" -> "jblow")
+                if (sshUsername.Contains('\\'))
+                {
+                    sshUsername = sshUsername.Split('\\').Last();
+                }
+
+                // Cache host keys for all servers first (to avoid prompts during connection)
+                foreach (string host in hosts)
+                {
+                    await _linuxService.CacheHostKeyAsync(host, sshUsername, sshPassword);
+                }
+
                 foreach (string host in hosts)
                 {
                     try
@@ -3373,7 +3527,7 @@ namespace SA_ToolBelt
                         _consoleForm.WriteInfo($"Processing host: {host}");
 
                         // Find the corresponding DataGridView for this host
-                        DataGridView currentDgv = this.Controls.Find($"{host}Dgv", true).FirstOrDefault() as DataGridView;
+                        DataGridView currentDgv = this.Controls.Find($"dgv{host}", true).FirstOrDefault() as DataGridView;
 
                         if (currentDgv != null)
                         {
@@ -3411,6 +3565,7 @@ namespace SA_ToolBelt
                 btnCheckFileSystem.Text = "Check File System";
             }
         }
+
         private async void btnPerformHealthChk_Click(object sender, EventArgs e)
         {
             try
@@ -3486,47 +3641,36 @@ namespace SA_ToolBelt
                     return;
                 }
 
-                // Server connection details
-                string username = CredentialManager.GetUsername();
-                string password = CredentialManager.GetPassword();
-                string server1 = "ccesa1";
-                string server2 = "ccesa2";
+                // Prompt user for Linux SSH credentials
+                _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
+                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
+
+                if (!success)
+                {
+                    _consoleForm.WriteWarning("Replication health check cancelled by user.");
+                    return;
+                }
 
                 // Clear previous results
                 ClearReplicationResults();
 
-                // Test connections first
-                _consoleForm.WriteInfo("Testing SSH connections to Red Hat Directory Service servers...");
+                // Build the dsconf command
+                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
 
-                bool server1Connected = await _linuxService.TestSSHConnectionAsync(server1, username, password);
-                bool server2Connected = await _linuxService.TestSSHConnectionAsync(server2, username, password);
-
-                if (!server1Connected && !server2Connected)
+                // Prepare credentials for both servers (2 prompts each = 4 total)
+                string[] inputs = new string[]
                 {
-                    _consoleForm.WriteError("Failed to connect to both servers. Please check credentials and network connectivity.");
-                    return;
-                }
+                    "cn=Directory Manager",  // First server Bind DN
+                    password,                // First server password
+                    "cn=Directory Manager",  // Second server Bind DN
+                    password                 // Second server password
+                };
 
-                if (!server1Connected)
-                {
-                    _consoleForm.WriteWarning($"Failed to connect to {server1}. Will check {server2} only.");
-                }
+                // Execute the interactive command and capture output
+                string output = await _linuxService.ExecuteInteractiveSSHCommandAsync(hostname, username, password, command, inputs);
 
-                if (!server2Connected)
-                {
-                    _consoleForm.WriteWarning($"Failed to connect to {server2}. Will check {server1} only.");
-                }
-
-                // Check replication health on each server
-                if (server1Connected)
-                {
-                    await CheckServerReplicationHealth(server1, username, password, "SA1");
-                }
-
-                if (server2Connected)
-                {
-                    await CheckServerReplicationHealth(server2, username, password, "SA2");
-                }
+                // Parse and display the results
+                ParseReplicationMonitorOutput(output, password);
 
                 _consoleForm.WriteSuccess("LDAP Replication Health Check completed.");
             }
@@ -3541,6 +3685,108 @@ namespace SA_ToolBelt
                 btnCheckRepHealth.Text = "Check Replication Health";
             }
         }
+        /*
+        private async void btnCheckRepHealth_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Disable button during operation
+                btnCheckRepHealth.Enabled = false;
+                btnCheckRepHealth.Text = "Opening SSH...";
+
+                _consoleForm.WriteInfo("Starting LDAP Replication Health Check...");
+
+                // Initialize LinuxService if not already done
+                if (_linuxService == null)
+                {
+                    _linuxService = new Linux_Service(_consoleForm);
+                }
+
+                // Check if plink is available
+                if (!_linuxService.IsPlinkAvailable())
+                {
+                    _consoleForm.WriteError("Plink.exe not found. Please ensure PuTTY is installed and plink.exe is in PATH or current directory.");
+                    return;
+                }
+
+                // Prompt user for Linux SSH credentials
+                _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
+                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
+                
+                if (!success)
+                {
+                    _consoleForm.WriteWarning("Replication health check cancelled by user.");
+                    return;
+                }
+
+                _consoleForm.WriteInfo($"Opening visible SSH session to {hostname}...");
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
+                    UseShellExecute = true,
+                    // RedirectStandardInput = true,
+                    CreateNoWindow = false,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
+                };
+
+                var process = Process.Start(processInfo);
+
+
+                // Wait for SSH connection to establish and shell prompt to appear
+                _consoleForm.WriteSuccess($"Waiting 3 seconds for SSH connection to establish and shell prompt to appear");
+                await Task.Delay(3000); // 8 seconds for SSH banner and prompt
+
+                _consoleForm?.WriteInfo($" IntPtr = '{IntPtr.Zero}' ");
+                _consoleForm?.WriteInfo($" Process MainWindow = '{process.MainWindowHandle}' ");
+
+                if (process.MainWindowHandle != IntPtr.Zero)
+                {
+                    _consoleForm.WriteSuccess($"Setting SSH Window as active....");
+                    SetForegroundWindow(process.MainWindowHandle);
+                }
+
+                await Task.Delay(1000);
+
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(2000);
+
+                // Send the dsconf command
+                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
+                string command1 = $"cn=Directory Manager";
+                System.Windows.Forms.SendKeys.SendWait(command);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(1000);
+                System.Windows.Forms.SendKeys.SendWait(command1);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(1000);
+                System.Windows.Forms.SendKeys.SendWait(password);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(1000);
+                System.Windows.Forms.SendKeys.SendWait(command1);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                await Task.Delay(1000);
+                System.Windows.Forms.SendKeys.SendWait(password);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+
+                // Wait for replication monitor to gather data
+                await Task.Delay(3000);
+
+                btnCheckRepHealth.Text = "Check Replication Health";
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error opening SSH session: {ex.Message}");
+            }
+            finally
+            {
+                // Re-enable button
+                btnCheckRepHealth.Enabled = true;
+                btnCheckRepHealth.Text = "Check Replication Health";
+            }
+        }
+        */
         #endregion
 
         #region CSV Functionality
@@ -3801,7 +4047,7 @@ namespace SA_ToolBelt
                         if (middleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
                         {
                             txbSecurityGroupKW.Text = keyWord;
-                            _consoleForm.WriteInfo($"Loaded security group filter keyword: {keyWord}");
+                            _consoleForm.WriteInfo($"Loaded security group filter keyword {keyWord}");
                         }
                         else
                         {
@@ -3859,7 +4105,7 @@ namespace SA_ToolBelt
                         string kw = columns[2].Trim().Trim('"');
 
                         // Add to appropriate CheckedListBox based on middleName
-                       if (middleName == "sgfilter")
+                        if (middleName == "sgfilter")
                         {
                             txbSecurityGroupKW.Text = kw;
                         }
@@ -3908,7 +4154,6 @@ namespace SA_ToolBelt
             cbxListWorkStationOu.Items.Clear();
             cbxListPatriotParkOu.Items.Clear();
             cbxListWindowsServersOu.Items.Clear();
-            cbxListGangsOu.Items.Clear();
             cbxListSecurityGroupsOu.Items.Clear(); // ADD THIS LINE
         }
 
@@ -3928,10 +4173,6 @@ namespace SA_ToolBelt
                 case "windows":
                     if (!cbxListWindowsServersOu.Items.Contains(ou))
                         cbxListWindowsServersOu.Items.Add(ou, false);
-                    break;
-                case "gangs":
-                    if (!cbxListGangsOu.Items.Contains(ou))
-                        cbxListGangsOu.Items.Add(ou, false);
                     break;
                 case "securitygroups": // ADD THIS CASE
                     cbxListSecurityGroupsOu.Items.Add(ou);
@@ -3957,7 +4198,6 @@ namespace SA_ToolBelt
                 AddOUsFromCheckedListBox(csvContent, cbxListWorkStationOu);
                 AddOUsFromCheckedListBox(csvContent, cbxListPatriotParkOu);
                 AddOUsFromCheckedListBox(csvContent, cbxListWindowsServersOu);
-                AddOUsFromCheckedListBox(csvContent, cbxListGangsOu);
                 AddOUsFromCheckedListBox(csvContent, cbxListSecurityGroupsOu); // ADD THIS LINE
 
                 // Write to file
@@ -4130,7 +4370,7 @@ namespace SA_ToolBelt
             {
                 // Extract middleName from control name dynamically
                 string middleName = GetMiddleNameFromControlName(targetCheckedListBox.Name);
-                
+
                 string selectedOU = ShowRHDSOUSelectionDialog(middleName);
 
                 if (!string.IsNullOrEmpty(selectedOU))
@@ -4156,7 +4396,7 @@ namespace SA_ToolBelt
                 _consoleForm.WriteError($"Error adding RHDS OU: {ex.Message}");
             }
         }
-        
+
         #endregion
 
         #region OU Configuration Management tab Button Event Handlers
@@ -4176,11 +4416,6 @@ namespace SA_ToolBelt
         {
             AddOUToConfiguration(cbxListWindowsServersOu);
         }
-
-        private void btnAddGangsOu_Click(object sender, EventArgs e)
-        {
-            AddOUToConfiguration(cbxListGangsOu);
-        }
         private void btnAddSecurityGroupsOU_Click(object sender, EventArgs e)
         {
             AddRHDSOUToConfiguration(cbxListSecurityGroupsOu);
@@ -4198,7 +4433,6 @@ namespace SA_ToolBelt
                 totalRemoved += RemoveSelectedOUsFromCheckedListBox(cbxListWorkStationOu);
                 totalRemoved += RemoveSelectedOUsFromCheckedListBox(cbxListPatriotParkOu);
                 totalRemoved += RemoveSelectedOUsFromCheckedListBox(cbxListWindowsServersOu);
-                totalRemoved += RemoveSelectedOUsFromCheckedListBox(cbxListGangsOu);
                 totalRemoved += RemoveSelectedOUsFromCheckedListBox(cbxListSecurityGroupsOu); // ADD THIS LINE
 
                 if (totalRemoved > 0)
@@ -4593,7 +4827,6 @@ namespace SA_ToolBelt
                 await LoadComputersToDataGridViewAsync(cbxListPatriotParkOu, dgvPatriotPark, "Patriot Park");
                 await LoadComputersToDataGridViewAsync(cbxListWorkStationOu, dgvWorkstations, "Workstations");
                 await LoadComputersToListBoxAsync(cbxListWindowsServersOu, lbxWindowsServers, "Windows Servers");
-                await LoadComputersToListBoxAsync(cbxListGangsOu, lbxGangs, "Gangs");
 
                 // Load computers for specialized categories (these would need their own configuration)
                 // Note: These may need additional configuration setup if not already present
@@ -4751,7 +4984,6 @@ namespace SA_ToolBelt
             lbxWindowsServers.Items.Clear();
             lbxCriticalWindows.Items.Clear();
             lbxCriticalNas.Items.Clear();
-            lbxGangs.Items.Clear();
             lbxOfficeExempt.Items.Clear();
             lbxLinux.Items.Clear();
             lbxCriticalLinux.Items.Clear();
@@ -4776,7 +5008,6 @@ namespace SA_ToolBelt
                 allComputers.AddRange(lbxWindowsServers.Items.Cast<string>());
                 allComputers.AddRange(lbxCriticalWindows.Items.Cast<string>());
                 allComputers.AddRange(lbxCriticalNas.Items.Cast<string>());
-                allComputers.AddRange(lbxGangs.Items.Cast<string>());
                 allComputers.AddRange(lbxOfficeExempt.Items.Cast<string>());
                 allComputers.AddRange(lbxLinux.Items.Cast<string>());
                 allComputers.AddRange(lbxCriticalLinux.Items.Cast<string>());
@@ -4883,7 +5114,6 @@ namespace SA_ToolBelt
             UpdateListBoxStatus(lbxWindowsServers, onlineResults);
             UpdateListBoxStatus(lbxCriticalWindows, onlineResults);
             UpdateListBoxStatus(lbxCriticalNas, onlineResults);
-            UpdateListBoxStatus(lbxGangs, onlineResults);
             UpdateListBoxStatus(lbxOfficeExempt, onlineResults);
             UpdateListBoxStatus(lbxLinux, onlineResults);
             UpdateListBoxStatus(lbxCriticalLinux, onlineResults);
@@ -5004,6 +5234,5 @@ namespace SA_ToolBelt
         }
 
         #endregion
-
     }
 }

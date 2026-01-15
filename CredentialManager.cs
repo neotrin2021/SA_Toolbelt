@@ -4,8 +4,8 @@ namespace SA_ToolBelt
 {
     public static class CredentialManager
     {
-        private static string _username;
-        private static string _password;
+        public static string _username;
+        public static string _password;
         private static string _domain;
         
         public static bool IsAuthenticated => !string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password);

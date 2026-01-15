@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Compile Update="AddGroupsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="ConsoleForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="LinuxCredentialDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="HorizontalCheckedListBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="SA_ToolBelt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

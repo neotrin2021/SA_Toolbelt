@@ -28,20 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            rtbConsoleBox = new RichTextBox();
             btnDockConsole = new Button();
+            rtbConsoleBox = new RichTextBox();
             SuspendLayout();
-            // 
-            // rtbConsoleBox
-            // 
-            rtbConsoleBox.BackColor = SystemColors.WindowText;
-            rtbConsoleBox.Dock = DockStyle.Top;
-            rtbConsoleBox.ForeColor = SystemColors.Window;
-            rtbConsoleBox.Location = new Point(0, 0);
-            rtbConsoleBox.Name = "rtbConsoleBox";
-            rtbConsoleBox.Size = new Size(846, 360);
-            rtbConsoleBox.TabIndex = 0;
-            rtbConsoleBox.Text = "";
             // 
             // btnDockConsole
             // 
@@ -53,6 +42,17 @@
             btnDockConsole.Text = "Dock Console";
             btnDockConsole.UseVisualStyleBackColor = true;
             btnDockConsole.Click += btnDockConsole_Click;
+            // 
+            // rtbConsoleBox
+            // 
+            rtbConsoleBox.BackColor = SystemColors.WindowText;
+            rtbConsoleBox.Dock = DockStyle.Top;
+            rtbConsoleBox.ForeColor = SystemColors.Window;
+            rtbConsoleBox.Location = new Point(0, 0);
+            rtbConsoleBox.Name = "rtbConsoleBox";
+            rtbConsoleBox.Size = new Size(846, 360);
+            rtbConsoleBox.TabIndex = 0;
+            rtbConsoleBox.Text = "";
             // 
             // ConsoleForm
             // 
@@ -67,8 +67,7 @@
         }
 
         #endregion
-
-        private RichTextBox rtbConsoleBox;
         private Button btnDockConsole;
+        private RichTextBox rtbConsoleBox;
     }
 }
