@@ -56,6 +56,73 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
+        /// Import VMware PowerCLI module
+        /// </summary>
+        private async Task ImportPowerCLIModuleAsync()
+        {
+            try
+            {
+                using (PowerShell powerShell = PowerShell.Create())
+                {
+                    _consoleForm.WriteInfo("Importing VMware.PowerCLI module...");
+                    powerShell.AddScript("Import-Module VMware.PowerCLI -ErrorAction Stop");
+                    await Task.Run(() => powerShell.Invoke());
+
+                    if (powerShell.HadErrors)
+                    {
+                        foreach (var error in powerShell.Streams.Error)
+                        {
+                            _consoleForm.WriteError($"PowerCLI import error: {error.Exception}");
+                        }
+                        throw new Exception("Failed to import VMware.PowerCLI module");
+                    }
+                    else
+                    {
+                        _consoleForm.WriteSuccess("VMware.PowerCLI module imported successfully");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to import PowerCLI module: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Configure PowerCLI settings (disable certificate warnings)
+        /// </summary>
+        private async Task ConfigurePowerCLISettingsAsync()
+        {
+            try
+            {
+                using (PowerShell powerShell = PowerShell.Create())
+                {
+                    _consoleForm.WriteInfo("Configuring PowerCLI settings...");
+                    powerShell.AddScript("Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false -Scope Session");
+                    await Task.Run(() => powerShell.Invoke());
+
+                    if (powerShell.HadErrors)
+                    {
+                        foreach (var error in powerShell.Streams.Error)
+                        {
+                            _consoleForm.WriteWarning($"PowerCLI configuration warning: {error.Exception}");
+                        }
+                    }
+                    else
+                    {
+                        _consoleForm.WriteSuccess("PowerCLI settings configured successfully");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteWarning($"Failed to configure PowerCLI settings: {ex.Message}");
+                // Don't throw - this is not critical
+            }
+        }
+
+        /// <summary>
         /// Connect to vCenter Server and return PowerShell session
         /// </summary>
         private async Task<PowerShell> ConnectToVCenterAsync()
@@ -97,6 +164,8 @@ namespace SA_ToolBelt
             {
                 _consoleForm.WriteInfo("Initializing PowerCLI...");
                 await SetProcessScopeExecutionPolicyAsync();
+                await ImportPowerCLIModuleAsync();
+                await ConfigurePowerCLISettingsAsync();
                 _consoleForm.WriteSuccess("PowerCLI initialization completed");
             }
             catch (Exception ex)
@@ -464,6 +533,10 @@ namespace SA_ToolBelt
         public double ConsumedMemory { get; set; }
         public string HAState { get; set; }
         public string Uptime { get; set; }
+
+        // Calculated properties for display
+        public string CpuUsagePercent => $"{ConsumedCPU}%";
+        public string MemoryUsagePercent => $"{ConsumedMemory}%";
     }
 
     public class VMachine
