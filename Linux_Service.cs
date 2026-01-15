@@ -13,7 +13,7 @@ namespace SA_ToolBelt
     {
         private readonly ConsoleForm _consoleForm;
 
-        // Windows API for setting window focus
+        // Windows API for setting windows focus
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -125,7 +125,7 @@ namespace SA_ToolBelt
                     // -batch handles the interactive prompt automatically
 
                     // Wait for process to complete with timeout
-                    var completed = await Task.Run(() => process.WaitForExit(10000)); // 10 second timeout
+                    var completed = await Task.Run(() => process.WaitForExit(30000)); // 30 second timeout
 
                     if (!completed)
                     {
@@ -169,17 +169,22 @@ namespace SA_ToolBelt
         {
             try
             {
-                _consoleForm?.WriteInfo($"Connecting to {hostname} via SSH for interactive command...");
+                // ISSUE: These 2 string lines have an issue.  The file capture includes prompt text mixed with data.
+                // EXAMPLE: Enter a bind DN for ccesa1.afspc.af.smil.mil:389 Supplier: ccesa1:389
+                // WHATS WRONG: Supplier: ccesa1:389 needs to be on it's own line
+                // Should fix the root cause (separate prompts from output at capture time)
+                // Modify command to redirect output to a temporary file
+                String outputFile = $"/tmp/repl_output_{DateTime.Now.Ticks}.txt";
+                // String commandWithRedirect = $"{command} 2>&1 | grep -v 'bind DN' | grep -v 'password for' > {outputFile}";
+                String commandWithRedirect = $"{command} > {outputFile}";
 
-                // Redirect only stdout to file - prompts go to stderr, data goes to stdout
-                string outputFile = $"/tmp/repl_output_{DateTime.Now.Ticks}.txt";
-                string commandWithRedirect = $"{command} > {outputFile}";
+                _consoleForm?.WriteInfo($"Connecting to {hostname} via SSH for interactive command...");
 
                 // === PART 1: Run the command with SendKeys (visible window) ===
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
+                    Arguments = $"/k title Replication Monitor && plink.exe {username}@{hostname} -pw {password}",
                     UseShellExecute = true, // Required for SendKeys to work
                     CreateNoWindow = false, // Keep it visible so SendKeys works
                     WorkingDirectory = Directory.GetCurrentDirectory()
@@ -189,7 +194,7 @@ namespace SA_ToolBelt
 
                 // Wait for SSH connection and "Access Granted" prompt
                 _consoleForm?.WriteInfo("Waiting for SSH connection...");
-                await Task.Delay(12000); // 12 seconds for SSH connection
+                await Task.Delay(5000); // 12 seconds for SSH connection
 
                 // Bring window to foreground for SendKeys
                 if (process.MainWindowHandle != IntPtr.Zero)
@@ -248,10 +253,13 @@ namespace SA_ToolBelt
 
                 // === PART 2: Read the output file back using a second SSH session ===
                 _consoleForm?.WriteInfo($"Reading output from {outputFile} via second SSH session...");
-                string catCommand = $"cat {outputFile} && rm {outputFile}"; // Read and delete in one go
+                // string catCommand = $"cat {outputFile} && rm {outputFile}"; // Read and delete in one go
+                string catCommand = $"cat {outputFile}"; // Read and delete in one go
                 string result = await ExecuteSSHCommandAsync(hostname, username, password, catCommand);
 
-                // Post-process: Strip first 2 lines (bind DN prompts) and insert clean Supplier line
+                // TODO: This is a workaround  the file capture includes prompt text mixed with data.
+                // Should fix the root cause (separate prompts from output at capture time) but this works for now
+                // Temp Fix: Post-process: Strip first 2 lines (bind DN prompts) and insert clean Supplier line
                 var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 if (lines.Length > 2)
                 {
@@ -259,22 +267,21 @@ namespace SA_ToolBelt
                     var cleanedLines = lines.Skip(2).ToList();
                     // Insert clean Supplier line at the beginning
                     cleanedLines.Insert(0, $"Supplier: {hostname}:389");
-                    result = string.Join(Environment.NewLine, cleanedLines);
+                    result = String.Join(Environment.NewLine, cleanedLines);
                     _consoleForm?.WriteInfo("Cleaned output: removed prompt lines and inserted clean Supplier header");
                 }
 
                 _consoleForm?.WriteInfo($"Command completed. Output length: {result.Length} characters");
-
                 // Close the visible SSH window now that we have the data
                 try
                 {
                     if (!process.HasExited)
-                    {
+                    { 
                         process.Kill();
                         _consoleForm?.WriteInfo("Closed SSH window");
                     }
                 }
-                catch { /* Ignore if already closed */ }
+                catch {  /* Ignore if already closed */ }
 
                 return result;
             }
@@ -283,8 +290,9 @@ namespace SA_ToolBelt
                 _consoleForm?.WriteError($"Interactive SSH command error: {ex.Message}");
                 throw;
             }
-        }
 
+        }
+        
         /// <summary>
         /// Test SSH connection to a server
         /// </summary>
