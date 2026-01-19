@@ -131,7 +131,7 @@ namespace SA_ToolBelt
             try
             {
                 _consoleForm.WriteInfo($"Connecting to vCenter server {_vCenterServer}...");
-                powerShell.AddScript($@"Connect-VIServer -Server '{_vCenterServer}' -User '{_username}' -Password '{_password}'");
+                powerShell.AddScript($@"Connect-VIServer -Server '{_vCenterServer}' -User 'SPECTRE\{_username}' -Password '{_password}'");
 
                 await Task.Run(() => powerShell.Invoke());
 

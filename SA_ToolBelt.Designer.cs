@@ -293,7 +293,7 @@
             lblChangesSentDataSa2 = new Label();
             btnCheckRepHealth = new Button();
             lblTargetCceSa2 = new Label();
-            tcEsxiVmHealthChk = new TabControl();
+            dgvEsxiVmHealthChk = new TabControl();
             tabEsxiHealthPmi = new TabPage();
             dgvEsxiHealthCheck = new DataGridView();
             clmServerName = new DataGridViewTextBoxColumn();
@@ -432,7 +432,7 @@
             ((System.ComponentModel.ISupportInitialize)dgvPatriotPark).BeginInit();
             tabSAPMIsSpice.SuspendLayout();
             gbxLDAPReplicationChk.SuspendLayout();
-            tcEsxiVmHealthChk.SuspendLayout();
+            dgvEsxiVmHealthChk.SuspendLayout();
             tabEsxiHealthPmi.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvEsxiHealthCheck).BeginInit();
             tabVmHealthChkPmi.SuspendLayout();
@@ -2432,7 +2432,7 @@
             tabSAPMIsSpice.Controls.Add(btnPerformHealthChk);
             tabSAPMIsSpice.Controls.Add(btnCheckFileSystem);
             tabSAPMIsSpice.Controls.Add(gbxLDAPReplicationChk);
-            tabSAPMIsSpice.Controls.Add(tcEsxiVmHealthChk);
+            tabSAPMIsSpice.Controls.Add(dgvEsxiVmHealthChk);
             tabSAPMIsSpice.Controls.Add(TcFileSystemCheck);
             tabSAPMIsSpice.Controls.Add(lblEsxiAndVmPmi);
             tabSAPMIsSpice.Controls.Add(lblFileSystemCheckPmi);
@@ -3234,15 +3234,15 @@
             lblTargetCceSa2.TabIndex = 0;
             lblTargetCceSa2.Text = "CCESA2";
             // 
-            // tcEsxiVmHealthChk
+            // dgvEsxiVmHealthChk
             // 
-            tcEsxiVmHealthChk.Controls.Add(tabEsxiHealthPmi);
-            tcEsxiVmHealthChk.Controls.Add(tabVmHealthChkPmi);
-            tcEsxiVmHealthChk.Location = new Point(763, 62);
-            tcEsxiVmHealthChk.Name = "tcEsxiVmHealthChk";
-            tcEsxiVmHealthChk.SelectedIndex = 0;
-            tcEsxiVmHealthChk.Size = new Size(895, 438);
-            tcEsxiVmHealthChk.TabIndex = 3;
+            dgvEsxiVmHealthChk.Controls.Add(tabEsxiHealthPmi);
+            dgvEsxiVmHealthChk.Controls.Add(tabVmHealthChkPmi);
+            dgvEsxiVmHealthChk.Location = new Point(763, 62);
+            dgvEsxiVmHealthChk.Name = "dgvEsxiVmHealthChk";
+            dgvEsxiVmHealthChk.SelectedIndex = 0;
+            dgvEsxiVmHealthChk.Size = new Size(895, 438);
+            dgvEsxiVmHealthChk.TabIndex = 3;
             // 
             // tabEsxiHealthPmi
             // 
@@ -4173,7 +4173,7 @@
             tabSAPMIsSpice.PerformLayout();
             gbxLDAPReplicationChk.ResumeLayout(false);
             gbxLDAPReplicationChk.PerformLayout();
-            tcEsxiVmHealthChk.ResumeLayout(false);
+            dgvEsxiVmHealthChk.ResumeLayout(false);
             tabEsxiHealthPmi.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvEsxiHealthCheck).EndInit();
             tabVmHealthChkPmi.ResumeLayout(false);
@@ -4412,7 +4412,7 @@
         private ListBox lbxLinux;
         private Label lblEsxiAndVmPmi;
         private Label lblFileSystemCheckPmi;
-        private TabControl tcEsxiVmHealthChk;
+        private TabControl dgvEsxiVmHealthChk;
         private TabPage tabEsxiHealthPmi;
         private TabPage tabVmHealthChkPmi;
         private TabControl TcFileSystemCheck;
