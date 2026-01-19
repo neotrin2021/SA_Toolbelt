@@ -3339,45 +3339,45 @@ namespace SA_ToolBelt
                     DataGridViewRow row = dgvEsxiHealthCheck.Rows[rowIndex];
 
                     // Update these column names to match your actual DataGridView columns
-                    row.Cells["ESXiServerNamePmiClm"].Value = host.Hostname;
-                    row.Cells["ESXiStatePmiClm"].Value = host.ConnectionState;
-                    row.Cells["ESXiStatusPmiClm"].Value = host.PowerStatus;
-                    row.Cells["ESXiClusterPmiClm"].Value = host.Cluster;
-                    row.Cells["ESXiConsumedCPUPmiClm"].Value = $"{host.ConsumedCPU:F1}%";
-                    row.Cells["ESXiConsumedMemoryPmiClm"].Value = $"{host.ConsumedMemory:F1}%";
-                    row.Cells["ESXiHAStatePmiClm"].Value = host.HAState;
-                    row.Cells["ESXiUptimePmiClm"].Value = $"{host.Uptime:F1} days";
+                    row.Cells["clmServerName"].Value = host.Name;
+                    row.Cells["clmState"].Value = host.ConnectionState;
+                    row.Cells["clmStatus"].Value = host.Status;
+                    row.Cells["clmCluster"].Value = host.Cluster;
+                    row.Cells["clmConsumedCpu"].Value = $"{host.ConsumedCPU:F1}%";
+                    row.Cells["clmConsumedMemory"].Value = $"{host.ConsumedMemory:F1}%";
+                    row.Cells["clmHaState"].Value = host.HAState;
+                    row.Cells["clmUptime"].Value = $"{host.Uptime} days";
 
                     // Apply color coding for connection status
                     if (host.ConnectionState.Equals("Connected", StringComparison.OrdinalIgnoreCase))
                     {
-                        row.Cells["ESXiStatePmiClm"].Style.ForeColor = Color.Green;
+                        row.Cells["clmState"].Style.ForeColor = Color.Green;
                     }
                     else
                     {
-                        row.Cells["ESXiStatePmiClm"].Style.ForeColor = Color.Red;
+                        row.Cells["clmState"].Style.ForeColor = Color.Red;
                     }
 
                     // Apply color coding for CPU usage
                     if (host.ConsumedCPU > 80)
                     {
-                        row.Cells["ESXiConsumedCPUPmiClm"].Style.ForeColor = Color.Red;
-                        row.Cells["ESXiConsumedCPUPmiClm"].Style.BackColor = Color.LightPink;
+                        row.Cells["clmConsumedCpu"].Style.ForeColor = Color.Red;
+                        row.Cells["clmConsumedCpu"].Style.BackColor = Color.LightPink;
                     }
                     else if (host.ConsumedCPU > 60)
                     {
-                        row.Cells["ESXiConsumedCPUPmiClm"].Style.ForeColor = Color.Orange;
+                        row.Cells["clmConsumedCpu"].Style.ForeColor = Color.Orange;
                     }
 
                     // Apply color coding for Memory usage
                     if (host.ConsumedMemory > 80)
                     {
-                        row.Cells["ESXiConsumedMemoryPmiClm"].Style.ForeColor = Color.Red;
-                        row.Cells["ESXiConsumedMemoryPmiClm"].Style.BackColor = Color.LightPink;
+                        row.Cells["clmConsumedMemory"].Style.ForeColor = Color.Red;
+                        row.Cells["clmConsumedMemory"].Style.BackColor = Color.LightPink;
                     }
                     else if (host.ConsumedMemory > 60)
                     {
-                        row.Cells["ESXiConsumedMemoryPmiClm"].Style.ForeColor = Color.Orange;
+                        row.Cells["clmConsumedMemory"].Style.ForeColor = Color.Orange;
                     }
                 }
 
@@ -3406,40 +3406,40 @@ namespace SA_ToolBelt
                     DataGridViewRow row = dgvVmHealthCheck.Rows[rowIndex];
 
                     // Update these column names to match your actual DataGridView columns
-                    row.Cells["ESXiVMNamePmiClm"].Value = vm.Name;
-                    row.Cells["ESXiVMStatePmiClm"].Value = vm.PowerState;
-                    row.Cells["ESXiVMStatusPmiClm"].Value = vm.Status;
-                    row.Cells["ESXiProvSpacePmiClm"].Value = $"{vm.ProvisionedSpace:F2} GB";
-                    row.Cells["ESXiUsedSpacePmiClm"].Value = $"{vm.UsedSpace:F2} GB";
-                    row.Cells["ESXiVMHostCpuPmiClm"].Value = $"{vm.HostCPU:F0} MHz";
-                    row.Cells["ESXiVMHostMemPmiClm"].Value = $"{vm.HostMemory:F2} GB";
+                    row.Cells["clmVmName"].Value = vm.Name;
+                    row.Cells["clmPowerState"].Value = vm.PowerState;
+                    row.Cells["clmVmStatus"].Value = vm.Status;
+                    row.Cells["clmProvisionedSpace"].Value = $"{vm.ProvisionedSpace:F2} GB";
+                    row.Cells["clmUsedSpace"].Value = $"{vm.UsedSpace:F2} GB";
+                    row.Cells["clmHostCpu"].Value = $"{vm.HostCPU:F0} MHz";
+                    row.Cells["clmHostMemory"].Value = $"{vm.HostMemory:F2} GB";
 
                     // Apply color coding for power state
                     if (vm.PowerState.Equals("PoweredOn", StringComparison.OrdinalIgnoreCase))
                     {
-                        row.Cells["ESXiVMStatePmiClm"].Style.ForeColor = Color.Green;
+                        row.Cells["clmPowerState"].Style.ForeColor = Color.Green;
                     }
                     else if (vm.PowerState.Equals("PoweredOff", StringComparison.OrdinalIgnoreCase))
                     {
-                        row.Cells["ESXiVMStatePmiClm"].Style.ForeColor = Color.Red;
+                        row.Cells["clmPowerState"].Style.ForeColor = Color.Red;
                     }
                     else
                     {
-                        row.Cells["ESXiVMStatePmiClm"].Style.ForeColor = Color.Orange;
+                        row.Cells["clmPowerState"].Style.ForeColor = Color.Orange;
                     }
 
                     // Apply color coding for VM status
                     if (vm.Status.Equals("green", StringComparison.OrdinalIgnoreCase))
                     {
-                        row.Cells["ESXiVMStatusPmiClm"].Style.ForeColor = Color.Green;
+                        row.Cells["clmVmStatus"].Style.ForeColor = Color.Green;
                     }
                     else if (vm.Status.Equals("red", StringComparison.OrdinalIgnoreCase))
                     {
-                        row.Cells["ESXiVMStatusPmiClm"].Style.ForeColor = Color.Red;
+                        row.Cells["clmVmStatus"].Style.ForeColor = Color.Red;
                     }
                     else
                     {
-                        row.Cells["ESXiVMStatusPmiClm"].Style.ForeColor = Color.Orange;
+                        row.Cells["clmVmStatus"].Style.ForeColor = Color.Orange;
                     }
                 }
 
