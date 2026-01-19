@@ -465,11 +465,26 @@ namespace SA_ToolBelt
         /// </summary>
         private double ConvertToGB(PSObject result, string propertyName)
         {
-            string value = result.Properties[propertyName].Value?.ToString() ?? "0";
-            double number = Convert.ToDouble(Regex.Match(value, @"[\d.]+").Value);
-            return value.Contains("GB") ? number :
-                   value.Contains("MB") ? number / 1024 :
-                   value.Contains("TB") ? number * 1024 : number;
+            try
+            {
+                if (result.Properties[propertyName] == null || result.Properties[propertyName].Value == null)
+                    return 0;
+
+                string value = result.Properties[propertyName].Value.ToString();
+                var match = Regex.Match(value, @"[\d.]+");
+
+                if (!match.Success)
+                    return 0;
+
+                double number = Convert.ToDouble(match.Value);
+                return value.Contains("GB") ? number :
+                       value.Contains("MB") ? number / 1024 :
+                       value.Contains("TB") ? number * 1024 : number;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         /// <summary>
@@ -477,11 +492,26 @@ namespace SA_ToolBelt
         /// </summary>
         private double ConvertToMHz(PSObject result, string propertyName)
         {
-            string value = result.Properties[propertyName].Value?.ToString() ?? "0";
-            double number = Convert.ToDouble(Regex.Match(value, @"[\d.]+").Value);
-            return value.Contains("GHz") ? number * 1000 :
-                   value.Contains("Hz") ? number / 1000000 :
-                   value.Contains("MHz") ? number : number;
+            try
+            {
+                if (result.Properties[propertyName] == null || result.Properties[propertyName].Value == null)
+                    return 0;
+
+                string value = result.Properties[propertyName].Value.ToString();
+                var match = Regex.Match(value, @"[\d.]+");
+
+                if (!match.Success)
+                    return 0;
+
+                double number = Convert.ToDouble(match.Value);
+                return value.Contains("GHz") ? number * 1000 :
+                       value.Contains("Hz") ? number / 1000000 :
+                       value.Contains("MHz") ? number : number;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         /// <summary>
