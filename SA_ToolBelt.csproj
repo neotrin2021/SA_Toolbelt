@@ -15,7 +15,7 @@
     <PackageReference Include="System.DirectoryServices.AccountManagement" Version="8.0.0" />
     <PackageReference Include="System.DirectoryServices.Protocols" Version="9.0.0-preview.2.24128.5" />
     <PackageReference Include="System.Management" Version="8.0.0" />
-    <PackageReference Include="System.Management.Automation" Version="7.4.5" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.6" />
     <PackageReference Include="System.Management.dll" Version="1.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
