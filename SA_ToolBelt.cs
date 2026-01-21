@@ -67,6 +67,9 @@ namespace SA_ToolBelt
         {
             InitializeComponent();
 
+            // Set the configuration file path label
+            lblFilePathLocation.Text = OU_CONFIG_FILE_PATH;
+
             _consoleForm = new ConsoleForm();
             _adService = new AD_Service(_consoleForm);
             _linuxService = new Linux_Service(_consoleForm);
