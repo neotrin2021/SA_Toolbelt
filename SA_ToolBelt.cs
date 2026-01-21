@@ -211,7 +211,7 @@ namespace SA_ToolBelt
             {
                 tabConsole.Controls.Remove(_consoleForm.GetConsoleRichTextBox());
                 // Remove from tab
-                tabConsole.Controls.Remove(tabConsole);
+                tabControlMain.TabPages.Remove(tabConsole);
                 _consoleForm.AddConsoleControl(_consoleForm.GetConsoleRichTextBox());
 
                 // Show the floating window
@@ -4186,7 +4186,7 @@ namespace SA_ToolBelt
                     if (!cbxListPatriotParkOu.Items.Contains(ou))
                         cbxListPatriotParkOu.Items.Add(ou, false);
                     break;
-                case "windows":
+                case "windowsservers":
                     if (!cbxListWindowsServersOu.Items.Contains(ou))
                         cbxListWindowsServersOu.Items.Add(ou, false);
                     break;
@@ -5252,4 +5252,5 @@ namespace SA_ToolBelt
         #endregion
     }
 }
+
 
