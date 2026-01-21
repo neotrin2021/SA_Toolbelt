@@ -1,35 +1,21 @@
-﻿using Microsoft.Win32;
-using System.Data;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.DirectoryServices;
+using System.DirectoryServices.AccountManagement;
 using System.DirectoryServices.Protocols;
 using System.Drawing;
-using System.Linq;
-using System.Management.Automation;
-using System.Text.RegularExpressions;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using Microsoft.PowerShell.Commands;
-using Microsoft.PowerShell;
-using System.Linq.Expressions;
-using System.Reflection;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
-using System.Collections.Generic;
-using System.Windows.Forms;
-using System;
-using System.Threading.Tasks;
 using System.IO;
-using System.DirectoryServices.AccountManagement;
-using static SA_ToolBelt.Linux_Service;
-using static SA_ToolBelt.AddGroupsForm;
-using LdapSearchScope = System.DirectoryServices.Protocols.SearchScope;
-using System.Text;
-using System.Reflection.PortableExecutable;
-using static SA_ToolBelt.AD_Service;
+using System.Linq;
 using System.Net.NetworkInformation;
-using System.Threading;
-using System.Numerics;
-using System.Security.Principal;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using static SA_ToolBelt.AD_Service;
+using LdapSearchScope = System.DirectoryServices.Protocols.SearchScope;
 
 // Surpresses warning about an object possibly being null
 #pragma warning disable CS8602
