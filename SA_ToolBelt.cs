@@ -80,6 +80,9 @@ namespace SA_ToolBelt
             HideAllTabsExceptLogin();
             SetupRadioButtonExclusivity();
 
+            // Hide all controls until successful login
+            HideControlsAtStartup();
+
             // Load OU configuration from CSV file  
             LoadOUConfigurationFromCSV();
 
@@ -272,6 +275,12 @@ namespace SA_ToolBelt
             tabControlMain.TabPages.Add(tabLogin);
         }
 
+        private void HideControlsAtStartUp()
+        {
+            btnUndockConsole.Visible = false;
+            btnLogout.Visible = false;
+        }
+
         private void ShowAllTabs()
         {
             // Add all tabs EXCEPT Login after successful authentication
@@ -288,6 +297,12 @@ namespace SA_ToolBelt
             // tabControlMain.TabPages.Add(tabStartupShutdownPt2);
             tabControlMain.TabPages.Add(tabConfiguration);
             tabControlMain.TabPages.Add(tabConsole);
+        }
+
+        private void ShowControlsAfterLogin()
+        {
+            btnUndockConsole.Visible = true;
+            btnLogout.Visible = true;
         }
 
         private async Task<bool> CheckDomainAdminMembership(string username, string password)
@@ -633,6 +648,7 @@ namespace SA_ToolBelt
                     _loggedInUsername = txtUsername.Text;
                     // Authentication successful
                     ShowAllTabs();
+                    ShowControlsAfterLogin();
 
                     // Update radio button counters INSIDE try-catch
                     await UpdateRadioButtonCounters();
@@ -5236,3 +5252,4 @@ namespace SA_ToolBelt
         #endregion
     }
 }
+
