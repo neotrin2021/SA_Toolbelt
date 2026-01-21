@@ -361,6 +361,8 @@
             tabConfiguration = new TabPage();
             lblConfigFileLocationLabel = new Label();
             lblFilePathLocation = new Label();
+            lblPowerCLIPathLabel = new Label();
+            lblPowerCLIPathLocation = new Label();
             gbxImportantVariables = new GroupBox();
             btnSubmitVars = new Button();
             txbSecurityGroupKW = new TextBox();
@@ -3675,6 +3677,8 @@
             // 
             // tabConfiguration
             //
+            tabConfiguration.Controls.Add(lblPowerCLIPathLocation);
+            tabConfiguration.Controls.Add(lblPowerCLIPathLabel);
             tabConfiguration.Controls.Add(lblFilePathLocation);
             tabConfiguration.Controls.Add(lblConfigFileLocationLabel);
             tabConfiguration.Controls.Add(gbxImportantVariables);
@@ -3706,6 +3710,25 @@
             lblFilePathLocation.Size = new Size(62, 15);
             lblFilePathLocation.TabIndex = 129;
             lblFilePathLocation.Text = "Not Found";
+            //
+            // lblPowerCLIPathLabel
+            //
+            lblPowerCLIPathLabel.AutoSize = true;
+            lblPowerCLIPathLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPowerCLIPathLabel.Location = new Point(328, 827);
+            lblPowerCLIPathLabel.Name = "lblPowerCLIPathLabel";
+            lblPowerCLIPathLabel.Size = new Size(143, 15);
+            lblPowerCLIPathLabel.TabIndex = 130;
+            lblPowerCLIPathLabel.Text = "PowerCLI Module Path:";
+            //
+            // lblPowerCLIPathLocation
+            //
+            lblPowerCLIPathLocation.AutoSize = true;
+            lblPowerCLIPathLocation.Location = new Point(492, 827);
+            lblPowerCLIPathLocation.Name = "lblPowerCLIPathLocation";
+            lblPowerCLIPathLocation.Size = new Size(62, 15);
+            lblPowerCLIPathLocation.TabIndex = 131;
+            lblPowerCLIPathLocation.Text = "Not Found";
             //
             // gbxImportantVariables
             // 
@@ -4638,5 +4661,7 @@
         private Label lblReplicaRootDataSa2;
         private Label lblConfigFileLocationLabel;
         private Label lblFilePathLocation;
+        private Label lblPowerCLIPathLabel;
+        private Label lblPowerCLIPathLocation;
     }
 }

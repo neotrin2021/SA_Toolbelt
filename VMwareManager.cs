@@ -13,13 +13,15 @@ namespace SA_ToolBelt
         private readonly string _username;
         private readonly string _password;
         private readonly ConsoleForm _consoleForm;
+        private readonly string _powerCLIModulePath;
 
-        public VMwareManager(string vCenterServer, string username, string password, ConsoleForm consoleForm)
+        public VMwareManager(string vCenterServer, string username, string password, ConsoleForm consoleForm, string powerCLIModulePath)
         {
             _vCenterServer = vCenterServer;
             _username = username;
             _password = password;
             _consoleForm = consoleForm;
+            _powerCLIModulePath = powerCLIModulePath;
         }
 
         /// <summary>
@@ -56,7 +58,7 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Import VMware PowerCLI module
+        /// Import VMware PowerCLI module from network share
         /// </summary>
         private async Task ImportPowerCLIModuleAsync()
         {
@@ -64,8 +66,10 @@ namespace SA_ToolBelt
             {
                 using (PowerShell powerShell = PowerShell.Create())
                 {
-                    _consoleForm.WriteInfo("Importing VMware.PowerCLI module...");
-                    powerShell.AddScript("Import-Module VMware.PowerCLI -ErrorAction Stop");
+                    _consoleForm.WriteInfo($"Importing VMware.PowerCLI module from {_powerCLIModulePath}...");
+
+                    // Import module from the specified network share path
+                    powerShell.AddScript($"Import-Module '{_powerCLIModulePath}' -ErrorAction Stop");
                     await Task.Run(() => powerShell.Invoke());
 
                     if (powerShell.HadErrors)
@@ -74,11 +78,11 @@ namespace SA_ToolBelt
                         {
                             _consoleForm.WriteError($"PowerCLI import error: {error.Exception}");
                         }
-                        throw new Exception("Failed to import VMware.PowerCLI module");
+                        throw new Exception($"Failed to import VMware.PowerCLI module from {_powerCLIModulePath}");
                     }
                     else
                     {
-                        _consoleForm.WriteSuccess("VMware.PowerCLI module imported successfully");
+                        _consoleForm.WriteSuccess($"VMware.PowerCLI module imported successfully from network share");
                     }
                 }
             }
