@@ -14,6 +14,10 @@ namespace SA_ToolBelt
         private readonly string _password;
         private readonly ConsoleForm _consoleForm;
         private readonly string _powerCLIModulePath;
+        private PowerShell _persistentRunspace;
+        private bool _isPowerCLILoaded = false;
+
+        public bool IsPowerCLILoaded => _isPowerCLILoaded;
 
         public VMwareManager(string vCenterServer, string username, string password, ConsoleForm consoleForm, string powerCLIModulePath)
         {
@@ -22,6 +26,7 @@ namespace SA_ToolBelt
             _password = password;
             _consoleForm = consoleForm;
             _powerCLIModulePath = powerCLIModulePath;
+            _persistentRunspace = PowerShell.Create();
         }
 
         /// <summary>
@@ -31,23 +36,21 @@ namespace SA_ToolBelt
         {
             try
             {
-                using (PowerShell powerShell = PowerShell.Create())
-                {
-                    _consoleForm.WriteInfo("Setting PowerShell execution policy to RemoteSigned...");
-                    powerShell.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
-                    await Task.Run(() => powerShell.Invoke());
+                _consoleForm.WriteInfo("Setting PowerShell execution policy to RemoteSigned...");
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
+                await Task.Run(() => _persistentRunspace.Invoke());
 
-                    if (powerShell.HadErrors)
+                if (_persistentRunspace.HadErrors)
+                {
+                    foreach (var error in _persistentRunspace.Streams.Error)
                     {
-                        foreach (var error in powerShell.Streams.Error)
-                        {
-                            _consoleForm.WriteError($"Error setting execution policy: {error.Exception}");
-                        }
+                        _consoleForm.WriteError($"Error setting execution policy: {error.Exception}");
                     }
-                    else
-                    {
-                        _consoleForm.WriteSuccess("PowerShell execution policy set successfully");
-                    }
+                }
+                else
+                {
+                    _consoleForm.WriteSuccess("PowerShell execution policy set successfully");
                 }
             }
             catch (Exception ex)
@@ -64,26 +67,25 @@ namespace SA_ToolBelt
         {
             try
             {
-                using (PowerShell powerShell = PowerShell.Create())
+                _consoleForm.WriteInfo($"Importing VMware.PowerCLI module from {_powerCLIModulePath}...");
+                _consoleForm.WriteInfo("This may take 1-2 minutes, please wait...");
+
+                // Import module from the specified network share path
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript($"Import-Module '{_powerCLIModulePath}' -ErrorAction Stop");
+                await Task.Run(() => _persistentRunspace.Invoke());
+
+                if (_persistentRunspace.HadErrors)
                 {
-                    _consoleForm.WriteInfo($"Importing VMware.PowerCLI module from {_powerCLIModulePath}...");
-
-                    // Import module from the specified network share path
-                    powerShell.AddScript($"Import-Module '{_powerCLIModulePath}' -ErrorAction Stop");
-                    await Task.Run(() => powerShell.Invoke());
-
-                    if (powerShell.HadErrors)
+                    foreach (var error in _persistentRunspace.Streams.Error)
                     {
-                        foreach (var error in powerShell.Streams.Error)
-                        {
-                            _consoleForm.WriteError($"PowerCLI import error: {error.Exception}");
-                        }
-                        throw new Exception($"Failed to import VMware.PowerCLI module from {_powerCLIModulePath}");
+                        _consoleForm.WriteError($"PowerCLI import error: {error.Exception}");
                     }
-                    else
-                    {
-                        _consoleForm.WriteSuccess($"VMware.PowerCLI module imported successfully from network share");
-                    }
+                    throw new Exception($"Failed to import VMware.PowerCLI module from {_powerCLIModulePath}");
+                }
+                else
+                {
+                    _consoleForm.WriteSuccess($"VMware.PowerCLI module imported successfully from network share");
                 }
             }
             catch (Exception ex)
@@ -100,23 +102,21 @@ namespace SA_ToolBelt
         {
             try
             {
-                using (PowerShell powerShell = PowerShell.Create())
-                {
-                    _consoleForm.WriteInfo("Configuring PowerCLI settings...");
-                    powerShell.AddScript("Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false -Scope Session");
-                    await Task.Run(() => powerShell.Invoke());
+                _consoleForm.WriteInfo("Configuring PowerCLI settings...");
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript("Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false -Scope Session");
+                await Task.Run(() => _persistentRunspace.Invoke());
 
-                    if (powerShell.HadErrors)
+                if (_persistentRunspace.HadErrors)
+                {
+                    foreach (var error in _persistentRunspace.Streams.Error)
                     {
-                        foreach (var error in powerShell.Streams.Error)
-                        {
-                            _consoleForm.WriteWarning($"PowerCLI configuration warning: {error.Exception}");
-                        }
+                        _consoleForm.WriteWarning($"PowerCLI configuration warning: {error.Exception}");
                     }
-                    else
-                    {
-                        _consoleForm.WriteSuccess("PowerCLI settings configured successfully");
-                    }
+                }
+                else
+                {
+                    _consoleForm.WriteSuccess("PowerCLI settings configured successfully");
                 }
             }
             catch (Exception ex)
@@ -127,21 +127,21 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Connect to vCenter Server and return PowerShell session
+        /// Connect to vCenter Server using persistent runspace
         /// </summary>
-        private async Task<PowerShell> ConnectToVCenterAsync()
+        private async Task ConnectToVCenterAsync()
         {
-            PowerShell powerShell = PowerShell.Create();
             try
             {
                 _consoleForm.WriteInfo($"Connecting to vCenter server {_vCenterServer}...");
-                powerShell.AddScript($@"Connect-VIServer -Server '{_vCenterServer}' -User 'SPECTRE\{_username}' -Password '{_password}'");
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript($@"Connect-VIServer -Server '{_vCenterServer}' -User 'SPECTRE\{_username}' -Password '{_password}'");
 
-                await Task.Run(() => powerShell.Invoke());
+                await Task.Run(() => _persistentRunspace.Invoke());
 
-                if (powerShell.HadErrors)
+                if (_persistentRunspace.HadErrors)
                 {
-                    foreach (var error in powerShell.Streams.Error)
+                    foreach (var error in _persistentRunspace.Streams.Error)
                     {
                         _consoleForm.WriteError($"PowerShell Error: {error.Exception}");
                     }
@@ -149,11 +149,9 @@ namespace SA_ToolBelt
                 }
 
                 _consoleForm.WriteSuccess("Successfully connected to vCenter");
-                return powerShell;
             }
             catch (Exception ex)
             {
-                powerShell.Dispose();
                 _consoleForm.WriteError($"Failed to connect to vCenter: {ex.Message}");
                 throw;
             }
@@ -166,15 +164,23 @@ namespace SA_ToolBelt
         {
             try
             {
-                _consoleForm.WriteInfo("Initializing PowerCLI...");
+                if (_isPowerCLILoaded)
+                {
+                    _consoleForm.WriteInfo("PowerCLI already loaded and ready");
+                    return;
+                }
+
+                _consoleForm.WriteInfo("Initializing PowerCLI in background...");
                 await SetProcessScopeExecutionPolicyAsync();
                 await ImportPowerCLIModuleAsync();
                 await ConfigurePowerCLISettingsAsync();
-                _consoleForm.WriteSuccess("PowerCLI initialization completed");
+                _isPowerCLILoaded = true;
+                _consoleForm.WriteSuccess("PowerCLI initialization completed - VMware features are now ready!");
             }
             catch (Exception ex)
             {
                 _consoleForm.WriteError($"Failed to initialize PowerCLI: {ex.Message}");
+                _isPowerCLILoaded = false;
                 throw;
             }
         }
@@ -184,44 +190,43 @@ namespace SA_ToolBelt
         /// </summary>
         public async Task<List<VMHost>> GetESXiHostsAsync()
         {
-            using (var powerShell = await ConnectToVCenterAsync())
+            try
             {
-                try
+                await ConnectToVCenterAsync();
+
+                _consoleForm.WriteInfo("Retrieving ESXi hosts...");
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript(@"
+                    Get-VMHost | Select-Object Name, @{N='Hostname';E={$_.NetworkInfo.HostName}}, @{N='MaintenanceMode';E={$_.ConnectionState}} | ForEach-Object {
+                        [PSCustomObject]@{
+                            Hostname = $_.Hostname
+                            IP = $_.Name
+                            MaintenanceMode = $_.MaintenanceMode
+                        }
+                    }");
+
+                var results = await Task.Run(() => _persistentRunspace.Invoke());
+                var hosts = new List<VMHost>();
+
+                foreach (var result in results)
                 {
-                    _consoleForm.WriteInfo("Retrieving ESXi hosts...");
-                    powerShell.Commands.Clear();
-                    powerShell.AddScript(@"
-                        Get-VMHost | Select-Object Name, @{N='Hostname';E={$_.NetworkInfo.HostName}}, @{N='MaintenanceMode';E={$_.ConnectionState}} | ForEach-Object {
-                            [PSCustomObject]@{
-                                Hostname = $_.Hostname
-                                IP = $_.Name
-                                MaintenanceMode = $_.MaintenanceMode
-                            }
-                        }");
-
-                    var results = await Task.Run(() => powerShell.Invoke());
-                    var hosts = new List<VMHost>();
-
-                    foreach (var result in results)
+                    hosts.Add(new VMHost
                     {
-                        hosts.Add(new VMHost
-                        {
-                            Hostname = result.Properties["Hostname"].Value.ToString(),
-                            IP = result.Properties["IP"].Value.ToString(),
-                            MaintenanceMode = result.Properties["MaintenanceMode"].Value.ToString()
-                        });
-                    }
+                        Hostname = result.Properties["Hostname"].Value.ToString(),
+                        IP = result.Properties["IP"].Value.ToString(),
+                        MaintenanceMode = result.Properties["MaintenanceMode"].Value.ToString()
+                    });
+                }
 
-                    _consoleForm.WriteSuccess($"Retrieved {hosts.Count} ESXi hosts");
-                    await DisconnectFromVCenterAsync(powerShell);
-                    return hosts;
-                }
-                catch (Exception ex)
-                {
-                    _consoleForm.WriteError($"Failed to retrieve ESXi hosts: {ex.Message}");
-                    await DisconnectFromVCenterAsync(powerShell);
-                    throw;
-                }
+                _consoleForm.WriteSuccess($"Retrieved {hosts.Count} ESXi hosts");
+                await DisconnectFromVCenterAsync();
+                return hosts;
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to retrieve ESXi hosts: {ex.Message}");
+                await DisconnectFromVCenterAsync();
+                throw;
             }
         }
 
@@ -230,13 +235,13 @@ namespace SA_ToolBelt
         /// </summary>
         public async Task<List<VMHostDetailed>> GetESXiHostsDetailedAsync()
         {
-            using (var powerShell = await ConnectToVCenterAsync())
+            try
             {
-                try
-                {
-                    _consoleForm.WriteInfo("Retrieving detailed ESXi host information...");
-                    powerShell.Commands.Clear();
-                    powerShell.AddScript(@"
+                await ConnectToVCenterAsync();
+
+                _consoleForm.WriteInfo("Retrieving detailed ESXi host information...");
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript(@"
                         $hosts = Get-VMHost | Select-Object Name,
                         @{N='Hostname';E={$_.NetworkInfo.HostName}},
                         @{N='ConnectionState';E={$_.ConnectionState}},
@@ -300,7 +305,7 @@ namespace SA_ToolBelt
                         }"
                     );
 
-                    var results = await Task.Run(() => powerShell.Invoke());
+                    var results = await Task.Run(() => _persistentRunspace.Invoke());
                     var hosts = new List<VMHostDetailed>();
 
                     foreach (var result in results)
@@ -328,16 +333,15 @@ namespace SA_ToolBelt
                         }
                     }
 
-                    _consoleForm.WriteSuccess($"Retrieved {hosts.Count} detailed ESXi hosts");
-                    await DisconnectFromVCenterAsync(powerShell);
-                    return hosts;
-                }
-                catch (Exception ex)
-                {
-                    _consoleForm.WriteError($"Failed to retrieve detailed ESXi hosts: {ex.Message}");
-                    await DisconnectFromVCenterAsync(powerShell);
-                    throw;
-                }
+                _consoleForm.WriteSuccess($"Retrieved {hosts.Count} detailed ESXi hosts");
+                await DisconnectFromVCenterAsync();
+                return hosts;
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to retrieve detailed ESXi hosts: {ex.Message}");
+                await DisconnectFromVCenterAsync();
+                throw;
             }
         }
 
@@ -346,46 +350,45 @@ namespace SA_ToolBelt
         /// </summary>
         public async Task<List<VMachine>> GetVirtualMachinesAsync()
         {
-            using (var powerShell = await ConnectToVCenterAsync())
+            try
             {
-                try
+                await ConnectToVCenterAsync();
+
+                _consoleForm.WriteInfo("Retrieving Virtual Machines...");
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript(@"
+                    Get-VM | Select-Object Name, PowerState, @{N='ESXiHost';E={$_.VMHost.NetworkInfo.Hostname}}, @{N='ESXiHostIP';E={$_.VMHost.Name}} | ForEach-Object {
+                        [PSCustomObject]@{
+                            Name = $_.Name
+                            PowerState = $_.PowerState
+                            ESXiHostname = $_.ESXiHost
+                            ESXiIP = $_.ESXiHostIP
+                        }
+                    }");
+
+                var results = await Task.Run(() => _persistentRunspace.Invoke());
+                var vms = new List<VMachine>();
+
+                foreach (var result in results)
                 {
-                    _consoleForm.WriteInfo("Retrieving Virtual Machines...");
-                    powerShell.Commands.Clear();
-                    powerShell.AddScript(@"
-                        Get-VM | Select-Object Name, PowerState, @{N='ESXiHost';E={$_.VMHost.NetworkInfo.Hostname}}, @{N='ESXiHostIP';E={$_.VMHost.Name}} | ForEach-Object {
-                            [PSCustomObject]@{
-                                Name = $_.Name
-                                PowerState = $_.PowerState
-                                ESXiHostname = $_.ESXiHost
-                                ESXiIP = $_.ESXiHostIP
-                            }
-                        }");
-
-                    var results = await Task.Run(() => powerShell.Invoke());
-                    var vms = new List<VMachine>();
-
-                    foreach (var result in results)
+                    vms.Add(new VMachine
                     {
-                        vms.Add(new VMachine
-                        {
-                            Name = result.Properties["Name"].Value.ToString(),
-                            PowerState = result.Properties["PowerState"].Value.ToString(),
-                            ESXiHostname = result.Properties["ESXiHostname"].Value.ToString(),
-                            ESXiIP = result.Properties["ESXiIP"].Value.ToString()
-                        });
-                    }
+                        Name = result.Properties["Name"].Value.ToString(),
+                        PowerState = result.Properties["PowerState"].Value.ToString(),
+                        ESXiHostname = result.Properties["ESXiHostname"].Value.ToString(),
+                        ESXiIP = result.Properties["ESXiIP"].Value.ToString()
+                    });
+                }
 
-                    _consoleForm.WriteSuccess($"Retrieved {vms.Count} Virtual Machines");
-                    await DisconnectFromVCenterAsync(powerShell);
-                    return vms;
-                }
-                catch (Exception ex)
-                {
-                    _consoleForm.WriteError($"Failed to retrieve Virtual Machines: {ex.Message}");
-                    await DisconnectFromVCenterAsync(powerShell);
-                    throw;
-                }
+                _consoleForm.WriteSuccess($"Retrieved {vms.Count} Virtual Machines");
+                await DisconnectFromVCenterAsync();
+                return vms;
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to retrieve Virtual Machines: {ex.Message}");
+                await DisconnectFromVCenterAsync();
+                throw;
             }
         }
 
@@ -394,13 +397,12 @@ namespace SA_ToolBelt
         /// </summary>
         public async Task<List<VMachineDetailed>> GetVirtualMachinesDetailedAsync()
         {
-            using (var powerShell = await ConnectToVCenterAsync())
-            {
+            await ConnectToVCenterAsync();
                 try
                 {
                     _consoleForm.WriteInfo("Retrieving detailed Virtual Machine information...");
-                    powerShell.Commands.Clear();
-                    powerShell.AddScript(@"
+                    _persistentRunspace.Commands.Clear();
+                    _persistentRunspace.AddScript(@"
                         Get-VM | Select-Object Name, 
                             PowerState, 
                             @{N='Status';E={$_.Status}}, 
@@ -424,7 +426,7 @@ namespace SA_ToolBelt
                             }
                         }");
 
-                    var results = await Task.Run(() => powerShell.Invoke());
+                    var results = await Task.Run(() => _persistentRunspace.Invoke());
                     var vms = new List<VMachineDetailed>();
 
                     foreach (var result in results)
@@ -452,16 +454,15 @@ namespace SA_ToolBelt
                     }
 
                     _consoleForm.WriteSuccess($"Retrieved {vms.Count} detailed Virtual Machines");
-                    await DisconnectFromVCenterAsync(powerShell);
+                    await DisconnectFromVCenterAsync();
                     return vms;
                 }
                 catch (Exception ex)
                 {
                     _consoleForm.WriteError($"Failed to retrieve detailed Virtual Machines: {ex.Message}");
-                    await DisconnectFromVCenterAsync(powerShell);
+                    await DisconnectFromVCenterAsync();
                     throw;
                 }
-            }
         }
 
         /// <summary>
@@ -521,14 +522,14 @@ namespace SA_ToolBelt
         /// <summary>
         /// Disconnect from vCenter Server
         /// </summary>
-        private async Task DisconnectFromVCenterAsync(PowerShell powerShell)
+        private async Task DisconnectFromVCenterAsync()
         {
             try
             {
                 _consoleForm.WriteInfo("Disconnecting from vCenter...");
-                powerShell.Commands.Clear();
-                powerShell.AddScript("Disconnect-VIServer -Server * -Force -Confirm:$false");
-                await Task.Run(() => powerShell.Invoke());
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript("Disconnect-VIServer -Server * -Force -Confirm:$false");
+                await Task.Run(() => _persistentRunspace.Invoke());
                 _consoleForm.WriteSuccess("Successfully disconnected from vCenter");
             }
             catch (Exception ex)
@@ -542,7 +543,11 @@ namespace SA_ToolBelt
         /// </summary>
         public void Dispose()
         {
-            // Connection cleanup handled by using statements in methods
+            if (_persistentRunspace != null)
+            {
+                _persistentRunspace.Dispose();
+                _persistentRunspace = null;
+            }
         }
     }
 
