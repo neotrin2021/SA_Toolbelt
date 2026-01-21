@@ -359,6 +359,10 @@
             tabStartupShutdownPt1 = new TabPage();
             tabStartupShutdownPt2 = new TabPage();
             tabConfiguration = new TabPage();
+            lblConfigFileLocationLabel = new Label();
+            lblFilePathLocation = new Label();
+            lblPowerCLIPathLabel = new Label();
+            lblPowerCLIPathLocation = new Label();
             gbxImportantVariables = new GroupBox();
             btnSubmitVars = new Button();
             txbSecurityGroupKW = new TextBox();
@@ -3672,7 +3676,11 @@
             tabStartupShutdownPt2.UseVisualStyleBackColor = true;
             // 
             // tabConfiguration
-            // 
+            //
+            tabConfiguration.Controls.Add(lblPowerCLIPathLocation);
+            tabConfiguration.Controls.Add(lblPowerCLIPathLabel);
+            tabConfiguration.Controls.Add(lblFilePathLocation);
+            tabConfiguration.Controls.Add(lblConfigFileLocationLabel);
             tabConfiguration.Controls.Add(gbxImportantVariables);
             tabConfiguration.Controls.Add(gbxComputerList);
             tabConfiguration.Controls.Add(gbxImportantOUs);
@@ -3683,7 +3691,45 @@
             tabConfiguration.TabIndex = 11;
             tabConfiguration.Text = "Configuration";
             tabConfiguration.UseVisualStyleBackColor = true;
-            // 
+            //
+            // lblConfigFileLocationLabel
+            //
+            lblConfigFileLocationLabel.AutoSize = true;
+            lblConfigFileLocationLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblConfigFileLocationLabel.Location = new Point(328, 807);
+            lblConfigFileLocationLabel.Name = "lblConfigFileLocationLabel";
+            lblConfigFileLocationLabel.Size = new Size(158, 15);
+            lblConfigFileLocationLabel.TabIndex = 128;
+            lblConfigFileLocationLabel.Text = "Configuration File Location:";
+            //
+            // lblFilePathLocation
+            //
+            lblFilePathLocation.AutoSize = true;
+            lblFilePathLocation.Location = new Point(492, 807);
+            lblFilePathLocation.Name = "lblFilePathLocation";
+            lblFilePathLocation.Size = new Size(62, 15);
+            lblFilePathLocation.TabIndex = 129;
+            lblFilePathLocation.Text = "Not Found";
+            //
+            // lblPowerCLIPathLabel
+            //
+            lblPowerCLIPathLabel.AutoSize = true;
+            lblPowerCLIPathLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPowerCLIPathLabel.Location = new Point(328, 827);
+            lblPowerCLIPathLabel.Name = "lblPowerCLIPathLabel";
+            lblPowerCLIPathLabel.Size = new Size(143, 15);
+            lblPowerCLIPathLabel.TabIndex = 130;
+            lblPowerCLIPathLabel.Text = "PowerCLI Module Path:";
+            //
+            // lblPowerCLIPathLocation
+            //
+            lblPowerCLIPathLocation.AutoSize = true;
+            lblPowerCLIPathLocation.Location = new Point(492, 827);
+            lblPowerCLIPathLocation.Name = "lblPowerCLIPathLocation";
+            lblPowerCLIPathLocation.Size = new Size(62, 15);
+            lblPowerCLIPathLocation.TabIndex = 131;
+            lblPowerCLIPathLocation.Text = "Not Found";
+            //
             // gbxImportantVariables
             // 
             gbxImportantVariables.Controls.Add(btnSubmitVars);
@@ -4613,5 +4659,9 @@
         private Label lblReplicaStatusSa2;
         private Label lblReplicaStatusDataSa2;
         private Label lblReplicaRootDataSa2;
+        private Label lblConfigFileLocationLabel;
+        private Label lblFilePathLocation;
+        private Label lblPowerCLIPathLabel;
+        private Label lblPowerCLIPathLocation;
     }
 }

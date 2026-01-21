@@ -59,6 +59,9 @@ namespace SA_ToolBelt
         // OU Configuration CSV file path
         private readonly string OU_CONFIG_FILE_PATH = @"C:\SA_ToolBelt\Config\ouConfiguration.csv";
 
+        // PowerCLI Module Path on network share
+        private readonly string POWERCLI_MODULE_PATH = @"\\cce-data\shared\SA\SA Toolbelt\PowerCLI\VMware.PowerCLI";
+
         // Store the logged in SA's username globally
         public string _loggedInUsername = string.Empty;
 
@@ -66,6 +69,10 @@ namespace SA_ToolBelt
         public SAToolBelt()
         {
             InitializeComponent();
+
+            // Set the configuration file path label
+            lblFilePathLocation.Text = OU_CONFIG_FILE_PATH;
+            lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
 
             _consoleForm = new ConsoleForm();
             _adService = new AD_Service(_consoleForm);
@@ -3605,7 +3612,7 @@ namespace SA_ToolBelt
                     string vCenterUser = CredentialManager.GetUsername();
                     string vCenterPass = CredentialManager.GetPassword();
 
-                    _vmwareManager = new VMwareManager(_vCenterServer, vCenterUser, vCenterPass, _consoleForm);
+                    _vmwareManager = new VMwareManager(_vCenterServer, vCenterUser, vCenterPass, _consoleForm, POWERCLI_MODULE_PATH);
                 }
 
                 // Initialize PowerCLI modules
