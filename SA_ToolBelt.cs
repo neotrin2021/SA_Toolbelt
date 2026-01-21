@@ -644,6 +644,9 @@ namespace SA_ToolBelt
                     // Update radio button counters INSIDE try-catch
                     await UpdateRadioButtonCounters();
 
+                    // Start loading PowerCLI in background
+                    StartBackgroundPowerCLILoadingAsync();
+
                     // NEW: Populate LDAP security groups dropdown
                     await PopulateDefaultSecurityGroupsAsync();
 
@@ -3327,6 +3330,49 @@ namespace SA_ToolBelt
             {
                 _consoleForm.WriteError($"VMware initialization failed: {ex.Message}");
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Start loading PowerCLI in the background after login
+        /// </summary>
+        private async void StartBackgroundPowerCLILoadingAsync()
+        {
+            try
+            {
+                // Initialize VMware Manager if not already done
+                if (_vmwareManager == null)
+                {
+                    string vCenterUser = CredentialManager.GetUsername();
+                    string vCenterPass = CredentialManager.GetPassword();
+                    _vmwareManager = new VMwareManager(_vCenterServer, vCenterUser, vCenterPass, _consoleForm, POWERCLI_MODULE_PATH);
+                }
+
+                _consoleForm.WriteInfo("Starting PowerCLI background loading...");
+                _consoleForm.WriteInfo("You can continue working while PowerCLI loads. VMware features will be available when loading completes.");
+
+                // Load PowerCLI in background
+                await Task.Run(async () =>
+                {
+                    await _vmwareManager.InitializePowerCLIAsync();
+                });
+
+                // Notify user when complete
+                _consoleForm.WriteSuccess("========================================");
+                _consoleForm.WriteSuccess("PowerCLI is now loaded and ready!");
+                _consoleForm.WriteSuccess("VMware features are available.");
+                _consoleForm.WriteSuccess("========================================");
+
+                // Optional: Show a message box notification
+                MessageBox.Show("PowerCLI has finished loading.\n\nVMware features are now ready to use.",
+                    "PowerCLI Ready",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to load PowerCLI in background: {ex.Message}");
+                _consoleForm.WriteWarning("VMware features may not be available. Please check the PowerCLI module path.");
             }
         }
 
