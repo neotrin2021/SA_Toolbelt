@@ -359,10 +359,10 @@
             tabStartupShutdownPt1 = new TabPage();
             tabStartupShutdownPt2 = new TabPage();
             tabConfiguration = new TabPage();
-            lblConfigFileLocationLabel = new Label();
-            lblFilePathLocation = new Label();
-            lblPowerCLIPathLabel = new Label();
             lblPowerCLIPathLocation = new Label();
+            lblPowerCLIPathLabel = new Label();
+            lblFilePathLocation = new Label();
+            lblConfigFileLocationLabel = new Label();
             gbxImportantVariables = new GroupBox();
             btnSubmitVars = new Button();
             txbSecurityGroupKW = new TextBox();
@@ -407,6 +407,32 @@
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
+            dtpLogStartDate = new DateTimePicker();
+            dtpLogEndDate = new DateTimePicker();
+            lblLogStartDate = new Label();
+            lblLogEndDate = new Label();
+            chkLastHourOnly = new CheckBox();
+            cmbLogPriority = new ComboBox();
+            lblPrioritySeverityLevel = new Label();
+            lblKeywordSearch = new Label();
+            txbLogKeyword = new TextBox();
+            cbxCaseSensitive = new CheckBox();
+            label1 = new Label();
+            cbxLogSourceSelection = new ComboBox();
+            cbxServerSelection = new ComboBox();
+            lblServerSelection = new Label();
+            lblLogStatus = new Label();
+            lblLogStatusResults = new Label();
+            rtbLogOutput = new RichTextBox();
+            btnFetchLogs = new Button();
+            btnClearLogs = new Button();
+            btnExportLogs = new Button();
+            gbxServerInstances = new GroupBox();
+            lblLdapServerInstance1 = new Label();
+            txbLdapServerInstace1 = new TextBox();
+            txbLdapServerInstace2 = new TextBox();
+            lblLdapServerInstance2 = new Label();
+            btnSubmitServerInstance = new Button();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -431,6 +457,7 @@
             gbxAcntExpDate.SuspendLayout();
             tabLDAP.SuspendLayout();
             gbxUserAccountCreation.SuspendLayout();
+            tabLinuxTools.SuspendLayout();
             tabOnlineOffline.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvWorkstations).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvPatriotPark).BeginInit();
@@ -456,6 +483,7 @@
             gbxImportantVariables.SuspendLayout();
             gbxComputerList.SuspendLayout();
             gbxImportantOUs.SuspendLayout();
+            gbxServerInstances.SuspendLayout();
             SuspendLayout();
             // 
             // tabControlMain
@@ -2187,6 +2215,26 @@
             // 
             // tabLinuxTools
             // 
+            tabLinuxTools.Controls.Add(btnExportLogs);
+            tabLinuxTools.Controls.Add(btnClearLogs);
+            tabLinuxTools.Controls.Add(btnFetchLogs);
+            tabLinuxTools.Controls.Add(rtbLogOutput);
+            tabLinuxTools.Controls.Add(lblLogStatusResults);
+            tabLinuxTools.Controls.Add(lblLogStatus);
+            tabLinuxTools.Controls.Add(cbxServerSelection);
+            tabLinuxTools.Controls.Add(lblServerSelection);
+            tabLinuxTools.Controls.Add(cbxLogSourceSelection);
+            tabLinuxTools.Controls.Add(label1);
+            tabLinuxTools.Controls.Add(cbxCaseSensitive);
+            tabLinuxTools.Controls.Add(txbLogKeyword);
+            tabLinuxTools.Controls.Add(lblKeywordSearch);
+            tabLinuxTools.Controls.Add(lblPrioritySeverityLevel);
+            tabLinuxTools.Controls.Add(cmbLogPriority);
+            tabLinuxTools.Controls.Add(chkLastHourOnly);
+            tabLinuxTools.Controls.Add(lblLogEndDate);
+            tabLinuxTools.Controls.Add(lblLogStartDate);
+            tabLinuxTools.Controls.Add(dtpLogEndDate);
+            tabLinuxTools.Controls.Add(dtpLogStartDate);
             tabLinuxTools.Location = new Point(4, 24);
             tabLinuxTools.Name = "tabLinuxTools";
             tabLinuxTools.Padding = new Padding(3);
@@ -3676,7 +3724,8 @@
             tabStartupShutdownPt2.UseVisualStyleBackColor = true;
             // 
             // tabConfiguration
-            //
+            // 
+            tabConfiguration.Controls.Add(gbxServerInstances);
             tabConfiguration.Controls.Add(lblPowerCLIPathLocation);
             tabConfiguration.Controls.Add(lblPowerCLIPathLabel);
             tabConfiguration.Controls.Add(lblFilePathLocation);
@@ -3691,9 +3740,37 @@
             tabConfiguration.TabIndex = 11;
             tabConfiguration.Text = "Configuration";
             tabConfiguration.UseVisualStyleBackColor = true;
-            //
+            // 
+            // lblPowerCLIPathLocation
+            // 
+            lblPowerCLIPathLocation.AutoSize = true;
+            lblPowerCLIPathLocation.Location = new Point(492, 827);
+            lblPowerCLIPathLocation.Name = "lblPowerCLIPathLocation";
+            lblPowerCLIPathLocation.Size = new Size(64, 15);
+            lblPowerCLIPathLocation.TabIndex = 131;
+            lblPowerCLIPathLocation.Text = "Not Found";
+            // 
+            // lblPowerCLIPathLabel
+            // 
+            lblPowerCLIPathLabel.AutoSize = true;
+            lblPowerCLIPathLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPowerCLIPathLabel.Location = new Point(328, 827);
+            lblPowerCLIPathLabel.Name = "lblPowerCLIPathLabel";
+            lblPowerCLIPathLabel.Size = new Size(136, 15);
+            lblPowerCLIPathLabel.TabIndex = 130;
+            lblPowerCLIPathLabel.Text = "PowerCLI Module Path:";
+            // 
+            // lblFilePathLocation
+            // 
+            lblFilePathLocation.AutoSize = true;
+            lblFilePathLocation.Location = new Point(492, 807);
+            lblFilePathLocation.Name = "lblFilePathLocation";
+            lblFilePathLocation.Size = new Size(64, 15);
+            lblFilePathLocation.TabIndex = 129;
+            lblFilePathLocation.Text = "Not Found";
+            // 
             // lblConfigFileLocationLabel
-            //
+            // 
             lblConfigFileLocationLabel.AutoSize = true;
             lblConfigFileLocationLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblConfigFileLocationLabel.Location = new Point(328, 807);
@@ -3701,35 +3778,7 @@
             lblConfigFileLocationLabel.Size = new Size(158, 15);
             lblConfigFileLocationLabel.TabIndex = 128;
             lblConfigFileLocationLabel.Text = "Configuration File Location:";
-            //
-            // lblFilePathLocation
-            //
-            lblFilePathLocation.AutoSize = true;
-            lblFilePathLocation.Location = new Point(492, 807);
-            lblFilePathLocation.Name = "lblFilePathLocation";
-            lblFilePathLocation.Size = new Size(62, 15);
-            lblFilePathLocation.TabIndex = 129;
-            lblFilePathLocation.Text = "Not Found";
-            //
-            // lblPowerCLIPathLabel
-            //
-            lblPowerCLIPathLabel.AutoSize = true;
-            lblPowerCLIPathLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblPowerCLIPathLabel.Location = new Point(328, 827);
-            lblPowerCLIPathLabel.Name = "lblPowerCLIPathLabel";
-            lblPowerCLIPathLabel.Size = new Size(143, 15);
-            lblPowerCLIPathLabel.TabIndex = 130;
-            lblPowerCLIPathLabel.Text = "PowerCLI Module Path:";
-            //
-            // lblPowerCLIPathLocation
-            //
-            lblPowerCLIPathLocation.AutoSize = true;
-            lblPowerCLIPathLocation.Location = new Point(492, 827);
-            lblPowerCLIPathLocation.Name = "lblPowerCLIPathLocation";
-            lblPowerCLIPathLocation.Size = new Size(62, 15);
-            lblPowerCLIPathLocation.TabIndex = 131;
-            lblPowerCLIPathLocation.Text = "Not Found";
-            //
+            // 
             // gbxImportantVariables
             // 
             gbxImportantVariables.Controls.Add(btnSubmitVars);
@@ -3737,7 +3786,7 @@
             gbxImportantVariables.Controls.Add(lblSecurityGroupKW);
             gbxImportantVariables.Location = new Point(908, 20);
             gbxImportantVariables.Name = "gbxImportantVariables";
-            gbxImportantVariables.Size = new Size(503, 218);
+            gbxImportantVariables.Size = new Size(503, 147);
             gbxImportantVariables.TabIndex = 127;
             gbxImportantVariables.TabStop = false;
             gbxImportantVariables.Text = "Important Variables";
@@ -4162,6 +4211,248 @@
             btnLogout.UseVisualStyleBackColor = true;
             btnLogout.Click += btnLogout_Click;
             // 
+            // dtpLogStartDate
+            // 
+            dtpLogStartDate.Location = new Point(20, 48);
+            dtpLogStartDate.Name = "dtpLogStartDate";
+            dtpLogStartDate.Size = new Size(200, 23);
+            dtpLogStartDate.TabIndex = 0;
+            // 
+            // dtpLogEndDate
+            // 
+            dtpLogEndDate.Location = new Point(232, 48);
+            dtpLogEndDate.Name = "dtpLogEndDate";
+            dtpLogEndDate.Size = new Size(215, 23);
+            dtpLogEndDate.TabIndex = 1;
+            // 
+            // lblLogStartDate
+            // 
+            lblLogStartDate.AutoSize = true;
+            lblLogStartDate.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblLogStartDate.Location = new Point(20, 30);
+            lblLogStartDate.Name = "lblLogStartDate";
+            lblLogStartDate.Size = new Size(176, 15);
+            lblLogStartDate.TabIndex = 2;
+            lblLogStartDate.Text = "Start Date/Time for log range:";
+            // 
+            // lblLogEndDate
+            // 
+            lblLogEndDate.AutoSize = true;
+            lblLogEndDate.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblLogEndDate.Location = new Point(232, 30);
+            lblLogEndDate.Name = "lblLogEndDate";
+            lblLogEndDate.Size = new Size(168, 15);
+            lblLogEndDate.TabIndex = 3;
+            lblLogEndDate.Text = "End Date/Time for log range:";
+            // 
+            // chkLastHourOnly
+            // 
+            chkLastHourOnly.AutoSize = true;
+            chkLastHourOnly.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            chkLastHourOnly.Location = new Point(453, 52);
+            chkLastHourOnly.Name = "chkLastHourOnly";
+            chkLastHourOnly.Size = new Size(107, 19);
+            chkLastHourOnly.TabIndex = 4;
+            chkLastHourOnly.Text = "Last Hour Only";
+            chkLastHourOnly.UseVisualStyleBackColor = true;
+            // 
+            // cmbLogPriority
+            // 
+            cmbLogPriority.FormattingEnabled = true;
+            cmbLogPriority.Items.AddRange(new object[] { "All Levels", "Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug" });
+            cmbLogPriority.Location = new Point(20, 108);
+            cmbLogPriority.Name = "cmbLogPriority";
+            cmbLogPriority.Size = new Size(200, 23);
+            cmbLogPriority.TabIndex = 5;
+            // 
+            // lblPrioritySeverityLevel
+            // 
+            lblPrioritySeverityLevel.AutoSize = true;
+            lblPrioritySeverityLevel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPrioritySeverityLevel.Location = new Point(20, 90);
+            lblPrioritySeverityLevel.Name = "lblPrioritySeverityLevel";
+            lblPrioritySeverityLevel.Size = new Size(133, 15);
+            lblPrioritySeverityLevel.TabIndex = 6;
+            lblPrioritySeverityLevel.Text = "Priority/Severity Level";
+            // 
+            // lblKeywordSearch
+            // 
+            lblKeywordSearch.AutoSize = true;
+            lblKeywordSearch.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblKeywordSearch.Location = new Point(232, 90);
+            lblKeywordSearch.Name = "lblKeywordSearch";
+            lblKeywordSearch.Size = new Size(222, 15);
+            lblKeywordSearch.TabIndex = 7;
+            lblKeywordSearch.Text = "Enter Keyword to search for (Optional)";
+            // 
+            // txbLogKeyword
+            // 
+            txbLogKeyword.Location = new Point(232, 108);
+            txbLogKeyword.Name = "txbLogKeyword";
+            txbLogKeyword.Size = new Size(215, 23);
+            txbLogKeyword.TabIndex = 8;
+            // 
+            // cbxCaseSensitive
+            // 
+            cbxCaseSensitive.AutoSize = true;
+            cbxCaseSensitive.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            cbxCaseSensitive.Location = new Point(453, 110);
+            cbxCaseSensitive.Name = "cbxCaseSensitive";
+            cbxCaseSensitive.Size = new Size(105, 19);
+            cbxCaseSensitive.TabIndex = 9;
+            cbxCaseSensitive.Text = "Case Sensitive";
+            cbxCaseSensitive.UseVisualStyleBackColor = true;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label1.Location = new Point(20, 146);
+            label1.Name = "label1";
+            label1.Size = new Size(124, 15);
+            label1.TabIndex = 10;
+            label1.Text = "Log Source Selection";
+            // 
+            // cbxLogSourceSelection
+            // 
+            cbxLogSourceSelection.FormattingEnabled = true;
+            cbxLogSourceSelection.Items.AddRange(new object[] { "All", "System Logs (journalctl)", "Security/Authentication", "Directory Server - Errors", "Directory Server - Access", "Directory Server - Audit" });
+            cbxLogSourceSelection.Location = new Point(20, 164);
+            cbxLogSourceSelection.Name = "cbxLogSourceSelection";
+            cbxLogSourceSelection.Size = new Size(200, 23);
+            cbxLogSourceSelection.TabIndex = 11;
+            // 
+            // cbxServerSelection
+            // 
+            cbxServerSelection.FormattingEnabled = true;
+            cbxServerSelection.Items.AddRange(new object[] { "All", "System Logs (journalctl)", "Security/Authentication", "Directory Server - Errors", "Directory Server - Access", "Directory Server - Audit" });
+            cbxServerSelection.Location = new Point(232, 164);
+            cbxServerSelection.Name = "cbxServerSelection";
+            cbxServerSelection.Size = new Size(215, 23);
+            cbxServerSelection.TabIndex = 13;
+            // 
+            // lblServerSelection
+            // 
+            lblServerSelection.AutoSize = true;
+            lblServerSelection.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblServerSelection.Location = new Point(232, 146);
+            lblServerSelection.Name = "lblServerSelection";
+            lblServerSelection.Size = new Size(100, 15);
+            lblServerSelection.TabIndex = 12;
+            lblServerSelection.Text = "Server Selection";
+            // 
+            // lblLogStatus
+            // 
+            lblLogStatus.AutoSize = true;
+            lblLogStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblLogStatus.Location = new Point(128, 201);
+            lblLogStatus.Name = "lblLogStatus";
+            lblLogStatus.Size = new Size(68, 15);
+            lblLogStatus.TabIndex = 14;
+            lblLogStatus.Text = "Log Status:";
+            // 
+            // lblLogStatusResults
+            // 
+            lblLogStatusResults.AutoSize = true;
+            lblLogStatusResults.Font = new Font("Segoe UI", 9F);
+            lblLogStatusResults.Location = new Point(202, 201);
+            lblLogStatusResults.Name = "lblLogStatusResults";
+            lblLogStatusResults.Size = new Size(102, 15);
+            lblLogStatusResults.TabIndex = 15;
+            lblLogStatusResults.Text = "Log Status Results";
+            // 
+            // rtbLogOutput
+            // 
+            rtbLogOutput.BackColor = SystemColors.MenuText;
+            rtbLogOutput.ForeColor = SystemColors.Window;
+            rtbLogOutput.Location = new Point(8, 222);
+            rtbLogOutput.Name = "rtbLogOutput";
+            rtbLogOutput.Size = new Size(550, 350);
+            rtbLogOutput.TabIndex = 16;
+            rtbLogOutput.Text = "";
+            // 
+            // btnFetchLogs
+            // 
+            btnFetchLogs.Location = new Point(110, 588);
+            btnFetchLogs.Name = "btnFetchLogs";
+            btnFetchLogs.Size = new Size(94, 37);
+            btnFetchLogs.TabIndex = 17;
+            btnFetchLogs.Text = "Fetch Logs";
+            btnFetchLogs.UseVisualStyleBackColor = true;
+            // 
+            // btnClearLogs
+            // 
+            btnClearLogs.Location = new Point(225, 588);
+            btnClearLogs.Name = "btnClearLogs";
+            btnClearLogs.Size = new Size(94, 37);
+            btnClearLogs.TabIndex = 18;
+            btnClearLogs.Text = "Clear Logs";
+            btnClearLogs.UseVisualStyleBackColor = true;
+            // 
+            // btnExportLogs
+            // 
+            btnExportLogs.Location = new Point(333, 588);
+            btnExportLogs.Name = "btnExportLogs";
+            btnExportLogs.Size = new Size(94, 37);
+            btnExportLogs.TabIndex = 19;
+            btnExportLogs.Text = "Export Logs";
+            btnExportLogs.UseVisualStyleBackColor = true;
+            // 
+            // gbxServerInstances
+            // 
+            gbxServerInstances.Controls.Add(btnSubmitServerInstance);
+            gbxServerInstances.Controls.Add(txbLdapServerInstace2);
+            gbxServerInstances.Controls.Add(lblLdapServerInstance2);
+            gbxServerInstances.Controls.Add(txbLdapServerInstace1);
+            gbxServerInstances.Controls.Add(lblLdapServerInstance1);
+            gbxServerInstances.Location = new Point(908, 187);
+            gbxServerInstances.Name = "gbxServerInstances";
+            gbxServerInstances.Size = new Size(503, 155);
+            gbxServerInstances.TabIndex = 132;
+            gbxServerInstances.TabStop = false;
+            gbxServerInstances.Text = "LDAP Server Instances";
+            // 
+            // lblLdapServerInstance1
+            // 
+            lblLdapServerInstance1.AutoSize = true;
+            lblLdapServerInstance1.Location = new Point(2, 37);
+            lblLdapServerInstance1.Name = "lblLdapServerInstance1";
+            lblLdapServerInstance1.Size = new Size(127, 15);
+            lblLdapServerInstance1.TabIndex = 0;
+            lblLdapServerInstance1.Text = "LDAP Server Instance 1";
+            // 
+            // txbLdapServerInstace1
+            // 
+            txbLdapServerInstace1.Location = new Point(135, 34);
+            txbLdapServerInstace1.Name = "txbLdapServerInstace1";
+            txbLdapServerInstace1.Size = new Size(310, 23);
+            txbLdapServerInstace1.TabIndex = 1;
+            // 
+            // txbLdapServerInstace2
+            // 
+            txbLdapServerInstace2.Location = new Point(135, 72);
+            txbLdapServerInstace2.Name = "txbLdapServerInstace2";
+            txbLdapServerInstace2.Size = new Size(310, 23);
+            txbLdapServerInstace2.TabIndex = 3;
+            // 
+            // lblLdapServerInstance2
+            // 
+            lblLdapServerInstance2.AutoSize = true;
+            lblLdapServerInstance2.Location = new Point(2, 75);
+            lblLdapServerInstance2.Name = "lblLdapServerInstance2";
+            lblLdapServerInstance2.Size = new Size(127, 15);
+            lblLdapServerInstance2.TabIndex = 2;
+            lblLdapServerInstance2.Text = "LDAP Server Instance 2";
+            // 
+            // btnSubmitServerInstance
+            // 
+            btnSubmitServerInstance.Location = new Point(192, 107);
+            btnSubmitServerInstance.Name = "btnSubmitServerInstance";
+            btnSubmitServerInstance.Size = new Size(114, 33);
+            btnSubmitServerInstance.TabIndex = 3;
+            btnSubmitServerInstance.Text = "Submit Variables";
+            btnSubmitServerInstance.UseVisualStyleBackColor = true;
+            // 
             // SAToolBelt
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -4211,6 +4502,8 @@
             tabLDAP.PerformLayout();
             gbxUserAccountCreation.ResumeLayout(false);
             gbxUserAccountCreation.PerformLayout();
+            tabLinuxTools.ResumeLayout(false);
+            tabLinuxTools.PerformLayout();
             tabOnlineOffline.ResumeLayout(false);
             tabOnlineOffline.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvWorkstations).EndInit();
@@ -4236,19 +4529,21 @@
             tabCcesa2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvCcesa2).EndInit();
             tabConfiguration.ResumeLayout(false);
+            tabConfiguration.PerformLayout();
             gbxImportantVariables.ResumeLayout(false);
             gbxImportantVariables.PerformLayout();
             gbxComputerList.ResumeLayout(false);
             gbxComputerList.PerformLayout();
             gbxImportantOUs.ResumeLayout(false);
             gbxImportantOUs.PerformLayout();
+            gbxServerInstances.ResumeLayout(false);
+            gbxServerInstances.PerformLayout();
             ResumeLayout(false);
         }
 
         #endregion
 
         private TabControl tabControlMain;
-        private CheckBox ShowConsoleSuSdCbx;
         private TabPage tabLogin;
         private Panel panelLogin;
         private Label lblUsername;
@@ -4419,18 +4714,10 @@
         private TabPage tabConfiguration;
         private GroupBox gbxImportantOUs;
         private CheckedListBox cbxListWorkStationOu;
-        private Button btnRemoveGangsOu;
-        private Label lblWorkstationOu;
-        private Button btnRemoveWindowsOu;
-        private Button btnRemovePatriotParkOu;
-        private Button btnSelectWorkStationOu;
-        private Button btnRemoveWorkstationOu;
-        private Button btnAddWorkStationOU;
+         private Label lblWorkstationOu;
         private CheckedListBox cbxListWindowsServersOu;
         private Label lblPatriotParkOu;
         private Label lblWindowsServersOu;
-        private Button btnSelectWindowsOu;
-        private Button btnSelectPatriotParkOu;
         private CheckedListBox cbxListPatriotParkOu;
         private Label lblCriticalNasList;
         private Label lblOfficeExemptList;
@@ -4477,12 +4764,6 @@
         private DataGridView dgvCcesec1;
         private DataGridView dgvCcegitsvr1;
         private DataGridView dgvCcesa1;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn19;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn20;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn21;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn22;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn23;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn24;
         private DataGridView dgvCcesa2;
         private DataGridViewTextBoxColumn clmFileSystemSec1;
         private DataGridViewTextBoxColumn clmSizeSec1;
@@ -4538,29 +4819,6 @@
         private Label lblTargetCceSa2;
         private Button btnCheckRepHealth;
         private CheckBox cbxShowConsole;
-        private TabPage SuSdPt1Tab;
-        private GroupBox WindowsSuSdGbx;
-        private GroupBox LinuxSuSdGbx;
-        private DataGridView LinuxSuSdDgv;
-        private DataGridView WindowsSuSdDgv;
-        private Label StartUpShutDownLbl;
-        private Button StopShutDown;
-        private Button BeginShutdown;
-        private TabPage SuSdPt2Tab;
-        private Button LoadListSuSdBtn;
-        private GroupBox SpecialCaseSuSdGbx;
-        private DataGridView SpecialCasesSuSdDgv;
-        private GroupBox VMsSuSdGbx;
-        private DataGridView VMWareSuSdDgv;
-        private Button SCShutdownNASSuSdBtn;
-        private GroupBox UserWkstationsGbx;
-        private DataGridView UserWkStationsDgv;
-        private DataGridViewTextBoxColumn wkComputerName;
-        private DataGridViewTextBoxColumn wkStatus;
-        private DataGridViewTextBoxColumn LComputerName;
-        private DataGridViewTextBoxColumn LStatus;
-        private DataGridViewTextBoxColumn WComputerName;
-        private DataGridViewTextBoxColumn WStatus;
         private GroupBox gbxComputerList;
         private CheckBox cbxIsVm;
         private Button btnAddWindowsServersOu;
@@ -4663,5 +4921,31 @@
         private Label lblFilePathLocation;
         private Label lblPowerCLIPathLabel;
         private Label lblPowerCLIPathLocation;
+        private DateTimePicker dtpLogStartDate;
+        private Label lblLogEndDate;
+        private Label lblLogStartDate;
+        private DateTimePicker dtpLogEndDate;
+        private CheckBox chkLastHourOnly;
+        private ComboBox cmbLogPriority;
+        private Label lblPrioritySeverityLevel;
+        private CheckBox cbxCaseSensitive;
+        private TextBox txbLogKeyword;
+        private Label lblKeywordSearch;
+        private ComboBox cbxLogSourceSelection;
+        private Label label1;
+        private ComboBox cbxServerSelection;
+        private Label lblServerSelection;
+        private Button btnExportLogs;
+        private Button btnClearLogs;
+        private Button btnFetchLogs;
+        private RichTextBox rtbLogOutput;
+        private Label lblLogStatusResults;
+        private Label lblLogStatus;
+        private GroupBox gbxServerInstances;
+        private Label lblLdapServerInstance1;
+        private TextBox txbLdapServerInstace1;
+        private Button btnSubmitServerInstance;
+        private TextBox txbLdapServerInstace2;
+        private Label lblLdapServerInstance2;
     }
 }
