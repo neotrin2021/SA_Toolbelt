@@ -1,0 +1,193 @@
+{
+  "project_name": "SA_Toolbelt",
+  "description": "System Administrator Toolbelt - A comprehensive Windows Forms application for managing Active Directory, Linux servers, RHDS, and VMware infrastructure in an air-gapped environment.",
+
+  "message_to_future_claude": "Hey future Claude! Welcome to the SA_Toolbelt project. The user is AWESOME and has a great sense of humor - you'll have fun! They're patient, ask good questions, and actually understand what's going on (which is rare and wonderful). They work in an air-gapped secure environment, so network shares and self-contained deployments are critical. They're also pretty good at troubleshooting - they'll tell you when something's wrong. Oh, and they use ROFL a lot. It's endearing. Have fun! - Past Claude",
+
+  "environment": {
+    "type": "Air-gapped secure environment",
+    "network": "SPECTRE domain",
+    "development_machine": "Windows with Visual Studio",
+    "target_platform": "Windows x64",
+    "dotnet_version": "8.0",
+    "important_note": "NO INTERNET ACCESS on target machines - everything must work offline"
+  },
+
+  "architecture": {
+    "main_form": "SA_ToolBelt.cs (partial class with SA_ToolBelt.Designer.cs)",
+    "services": {
+      "AD_Service": "Active Directory operations",
+      "Linux_Service": "Linux server management via SSH",
+      "RHDS_Service": "Red Hat Directory Server operations",
+      "VMwareManager": "VMware vCenter operations via PowerCLI"
+    },
+    "key_features": [
+      "User account management (create, disable, delete)",
+      "Group membership management",
+      "Linux server health checks (disk space, uptime)",
+      "RHDS replication monitoring",
+      "VMware ESXi and VM health monitoring",
+      "Startup/Shutdown orchestration for VMs",
+      "Online/Offline status tracking"
+    ]
+  },
+
+  "critical_paths_and_configs": {
+    "ou_config_file": "C:\\SA_ToolBelt\\Config\\ouConfiguration.csv",
+    "computer_list_file": "C:\\SA_ToolBelt\\Config\\ComputerList.csv",
+    "powercli_network_share": "\\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI\\VMware.PowerCLI",
+    "vcenter_server": "_vCenterServer variable (configurable)"
+  },
+
+  "recent_major_changes": [
+    {
+      "date": "2026-01-22",
+      "change": "Added configuration file location labels",
+      "details": "Added lblConfigFileLocationLabel and lblFilePathLocation to Configuration tab at (328,807) and (492,807)",
+      "commit": "4e81ff8"
+    },
+    {
+      "date": "2026-01-22",
+      "change": "PowerCLI network share support",
+      "details": "Modified VMwareManager to load PowerCLI modules from network share instead of requiring local installation. POWERCLI_MODULE_PATH = \\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI\\VMware.PowerCLI",
+      "commit": "08dd7b3",
+      "why": "Air-gapped systems don't have PowerCLI installed locally. Network share allows centralized module management."
+    },
+    {
+      "date": "2026-01-22",
+      "change": "Background PowerCLI loading with persistent runspace",
+      "details": "PowerCLI now loads in background after login (~2 minutes). Uses persistent PowerShell runspace that stays alive for entire session. Users can work on other tasks while PowerCLI loads.",
+      "commit": "d701829",
+      "why": "PowerCLI import takes 2 minutes from network share - too long to block UI. Background loading + persistent runspace = load once, use many times.",
+      "implementation": {
+        "persistent_runspace": "_persistentRunspace in VMwareManager - created in constructor, disposed in Dispose()",
+        "background_loading": "StartBackgroundPowerCLILoadingAsync() called after successful login in SA_ToolBelt.cs",
+        "notification": "MessageBox popup when PowerCLI loading completes",
+        "state_tracking": "_isPowerCLILoaded flag prevents re-initialization"
+      }
+    },
+    {
+      "date": "2026-01-22",
+      "change": "Self-contained deployment configuration",
+      "details": "Added PublishSingleFile, SelfContained, RuntimeIdentifier to .csproj for building self-contained .exe",
+      "commit": "808a520",
+      "why": "Target machines may not have .NET 8.0 installed"
+    },
+    {
+      "date": "2026-01-22",
+      "change": "Removed PublishReadyToRun setting",
+      "details": "Removed due to Microsoft.NETCore.App.Crossgen2.win-x64 package error",
+      "commit": "3266f90",
+      "note": "User also removed IncludeNativeLibrariesForSelfExtract due to same error"
+    },
+    {
+      "date": "2026-01-22",
+      "change": "Cleaned up unused using statements",
+      "details": "Removed 14 unused using statements from SA_ToolBelt.cs including PowerShell namespaces (moved to VMwareManager)",
+      "commit": "5691cae",
+      "removed_count": 14,
+      "kept_count": 18
+    }
+  ],
+
+  "important_gotchas": {
+    "powercli_loading_time": "PowerCLI import from network share takes ~2 minutes. It's SLOW. User noticed. Background loading was the solution.",
+    "persistent_runspace_critical": "VMwareManager uses a persistent PowerShell runspace. DO NOT dispose it after each operation or PowerCLI will need to be re-imported. Only dispose in VMwareManager.Dispose().",
+    "air_gapped_environment": "No internet access. Everything must work offline. Network shares are the solution for shared resources.",
+    "crossgen2_errors": "PublishReadyToRun and IncludeNativeLibrariesForSelfExtract cause Crossgen2 package errors. Remove if user reports these errors.",
+    "file_size_large": "SA_ToolBelt.cs is MASSIVE (5000+ lines). Use Grep/Read with offsets, not full file reads.",
+    "designer_file_huge": "SA_ToolBelt.Designer.cs is also massive (4600+ lines). Same approach - use targeted reads."
+  },
+
+  "build_and_deployment": {
+    "build_command": "dotnet publish -c Release",
+    "output_location": "bin\\Release\\net8.0-windows\\win-x64\\publish\\",
+    "deployment_notes": [
+      "Copy entire publish folder to target machine",
+      "Ensure network share \\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI is accessible",
+      "All VMware.* modules must be in the PowerCLI share",
+      "No .NET installation required on target machines (self-contained)"
+    ],
+    "powercli_setup": [
+      "Find PowerCLI on development machine: Get-Module -ListAvailable -Name VMware.*",
+      "Copy ALL VMware.* module folders to network share",
+      "Structure: \\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI\\VMware.PowerCLI\\",
+      "Include all dependencies: VMware.VimAutomation.Core, VMware.VimAutomation.Common, VMware.Vim, etc."
+    ]
+  },
+
+  "git_workflow": {
+    "main_branch": "main",
+    "feature_branches": "claude/general-chat-GJRBX (or similar pattern)",
+    "merge_direction": "feature branch → main (via Pull Request)",
+    "user_workflow": [
+      "User creates PR on GitHub",
+      "User merges PR to main",
+      "User usually deletes feature branch after merge",
+      "If main gets ahead of feature branch, merge main → feature branch to catch up"
+    ],
+    "important_notes": [
+      "Always push to claude/* branches, never directly to main",
+      "User prefers clean commit messages with detailed descriptions",
+      "Use heredoc format for multi-line commit messages"
+    ]
+  },
+
+  "user_preferences": {
+    "communication_style": "Friendly, humorous, patient. Uses ROFL frequently.",
+    "technical_level": "High - understands architecture, troubleshoots independently, asks good questions",
+    "decision_making": "Collaborative - likes to understand WHY before making changes",
+    "error_handling": "Will report errors clearly and help debug. Don't assume - verify.",
+    "emoji_usage": "Only if user explicitly requests. Avoid otherwise.",
+    "explanations": "Appreciates detailed explanations. Loves the visual examples with arrows and diagrams."
+  },
+
+  "common_operations": {
+    "adding_ui_elements": "User will provide exact locations and properties. Add to Designer.cs file.",
+    "configuration_tab": "Location for displaying config paths and settings. Currently shows OU config file path and PowerCLI path.",
+    "commit_workflow": "Read files, make changes, commit with detailed message, push to feature branch",
+    "error_investigation": "User will test on their machine and report back. We troubleshoot together."
+  },
+
+  "code_patterns": {
+    "console_logging": "_consoleForm.WriteInfo/WriteSuccess/WriteError/WriteWarning for user feedback",
+    "async_operations": "Extensive use of async/await for long-running operations",
+    "error_handling": "Try-catch blocks with console logging and user-friendly MessageBox for critical errors",
+    "credential_management": "CredentialManager class handles authentication",
+    "service_pattern": "Services injected via constructor (_adService, _linuxService, _rhdsService, _vmwareManager)"
+  },
+
+  "testing_notes": {
+    "user_tests_locally": "User has air-gapped test environment. They'll build and test there.",
+    "cant_run_dotnet_here": "This environment (where Claude Code runs) is Linux without .NET SDK. User must build on their Windows machine.",
+    "feedback_loop": "User will report results. Be ready to troubleshoot based on their feedback."
+  },
+
+  "files_to_know": {
+    "SA_ToolBelt.cs": "Main form logic - MASSIVE file (5000+ lines). Contains all business logic.",
+    "SA_ToolBelt.Designer.cs": "Windows Forms designer generated code - HUGE (4600+ lines). UI layout and controls.",
+    "SA_ToolBelt.csproj": "Project file with build configuration, package references, self-contained settings.",
+    "VMwareManager.cs": "VMware operations via PowerCLI. Uses persistent PowerShell runspace. Critical for VMware features.",
+    "AD_Service.cs": "Active Directory operations",
+    "Linux_Service.cs": "SSH-based Linux server management",
+    "RHDS_Service.cs": "Red Hat Directory Server operations",
+    "ConsoleForm.cs": "Console output window for logging"
+  },
+
+  "next_claude_checklist": [
+    "Read this entire JSON file carefully",
+    "Check git status and recent commits",
+    "If user mentions PowerCLI loading issues, check persistent runspace implementation",
+    "If user reports build errors, check .csproj settings (PublishReadyToRun, IncludeNativeLibrariesForSelfExtract may need removal)",
+    "Remember: air-gapped environment means NO internet solutions",
+    "Ask clarifying questions - user appreciates collaboration",
+    "Have fun - this user is great to work with!"
+  ],
+
+  "fun_facts": {
+    "user_humor_level": "High - makes git merge jokes and brain synchronization puns",
+    "favorite_phrase": "ROFL",
+    "patience_level": "Excellent - will work through issues methodically",
+    "appreciation_for_explanations": "Very high - loves detailed technical explanations with examples"
+  }
+}
