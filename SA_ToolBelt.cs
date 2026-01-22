@@ -48,8 +48,14 @@ namespace SA_ToolBelt
         // PowerCLI Module Path on network share
         private readonly string POWERCLI_MODULE_PATH = @"\\cce-data\shared\SA\SA Toolbelt\PowerCLI\VMware.PowerCLI";
 
+        // Log Configuration CSV file path
+        private readonly string LOG_CONFIG_FILE_PATH = @"\\cce-data\shared\SA\SA_Toolbelt\Config\LogConfiguration.csv";
+
         // Store the logged in SA's username globally
         public string _loggedInUsername = string.Empty;
+
+        // Dictionary to store LDAP server instances (server -> instance name)
+        private Dictionary<string, string> _ldapServerInstances = new Dictionary<string, string>();
 
 
         public SAToolBelt()
@@ -84,6 +90,12 @@ namespace SA_ToolBelt
 
             // Load important Variables
             LoadImportantVariablesFromCSV();
+
+            // Load Log Configuration from CSV file
+            LoadLogConfigurationFromCSV();
+
+            // Populate Linux server dropdown for log fetching
+            PopulateLinuxServerDropdown();
 
             tabConsole.Controls.Add(_consoleForm.GetConsoleRichTextBox());
             _consoleForm.GetConsoleRichTextBox().Dock = DockStyle.Fill;
@@ -4202,6 +4214,443 @@ namespace SA_ToolBelt
                 _consoleForm.WriteError($"Error creating OU configuration CSV: {ex.Message}");
             }
         }
+
+        #region Log Configuration and Fetching
+
+        // Load Log Configuration from CSV file
+        private void LoadLogConfigurationFromCSV()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading Log Configuration from CSV file...");
+
+                // Check if CSV file exists
+                if (!File.Exists(LOG_CONFIG_FILE_PATH))
+                {
+                    _consoleForm.WriteWarning($"Log Configuration file not found at: {LOG_CONFIG_FILE_PATH}");
+                    CreateLogConfigurationCSV();
+                    return;
+                }
+
+                // Read CSV file
+                string[] csvLines = File.ReadAllLines(LOG_CONFIG_FILE_PATH);
+
+                if (csvLines.Length <= 1) // Header only or empty
+                {
+                    _consoleForm.WriteWarning("Log Configuration file is empty or contains only headers.");
+                    return;
+                }
+
+                // Clear existing dictionary
+                _ldapServerInstances.Clear();
+
+                // Parse CSV data (skip header row)
+                int loadedCount = 0;
+                for (int i = 1; i < csvLines.Length; i++)
+                {
+                    string line = csvLines[i].Trim();
+                    if (string.IsNullOrEmpty(line)) continue;
+
+                    string[] columns = ParseCSVLine(line);
+                    if (columns.Length >= 2)
+                    {
+                        string server = columns[0].Trim().Trim('"');
+                        string serverInstance = columns[1].Trim().Trim('"');
+
+                        // Add to dictionary
+                        _ldapServerInstances[server] = serverInstance;
+                        loadedCount++;
+                    }
+                }
+
+                // Populate the textboxes with loaded data
+                if (_ldapServerInstances.Count >= 1)
+                {
+                    var firstServer = _ldapServerInstances.ElementAt(0);
+                    txbLdapServerInstace1.Text = $"{firstServer.Key}: {firstServer.Value}";
+                }
+
+                if (_ldapServerInstances.Count >= 2)
+                {
+                    var secondServer = _ldapServerInstances.ElementAt(1);
+                    txbLdapServerInstace2.Text = $"{secondServer.Key}: {secondServer.Value}";
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {loadedCount} LDAP server instance entries from CSV file.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading Log Configuration from CSV: {ex.Message}");
+            }
+        }
+
+        // Create Log Configuration CSV file with headers
+        private void CreateLogConfigurationCSV()
+        {
+            try
+            {
+                // Ensure directory exists
+                string directory = Path.GetDirectoryName(LOG_CONFIG_FILE_PATH);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // Create CSV with headers and default values
+                string csvContent = "server,server_instance\n";
+                csvContent += "ccesa1,slapd-ccesa1\n";
+                csvContent += "ccesa2,slapd-ccesa2\n";
+
+                File.WriteAllText(LOG_CONFIG_FILE_PATH, csvContent);
+
+                _consoleForm.WriteSuccess($"Created Log Configuration file: {LOG_CONFIG_FILE_PATH}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error creating Log Configuration CSV: {ex.Message}");
+            }
+        }
+
+        // Save Log Configuration to CSV when button is clicked
+        private void btnSubmitServerInstance_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Saving LDAP Server Instance configuration...");
+
+                // Parse textbox values (format: "servername: instance")
+                var instances = new Dictionary<string, string>();
+
+                if (!string.IsNullOrWhiteSpace(txbLdapServerInstace1.Text))
+                {
+                    string[] parts = txbLdapServerInstace1.Text.Split(':');
+                    if (parts.Length == 2)
+                    {
+                        instances[parts[0].Trim()] = parts[1].Trim();
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(txbLdapServerInstace2.Text))
+                {
+                    string[] parts = txbLdapServerInstace2.Text.Split(':');
+                    if (parts.Length == 2)
+                    {
+                        instances[parts[0].Trim()] = parts[1].Trim();
+                    }
+                }
+
+                // Build CSV content
+                var csvContent = new StringBuilder();
+                csvContent.AppendLine("server,server_instance");
+
+                foreach (var kvp in instances)
+                {
+                    csvContent.AppendLine($"{kvp.Key},{kvp.Value}");
+                }
+
+                // Write to file
+                File.WriteAllText(LOG_CONFIG_FILE_PATH, csvContent.ToString());
+
+                // Update in-memory dictionary
+                _ldapServerInstances = instances;
+
+                _consoleForm.WriteSuccess($"LDAP Server Instance configuration saved to: {LOG_CONFIG_FILE_PATH}");
+                MessageBox.Show("LDAP Server Instance configuration saved successfully!", "Success",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error saving Log Configuration: {ex.Message}");
+                MessageBox.Show($"Error saving configuration: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Populate Linux server dropdown
+        private void PopulateLinuxServerDropdown()
+        {
+            try
+            {
+                cbxServerSelection.Items.Clear();
+
+                // Check if CSV file exists
+                if (!File.Exists(COMPUTER_LIST_FILE_PATH))
+                {
+                    _consoleForm.WriteWarning($"Computer List file not found at: {COMPUTER_LIST_FILE_PATH}");
+                    return;
+                }
+
+                // Read CSV file
+                string[] csvLines = File.ReadAllLines(COMPUTER_LIST_FILE_PATH);
+
+                if (csvLines.Length <= 1) // Header only or empty
+                {
+                    _consoleForm.WriteWarning("Computer List file is empty or contains only headers.");
+                    return;
+                }
+
+                // Parse CSV data and filter for Linux servers
+                for (int i = 1; i < csvLines.Length; i++)
+                {
+                    string line = csvLines[i].Trim();
+                    if (string.IsNullOrEmpty(line)) continue;
+
+                    string[] columns = ParseCSVLine(line);
+                    if (columns.Length >= 2)
+                    {
+                        string computerName = columns[0].Trim().Trim('"');
+                        string type = columns[1].Trim().Trim('"');
+
+                        // Add only Linux and CriticalLinux servers
+                        if (type.Equals("Linux", StringComparison.OrdinalIgnoreCase) ||
+                            type.Equals("CriticalLinux", StringComparison.OrdinalIgnoreCase))
+                        {
+                            cbxServerSelection.Items.Add(computerName);
+                        }
+                    }
+                }
+
+                // Set default selection
+                if (cbxServerSelection.Items.Count > 0)
+                {
+                    cbxServerSelection.SelectedIndex = 0;
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {cbxServerSelection.Items.Count} Linux servers into dropdown.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error populating Linux server dropdown: {ex.Message}");
+            }
+        }
+
+        // Fetch logs button click handler
+        private async void btnFetchLogs_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Disable button during operation
+                btnFetchLogs.Enabled = false;
+                btnFetchLogs.Text = "Fetching...";
+
+                // Check authentication
+                if (!CredentialManager.IsAuthenticated)
+                {
+                    _consoleForm.WriteError("Please log in first before fetching logs.");
+                    MessageBox.Show("Please log in first.", "Authentication Required",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Validate selections
+                if (cbxServerSelection.SelectedItem == null)
+                {
+                    MessageBox.Show("Please select a server.", "Server Required",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (cbxLogSourceSelection.SelectedItem == null)
+                {
+                    MessageBox.Show("Please select a log source.", "Log Source Required",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Get selected server
+                string selectedServer = cbxServerSelection.SelectedItem.ToString();
+
+                // Get credentials
+                string sshUsername = CredentialManager.GetUsername();
+                string sshPassword = CredentialManager.GetPassword();
+
+                // Strip domain from username if present
+                if (sshUsername.Contains('\\'))
+                {
+                    sshUsername = sshUsername.Split('\\').Last();
+                }
+
+                // Update status
+                lblLogStatusResults.Text = "Fetching logs...";
+                rtbLogOutput.Clear();
+
+                // Build journalctl command based on filters
+                string command = BuildLogFetchCommand();
+
+                _consoleForm.WriteInfo($"Fetching logs from {selectedServer}...");
+                _consoleForm.WriteInfo($"Command: {command}");
+
+                // Execute SSH command
+                string logOutput = await _linuxService.ExecuteSSHCommandAsync(selectedServer, sshUsername, sshPassword, command);
+
+                // Display logs in RichTextBox
+                rtbLogOutput.Text = logOutput;
+
+                // Count lines
+                int lineCount = logOutput.Split('\n').Length;
+                lblLogStatusResults.Text = $"Ready - {lineCount} lines fetched";
+
+                _consoleForm.WriteSuccess($"Fetched {lineCount} lines of logs from {selectedServer}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error fetching logs: {ex.Message}");
+                lblLogStatusResults.Text = "Error occurred";
+                rtbLogOutput.AppendText($"\n\n=== ERROR ===\n{ex.Message}");
+            }
+            finally
+            {
+                btnFetchLogs.Enabled = true;
+                btnFetchLogs.Text = "Fetch Logs";
+            }
+        }
+
+        // Build the log fetch command based on user selections
+        private string BuildLogFetchCommand()
+        {
+            StringBuilder command = new StringBuilder();
+
+            string logSource = cbxLogSourceSelection.SelectedItem?.ToString() ?? "All";
+            string priority = cmbLogPriority.SelectedItem?.ToString() ?? "All Levels";
+            string keyword = txbLogKeyword.Text.Trim();
+            bool caseSensitive = cbxCaseSensitive.Checked;
+
+            // Determine if we're using journalctl or file-based logs
+            if (logSource == "All" || logSource.Contains("journalctl") || logSource == "Security/Authentication")
+            {
+                // Use journalctl
+                command.Append("journalctl");
+
+                // Add date range
+                if (chkLastHourOnly.Checked)
+                {
+                    command.Append(" --since \"1 hour ago\"");
+                }
+                else
+                {
+                    string startDate = dtpLogStartDate.Value.ToString("yyyy-MM-dd HH:mm:ss");
+                    string endDate = dtpLogEndDate.Value.ToString("yyyy-MM-dd HH:mm:ss");
+                    command.Append($" --since \"{startDate}\" --until \"{endDate}\"");
+                }
+
+                // Add priority filter
+                if (priority != "All Levels")
+                {
+                    string priorityLevel = priority.Split(' ')[0].ToLower(); // Extract "error" from "Error"
+                    command.Append($" -p {priorityLevel}");
+                }
+
+                // Add specific unit filter for Security/Authentication
+                if (logSource == "Security/Authentication")
+                {
+                    command.Append(" -u sshd -u systemd-logind");
+                }
+
+                // Add keyword filter if specified
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    string grepFlags = caseSensitive ? "" : "-i";
+                    command.Append($" | grep {grepFlags} \"{keyword}\"");
+                }
+            }
+            else if (logSource.Contains("Directory Server"))
+            {
+                // File-based Directory Server logs
+                string selectedServer = cbxServerSelection.SelectedItem?.ToString() ?? "";
+                string instanceName = "";
+
+                // Get instance name for selected server
+                if (_ldapServerInstances.ContainsKey(selectedServer))
+                {
+                    instanceName = _ldapServerInstances[selectedServer];
+                }
+                else
+                {
+                    // Default instance name if not configured
+                    instanceName = $"slapd-{selectedServer}";
+                }
+
+                string logFile = "";
+                if (logSource.Contains("Errors"))
+                {
+                    logFile = $"/var/log/dirsrv/{instanceName}/errors";
+                }
+                else if (logSource.Contains("Access"))
+                {
+                    logFile = $"/var/log/dirsrv/{instanceName}/access";
+                }
+                else if (logSource.Contains("Audit"))
+                {
+                    logFile = $"/var/log/dirsrv/{instanceName}/audit";
+                }
+
+                // Use grep with date filtering on log files
+                command.Append($"cat {logFile}");
+
+                // Add keyword filter (Directory Server logs don't have easy date filtering)
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    string grepFlags = caseSensitive ? "" : "-i";
+                    command.Append($" | grep {grepFlags} \"{keyword}\"");
+                }
+            }
+
+            return command.ToString();
+        }
+
+        // Clear logs button click handler
+        private void btnClearLogs_Click(object sender, EventArgs e)
+        {
+            rtbLogOutput.Clear();
+            lblLogStatusResults.Text = "Ready";
+            _consoleForm.WriteInfo("Log output cleared.");
+        }
+
+        // Export logs button click handler
+        private void btnExportLogs_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(rtbLogOutput.Text))
+                {
+                    MessageBox.Show("No logs to export.", "Nothing to Export",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // Create SaveFileDialog
+                using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+                {
+                    saveFileDialog.Filter = "Text Files (*.txt)|*.txt|Log Files (*.log)|*.log|All Files (*.*)|*.*";
+                    saveFileDialog.Title = "Export Logs";
+                    saveFileDialog.FileName = $"logs_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+
+                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        File.WriteAllText(saveFileDialog.FileName, rtbLogOutput.Text);
+                        _consoleForm.WriteSuccess($"Logs exported to: {saveFileDialog.FileName}");
+                        MessageBox.Show($"Logs exported successfully to:\n{saveFileDialog.FileName}",
+                            "Export Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error exporting logs: {ex.Message}");
+                MessageBox.Show($"Error exporting logs: {ex.Message}", "Export Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Last hour only checkbox handler
+        private void chkLastHourOnly_CheckedChanged(object sender, EventArgs e)
+        {
+            // Disable/enable date pickers based on checkbox state
+            dtpLogStartDate.Enabled = !chkLastHourOnly.Checked;
+            dtpLogEndDate.Enabled = !chkLastHourOnly.Checked;
+        }
+
+        #endregion
 
         // Clear all OU CheckedListBoxes
         private void ClearOUCheckedListBoxes()

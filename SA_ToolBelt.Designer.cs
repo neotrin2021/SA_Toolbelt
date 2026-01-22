@@ -4255,7 +4255,8 @@
             chkLastHourOnly.TabIndex = 4;
             chkLastHourOnly.Text = "Last Hour Only";
             chkLastHourOnly.UseVisualStyleBackColor = true;
-            // 
+            chkLastHourOnly.CheckedChanged += chkLastHourOnly_CheckedChanged;
+            //
             // cmbLogPriority
             // 
             cmbLogPriority.FormattingEnabled = true;
@@ -4379,7 +4380,8 @@
             btnFetchLogs.TabIndex = 17;
             btnFetchLogs.Text = "Fetch Logs";
             btnFetchLogs.UseVisualStyleBackColor = true;
-            // 
+            btnFetchLogs.Click += btnFetchLogs_Click;
+            //
             // btnClearLogs
             // 
             btnClearLogs.Location = new Point(225, 588);
@@ -4388,7 +4390,8 @@
             btnClearLogs.TabIndex = 18;
             btnClearLogs.Text = "Clear Logs";
             btnClearLogs.UseVisualStyleBackColor = true;
-            // 
+            btnClearLogs.Click += btnClearLogs_Click;
+            //
             // btnExportLogs
             // 
             btnExportLogs.Location = new Point(333, 588);
@@ -4397,7 +4400,8 @@
             btnExportLogs.TabIndex = 19;
             btnExportLogs.Text = "Export Logs";
             btnExportLogs.UseVisualStyleBackColor = true;
-            // 
+            btnExportLogs.Click += btnExportLogs_Click;
+            //
             // gbxServerInstances
             // 
             gbxServerInstances.Controls.Add(btnSubmitServerInstance);
@@ -4452,6 +4456,7 @@
             btnSubmitServerInstance.TabIndex = 3;
             btnSubmitServerInstance.Text = "Submit Variables";
             btnSubmitServerInstance.UseVisualStyleBackColor = true;
+            btnSubmitServerInstance.Click += btnSubmitServerInstance_Click;
             // 
             // SAToolBelt
             // 
