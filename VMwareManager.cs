@@ -32,14 +32,14 @@ namespace SA_ToolBelt
         /// <summary>
         /// Set PowerShell execution policy to allow PowerCLI
         /// </summary>
-        private async Task SetProcessScopeExecutionPolicyAsync()
+        private Task SetProcessScopeExecutionPolicyAsync()
         {
             try
             {
                 _consoleForm.WriteInfo("Setting PowerShell execution policy to RemoteSigned...");
                 _persistentRunspace.Commands.Clear();
                 _persistentRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
-                await Task.Run(() => _persistentRunspace.Invoke());
+                _persistentRunspace.Invoke();
 
                 if (_persistentRunspace.HadErrors)
                 {
@@ -58,12 +58,14 @@ namespace SA_ToolBelt
                 _consoleForm.WriteError($"Failed to set PowerShell execution policy: {ex.Message}");
                 throw;
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// Import VMware PowerCLI module from network share
         /// </summary>
-        private async Task ImportPowerCLIModuleAsync()
+        private Task ImportPowerCLIModuleAsync()
         {
             try
             {
@@ -73,7 +75,7 @@ namespace SA_ToolBelt
                 // Import module from the specified network share path
                 _persistentRunspace.Commands.Clear();
                 _persistentRunspace.AddScript($"Import-Module '{_powerCLIModulePath}' -ErrorAction Stop");
-                await Task.Run(() => _persistentRunspace.Invoke());
+                _persistentRunspace.Invoke();
 
                 if (_persistentRunspace.HadErrors)
                 {
@@ -93,19 +95,21 @@ namespace SA_ToolBelt
                 _consoleForm.WriteError($"Failed to import PowerCLI module: {ex.Message}");
                 throw;
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// Configure PowerCLI settings (disable certificate warnings)
         /// </summary>
-        private async Task ConfigurePowerCLISettingsAsync()
+        private Task ConfigurePowerCLISettingsAsync()
         {
             try
             {
                 _consoleForm.WriteInfo("Configuring PowerCLI settings...");
                 _persistentRunspace.Commands.Clear();
                 _persistentRunspace.AddScript("Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false -Scope Session");
-                await Task.Run(() => _persistentRunspace.Invoke());
+                _persistentRunspace.Invoke();
 
                 if (_persistentRunspace.HadErrors)
                 {
@@ -124,12 +128,14 @@ namespace SA_ToolBelt
                 _consoleForm.WriteWarning($"Failed to configure PowerCLI settings: {ex.Message}");
                 // Don't throw - this is not critical
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// Connect to vCenter Server using persistent runspace
         /// </summary>
-        private async Task ConnectToVCenterAsync()
+        private Task ConnectToVCenterAsync()
         {
             try
             {
@@ -137,7 +143,7 @@ namespace SA_ToolBelt
                 _persistentRunspace.Commands.Clear();
                 _persistentRunspace.AddScript($@"Connect-VIServer -Server '{_vCenterServer}' -User 'SPECTRE\{_username}' -Password '{_password}'");
 
-                await Task.Run(() => _persistentRunspace.Invoke());
+                _persistentRunspace.Invoke();
 
                 if (_persistentRunspace.HadErrors)
                 {
@@ -155,6 +161,8 @@ namespace SA_ToolBelt
                 _consoleForm.WriteError($"Failed to connect to vCenter: {ex.Message}");
                 throw;
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -205,7 +213,7 @@ namespace SA_ToolBelt
                         }
                     }");
 
-                var results = await Task.Run(() => _persistentRunspace.Invoke());
+                var results = _persistentRunspace.Invoke();
                 var hosts = new List<VMHost>();
 
                 foreach (var result in results)
@@ -305,7 +313,7 @@ namespace SA_ToolBelt
                         }"
                     );
 
-                    var results = await Task.Run(() => _persistentRunspace.Invoke());
+                    var results = _persistentRunspace.Invoke();
                     var hosts = new List<VMHostDetailed>();
 
                     foreach (var result in results)
@@ -366,7 +374,7 @@ namespace SA_ToolBelt
                         }
                     }");
 
-                var results = await Task.Run(() => _persistentRunspace.Invoke());
+                var results = _persistentRunspace.Invoke();
                 var vms = new List<VMachine>();
 
                 foreach (var result in results)
@@ -426,7 +434,7 @@ namespace SA_ToolBelt
                             }
                         }");
 
-                    var results = await Task.Run(() => _persistentRunspace.Invoke());
+                    var results = _persistentRunspace.Invoke();
                     var vms = new List<VMachineDetailed>();
 
                     foreach (var result in results)
@@ -522,20 +530,22 @@ namespace SA_ToolBelt
         /// <summary>
         /// Disconnect from vCenter Server
         /// </summary>
-        private async Task DisconnectFromVCenterAsync()
+        private Task DisconnectFromVCenterAsync()
         {
             try
             {
                 _consoleForm.WriteInfo("Disconnecting from vCenter...");
                 _persistentRunspace.Commands.Clear();
                 _persistentRunspace.AddScript("Disconnect-VIServer -Server * -Force -Confirm:$false");
-                await Task.Run(() => _persistentRunspace.Invoke());
+                _persistentRunspace.Invoke();
                 _consoleForm.WriteSuccess("Successfully disconnected from vCenter");
             }
             catch (Exception ex)
             {
                 _consoleForm.WriteError($"Error during disconnect: {ex.Message}");
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
