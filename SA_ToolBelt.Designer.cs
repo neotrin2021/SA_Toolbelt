@@ -433,6 +433,8 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
+            cbxMustChngPwd = new CheckBox();
+            lblNotice = new Label();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -1637,6 +1639,8 @@ namespace SA_ToolBelt
             // 
             // gbxChangePassword
             // 
+            gbxChangePassword.Controls.Add(lblNotice);
+            gbxChangePassword.Controls.Add(cbxMustChngPwd);
             gbxChangePassword.Controls.Add(cbxUnlockAcnt);
             gbxChangePassword.Controls.Add(btnClearPasswords);
             gbxChangePassword.Controls.Add(btnSubmit);
@@ -1656,7 +1660,7 @@ namespace SA_ToolBelt
             gbxChangePassword.Margin = new Padding(4, 3, 4, 3);
             gbxChangePassword.Name = "gbxChangePassword";
             gbxChangePassword.Padding = new Padding(4, 3, 4, 3);
-            gbxChangePassword.Size = new Size(433, 362);
+            gbxChangePassword.Size = new Size(457, 362);
             gbxChangePassword.TabIndex = 62;
             gbxChangePassword.TabStop = false;
             // 
@@ -1664,12 +1668,13 @@ namespace SA_ToolBelt
             // 
             cbxUnlockAcnt.AutoSize = true;
             cbxUnlockAcnt.CheckAlign = ContentAlignment.MiddleRight;
-            cbxUnlockAcnt.Location = new Point(49, 283);
+            cbxUnlockAcnt.Location = new Point(67, 269);
             cbxUnlockAcnt.Margin = new Padding(4, 3, 4, 3);
             cbxUnlockAcnt.Name = "cbxUnlockAcnt";
-            cbxUnlockAcnt.Size = new Size(114, 19);
+            cbxUnlockAcnt.RightToLeft = RightToLeft.Yes;
+            cbxUnlockAcnt.Size = new Size(111, 19);
             cbxUnlockAcnt.TabIndex = 71;
-            cbxUnlockAcnt.Text = "Unlock Account:";
+            cbxUnlockAcnt.Text = "Unlock Account";
             cbxUnlockAcnt.UseVisualStyleBackColor = true;
             // 
             // btnClearPasswords
@@ -1696,7 +1701,7 @@ namespace SA_ToolBelt
             // 
             // btnPwChngShowPassword
             // 
-            btnPwChngShowPassword.Location = new Point(327, 204);
+            btnPwChngShowPassword.Location = new Point(322, 125);
             btnPwChngShowPassword.Margin = new Padding(4, 3, 4, 3);
             btnPwChngShowPassword.Name = "btnPwChngShowPassword";
             btnPwChngShowPassword.Size = new Size(77, 53);
@@ -1709,7 +1714,7 @@ namespace SA_ToolBelt
             // 
             // txbConfirmNewPassword
             // 
-            txbConfirmNewPassword.Location = new Point(162, 237);
+            txbConfirmNewPassword.Location = new Point(157, 158);
             txbConfirmNewPassword.Margin = new Padding(4, 3, 4, 3);
             txbConfirmNewPassword.Name = "txbConfirmNewPassword";
             txbConfirmNewPassword.PasswordChar = '*';
@@ -1720,7 +1725,7 @@ namespace SA_ToolBelt
             // lblConfirmNewPassword
             // 
             lblConfirmNewPassword.AutoSize = true;
-            lblConfirmNewPassword.Location = new Point(20, 237);
+            lblConfirmNewPassword.Location = new Point(15, 158);
             lblConfirmNewPassword.Margin = new Padding(4, 0, 4, 0);
             lblConfirmNewPassword.Name = "lblConfirmNewPassword";
             lblConfirmNewPassword.Size = new Size(134, 15);
@@ -1729,7 +1734,7 @@ namespace SA_ToolBelt
             // 
             // txbNewPassword
             // 
-            txbNewPassword.Location = new Point(162, 198);
+            txbNewPassword.Location = new Point(157, 119);
             txbNewPassword.Margin = new Padding(4, 3, 4, 3);
             txbNewPassword.Name = "txbNewPassword";
             txbNewPassword.PasswordChar = '*';
@@ -1751,7 +1756,7 @@ namespace SA_ToolBelt
             // lblNewPassword
             // 
             lblNewPassword.AutoSize = true;
-            lblNewPassword.Location = new Point(67, 202);
+            lblNewPassword.Location = new Point(62, 123);
             lblNewPassword.Margin = new Padding(4, 0, 4, 0);
             lblNewPassword.Name = "lblNewPassword";
             lblNewPassword.Size = new Size(87, 15);
@@ -1763,7 +1768,7 @@ namespace SA_ToolBelt
             lblOneSpecial.AutoSize = true;
             lblOneSpecial.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneSpecial.ForeColor = Color.Red;
-            lblOneSpecial.Location = new Point(135, 173);
+            lblOneSpecial.Location = new Point(217, 80);
             lblOneSpecial.Margin = new Padding(4, 0, 4, 0);
             lblOneSpecial.Name = "lblOneSpecial";
             lblOneSpecial.Size = new Size(132, 17);
@@ -1775,7 +1780,7 @@ namespace SA_ToolBelt
             lblOneNumber.AutoSize = true;
             lblOneNumber.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneNumber.ForeColor = Color.Red;
-            lblOneNumber.Location = new Point(135, 143);
+            lblOneNumber.Location = new Point(119, 80);
             lblOneNumber.Margin = new Padding(4, 0, 4, 0);
             lblOneNumber.Name = "lblOneNumber";
             lblOneNumber.Size = new Size(70, 17);
@@ -1787,7 +1792,7 @@ namespace SA_ToolBelt
             lblOneLowercase.AutoSize = true;
             lblOneLowercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneLowercase.ForeColor = Color.Red;
-            lblOneLowercase.Location = new Point(135, 113);
+            lblOneLowercase.Location = new Point(280, 46);
             lblOneLowercase.Margin = new Padding(4, 0, 4, 0);
             lblOneLowercase.Name = "lblOneLowercase";
             lblOneLowercase.Size = new Size(88, 17);
@@ -1799,7 +1804,7 @@ namespace SA_ToolBelt
             lblOneUppercase.AutoSize = true;
             lblOneUppercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneUppercase.ForeColor = Color.Red;
-            lblOneUppercase.Location = new Point(135, 83);
+            lblOneUppercase.Location = new Point(162, 47);
             lblOneUppercase.Margin = new Padding(4, 0, 4, 0);
             lblOneUppercase.Name = "lblOneUppercase";
             lblOneUppercase.Size = new Size(89, 17);
@@ -1811,7 +1816,7 @@ namespace SA_ToolBelt
             lblFourteenChrs.AutoSize = true;
             lblFourteenChrs.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblFourteenChrs.ForeColor = Color.Red;
-            lblFourteenChrs.Location = new Point(135, 53);
+            lblFourteenChrs.Location = new Point(21, 47);
             lblFourteenChrs.Margin = new Padding(4, 0, 4, 0);
             lblFourteenChrs.Name = "lblFourteenChrs";
             lblFourteenChrs.Size = new Size(97, 17);
@@ -4467,6 +4472,29 @@ namespace SA_ToolBelt
             btnLogout.UseVisualStyleBackColor = true;
             btnLogout.Click += btnLogout_Click;
             // 
+            // cbxMustChngPwd
+            // 
+            cbxMustChngPwd.AutoSize = true;
+            cbxMustChngPwd.CheckAlign = ContentAlignment.MiddleRight;
+            cbxMustChngPwd.Location = new Point(67, 198);
+            cbxMustChngPwd.Margin = new Padding(4, 3, 4, 3);
+            cbxMustChngPwd.Name = "cbxMustChngPwd";
+            cbxMustChngPwd.RightToLeft = RightToLeft.Yes;
+            cbxMustChngPwd.Size = new Size(247, 19);
+            cbxMustChngPwd.TabIndex = 72;
+            cbxMustChngPwd.Text = "User must change password at next logon";
+            cbxMustChngPwd.UseVisualStyleBackColor = true;
+            // 
+            // lblNotice
+            // 
+            lblNotice.AutoSize = true;
+            lblNotice.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblNotice.Location = new Point(4, 231);
+            lblNotice.Name = "lblNotice";
+            lblNotice.Size = new Size(447, 15);
+            lblNotice.TabIndex = 73;
+            lblNotice.Text = "NOTE: The user must logoff and then logon again for the change to take effect.";
+            // 
             // SAToolBelt
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -4963,5 +4991,7 @@ namespace SA_ToolBelt
         private TextBox txbLdapServerInstace2;
         private Label lblLdapServerInstance2;
         private GroupBox gbxLinuxLogs;
+        private CheckBox cbxMustChngPwd;
+        private Label lblNotice;
     }
 }
