@@ -427,6 +427,7 @@
             btnFetchLogs = new Button();
             btnClearLogs = new Button();
             btnExportLogs = new Button();
+            gbxLinuxLogs = new GroupBox();
             gbxServerInstances = new GroupBox();
             lblLdapServerInstance1 = new Label();
             txbLdapServerInstace1 = new TextBox();
@@ -2215,6 +2216,7 @@
             // 
             // tabLinuxTools
             // 
+            tabLinuxTools.Controls.Add(gbxLinuxLogs);
             tabLinuxTools.Controls.Add(btnExportLogs);
             tabLinuxTools.Controls.Add(btnClearLogs);
             tabLinuxTools.Controls.Add(btnFetchLogs);
@@ -2242,7 +2244,17 @@
             tabLinuxTools.TabIndex = 5;
             tabLinuxTools.Text = "Linux Tools";
             tabLinuxTools.UseVisualStyleBackColor = true;
-            // 
+            //
+            // gbxLinuxLogs
+            //
+            gbxLinuxLogs.Location = new Point(6, 6);
+            gbxLinuxLogs.Name = "gbxLinuxLogs";
+            gbxLinuxLogs.Size = new Size(400, 300);
+            gbxLinuxLogs.TabIndex = 200;
+            gbxLinuxLogs.TabStop = false;
+            gbxLinuxLogs.Text = "Linux Logs";
+            gbxLinuxLogs.Visible = false;
+            //
             // tabVMwareTools
             // 
             tabVMwareTools.Location = new Point(4, 24);
@@ -4952,5 +4964,6 @@
         private Button btnSubmitServerInstance;
         private TextBox txbLdapServerInstace2;
         private Label lblLdapServerInstance2;
+        private GroupBox gbxLinuxLogs;
     }
 }

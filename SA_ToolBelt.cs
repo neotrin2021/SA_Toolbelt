@@ -57,6 +57,10 @@ namespace SA_ToolBelt
         // Dictionary to store LDAP server instances (server -> instance name)
         private Dictionary<string, string> _ldapServerInstances = new Dictionary<string, string>();
 
+        // Secret sequence tracking for hidden feature
+        private readonly DateTime _magicDate = new DateTime(1973, 8, 6); // Monday, August 06, 1973
+        private int _secretSequenceState = 0; // 0 = waiting for magic date, 1-4 = waiting for radio buttons
+        private bool _magicDateSet = false;
 
         public SAToolBelt()
         {
@@ -78,6 +82,7 @@ namespace SA_ToolBelt
             // Hide all tabs except Login initially
             HideAllTabsExceptLogin();
             SetupRadioButtonExclusivity();
+            SetupSecretSequenceHandlers();
 
             // Hide all controls until successful login
             HideControlsAtStartup();
@@ -732,20 +737,22 @@ namespace SA_ToolBelt
         // The magic happens here - ensures only one radio button is selected across ALL groups
         private void RadioButton_CheckedChanged(object sender, EventArgs e)
         {
-
             RadioButton selectedRadioButton = sender as RadioButton;
 
             // Only process when a radio button is being CHECKED (not unchecked)
             if (selectedRadioButton?.Checked == true)
             {
+                // Check secret sequence if magic date is set
+                CheckSecretSequence(selectedRadioButton);
+
                 // Get all radio buttons on the form
                 var allRadioButtons = new List<RadioButton>
-        {
-            rbExpiringAccounts61to90, rbExpiringAccounts31to60, rbExpiringAccounts0to30,
-            rbExpiredAccounts0to30, rbExpiredAccounts31to60, rbExpiredAccounts61to90, rbExpiredAccounts90Plus,
-            rbDisabledAccounts0to30, rbDisabledAccounts31to60, rbDisabledAccounts61to90, rbDisabledAccounts90Plus,
-            rbLockedAccountsOut, rbnSingleUserSearch
-        };
+                {
+                    rbExpiringAccounts61to90, rbExpiringAccounts31to60, rbExpiringAccounts0to30,
+                    rbExpiredAccounts0to30, rbExpiredAccounts31to60, rbExpiredAccounts61to90, rbExpiredAccounts90Plus,
+                    rbDisabledAccounts0to30, rbDisabledAccounts31to60, rbDisabledAccounts61to90, rbDisabledAccounts90Plus,
+                    rbLockedAccountsOut, rbnSingleUserSearch
+                };
 
                 // Uncheck all OTHER radio buttons
                 foreach (var rb in allRadioButtons)
@@ -757,6 +764,140 @@ namespace SA_ToolBelt
                 }
             }
         }
+
+        /// <summary>
+        /// Checks if the selected radio button is the correct next step in the secret sequence.
+        /// Sequence: Magic Date -> rbExpiringAccounts61to90 -> rbExpiredAccounts31to60 -> rbDisabledAccounts61to90 -> rbLockedAccountsOut
+        /// </summary>
+        private void CheckSecretSequence(RadioButton selectedRadioButton)
+        {
+            // If magic date isn't set, any radio button click is just normal
+            if (!_magicDateSet)
+            {
+                return;
+            }
+
+            // Define the expected sequence of radio buttons
+            RadioButton[] secretSequence = new RadioButton[]
+            {
+                rbExpiringAccounts61to90,
+                rbExpiredAccounts31to60,
+                rbDisabledAccounts61to90,
+                rbLockedAccountsOut
+            };
+
+            // Check if this is the expected next radio button in the sequence
+            if (_secretSequenceState >= 1 && _secretSequenceState <= 4)
+            {
+                int expectedIndex = _secretSequenceState - 1;
+
+                if (selectedRadioButton == secretSequence[expectedIndex])
+                {
+                    // Correct button! Advance the sequence
+                    _secretSequenceState++;
+
+                    // Check if sequence is complete
+                    if (_secretSequenceState == 5)
+                    {
+                        // Sequence complete - reveal the hidden GroupBox
+                        gbxLinuxLogs.Visible = true;
+                        ResetSecretSequence();
+                    }
+                }
+                else
+                {
+                    // Wrong button - reset everything including the date
+                    ResetSecretSequenceWithDate();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Resets the secret sequence state without changing the date picker.
+        /// </summary>
+        private void ResetSecretSequence()
+        {
+            _secretSequenceState = 0;
+            _magicDateSet = false;
+        }
+
+        /// <summary>
+        /// Resets the secret sequence AND resets the date picker to current date.
+        /// Called when user clicks a wrong button after setting the magic date.
+        /// </summary>
+        private void ResetSecretSequenceWithDate()
+        {
+            _secretSequenceState = 0;
+            _magicDateSet = false;
+            pkrAcntExpDateTimePicker.Value = DateTime.Now;
+        }
+
+        /// <summary>
+        /// Sets up event handlers for the secret sequence feature.
+        /// Wires up DateTimePicker and all buttons to track/reset the sequence.
+        /// </summary>
+        private void SetupSecretSequenceHandlers()
+        {
+            // Wire up DateTimePicker to detect magic date
+            pkrAcntExpDateTimePicker.ValueChanged += PkrAcntExpDateTimePicker_ValueChanged;
+
+            // Wire up all buttons to reset the sequence when clicked
+            // This ensures clicking any button (other than the correct radio buttons) resets the sequence
+            var allButtons = new List<Button>
+            {
+                btnLogin, btnAdLoadAccounts, btnShowTestPassword, btnTestPassword,
+                btnPwChngShowPassword, btnClearPasswords, btnSubmit, btnAcntExeDateUpdate,
+                btnAdClear, btnShowPassword, btnUnlockAccount, btnDeleteAccount, btnDisable,
+                btnEditUsersGroups, btnLdapGetUid, btnClearAccountCreationForm,
+                btnLdapCreateAccount, btnLdapGenerate, btnOnOffline,
+                btnAddCriticalLinuxList, btnAddLinuxList, btnAddOfficeExemptList,
+                btnAddCriticalNasList, btnAddCriticalWindowsList,
+                btnPerformHealthChk, btnCheckFileSystem, btnCheckRepHealth,
+                btnAddWindowsServersOu, btnAddPatriotParkOu, btnAddWorkstationOu,
+                btnRemoveSelectedOus, btnRemoveSelectedComputers, btnLoadSelectedUser,
+                btnUndockConsole, btnAddSecurityGroupsOU, btnLogout, btnSubmitVars,
+                btnExportLogs, btnClearLogs, btnFetchLogs, btnSubmitServerInstance
+            };
+
+            foreach (var btn in allButtons)
+            {
+                if (btn != null)
+                {
+                    btn.Click += SecretSequence_ButtonClick;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles DateTimePicker value changes to detect when the magic date is set.
+        /// </summary>
+        private void PkrAcntExpDateTimePicker_ValueChanged(object sender, EventArgs e)
+        {
+            // Check if the selected date matches the magic date (ignoring time component)
+            if (pkrAcntExpDateTimePicker.Value.Date == _magicDate.Date)
+            {
+                _magicDateSet = true;
+                _secretSequenceState = 1; // Ready for first radio button
+            }
+            else
+            {
+                // Date changed to something else - reset the sequence
+                ResetSecretSequence();
+            }
+        }
+
+        /// <summary>
+        /// Handles button clicks to reset the secret sequence if the magic date was set.
+        /// </summary>
+        private void SecretSequence_ButtonClick(object sender, EventArgs e)
+        {
+            // If magic date was set and user clicks any button, reset with date
+            if (_magicDateSet)
+            {
+                ResetSecretSequenceWithDate();
+            }
+        }
+
         private async Task UpdateRadioButtonCounters()
         {
             try
