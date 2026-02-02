@@ -379,6 +379,31 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
+        /// Force user to change password at next logon
+        /// </summary>
+        public bool ExpireUserPassword(string username)
+        {
+            try
+            {
+                using (var user = GetUser(username))
+                {
+                    if (user != null)
+                    {
+                        user.ExpirePasswordNow();
+                        user.Save();
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error expiring password for {username}: {ex.Message}", ex);
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Unlock a user account
         /// </summary>
         public bool UnlockUserAccount(string username)

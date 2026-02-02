@@ -1981,34 +1981,56 @@ namespace SA_ToolBelt
 
                 if (success)
                 {
+                    var successActions = new System.Collections.Generic.List<string> { "Password changed" };
+                    var failedActions = new System.Collections.Generic.List<string>();
+
+                    // If "must change password" is checked, expire the password
+                    if (cbxMustChngPwd.Checked)
+                    {
+                        bool expireSuccess = _adService.ExpireUserPassword(username);
+                        if (expireSuccess)
+                        {
+                            successActions.Add("user must change password at next logon");
+                        }
+                        else
+                        {
+                            failedActions.Add("failed to set 'must change password at next logon'");
+                        }
+                    }
+
                     // If unlock account is checked, unlock it too
                     if (cbxUnlockAcnt.Checked)
                     {
                         bool unlockSuccess = _adService.UnlockUserAccount(username);
                         if (unlockSuccess)
                         {
-                            MessageBox.Show($"Password changed and account unlocked successfully for '{username}'.", "Success",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            _consoleForm.WriteSuccess($"Password changed and account unlocked successfully for '{username}'.");
+                            successActions.Add("account unlocked");
                         }
                         else
                         {
-                            MessageBox.Show($"Password changed successfully for '{username}', but failed to unlock account.", "Warning.",
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                            _consoleForm.WriteWarning($"Password changed successfully for '{username}', but failed to unlock account.");
+                            failedActions.Add("failed to unlock account");
                         }
+                    }
+
+                    // Build and display the result message
+                    string successMessage = string.Join(", ", successActions) + $" successfully for '{username}'.";
+                    if (failedActions.Count > 0)
+                    {
+                        string warningMessage = successMessage + " However, " + string.Join(", ", failedActions) + ".";
+                        MessageBox.Show(warningMessage, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        _consoleForm.WriteWarning(warningMessage);
                     }
                     else
                     {
-                        MessageBox.Show($"Password changed successfully for '{username}'.", "Success",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        _consoleForm.WriteSuccess($"Password changed successfully for '{username}'.");
+                        MessageBox.Show(successMessage, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        _consoleForm.WriteSuccess(successMessage);
                     }
 
                     // Clear the password fields after successful change
                     txbNewPassword.Clear();
                     txbConfirmNewPassword.Clear();
                     cbxUnlockAcnt.Checked = false;
+                    cbxMustChngPwd.Checked = false;
 
                     // Refresh the user data to show updated info
                     // This would reload the General tab with current user info
