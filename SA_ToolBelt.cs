@@ -30,26 +30,19 @@ namespace SA_ToolBelt
         private ConsoleForm _consoleForm;
         private Linux_Service _linuxService;
         private VMwareManager _vmwareManager;
+        private PreCheck _preCheck;
 
         // Startup Shutdown Variables
         public string VMMode = "NormalRun";
         public bool startUpShutdown = false;
         private Dictionary<string, bool> pingStatus = new Dictionary<string, bool>();
 
-        // Add this initialization in your form constructor or after successful login
-        private readonly string _vCenterServer = "your_vcenter_server"; // Configure this
-
-        // Computer List CSV file path
-        private readonly string COMPUTER_LIST_FILE_PATH = @"C:\SA_ToolBelt\Config\ComputerList.csv";
-
-        // OU Configuration CSV file path
-        private readonly string OU_CONFIG_FILE_PATH = @"C:\SA_ToolBelt\Config\ouConfiguration.csv";
-
-        // PowerCLI Module Path on network share
-        private readonly string POWERCLI_MODULE_PATH = @"\\cce-data\shared\SA\SA Toolbelt\PowerCLI\VMware.PowerCLI";
-
-        // Log Configuration CSV file path
-        private readonly string LOG_CONFIG_FILE_PATH = @"\\cce-data\shared\SA\SA_Toolbelt\Config\LogConfiguration.csv";
+        // Configuration paths - now populated from PreCheck after validation
+        private string _vCenterServer = string.Empty;
+        private string COMPUTER_LIST_FILE_PATH = string.Empty;
+        private string OU_CONFIG_FILE_PATH = string.Empty;
+        private string POWERCLI_MODULE_PATH = string.Empty;
+        private string LOG_CONFIG_FILE_PATH = string.Empty;
 
         // Store the logged in SA's username globally
         public string _loggedInUsername = string.Empty;
@@ -66,38 +59,25 @@ namespace SA_ToolBelt
         {
             InitializeComponent();
 
-            // Set the configuration file path label
-            lblFilePathLocation.Text = OU_CONFIG_FILE_PATH;
-            lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
-
             _consoleForm = new ConsoleForm();
             _adService = new AD_Service(_consoleForm);
             _linuxService = new Linux_Service(_consoleForm);
             _rhdsService = new RHDS_Service(_consoleForm);
+            _preCheck = new PreCheck(_consoleForm);
 
             this.KeyPreview = true;
-
-
 
             // Hide all tabs except Login initially
             HideAllTabsExceptLogin();
             SetupRadioButtonExclusivity();
             SetupSecretSequenceHandlers();
+            SetupMandatorySettingsHandlers();
 
             // Hide all controls until successful login
             HideControlsAtStartup();
 
-            // Load OU configuration from CSV file  
-            LoadOUConfigurationFromCSV();
-
-            // Load Computer List from CSV file
-            LoadComputerListFromCSV();
-
-            // Load important Variables
-            LoadImportantVariablesFromCSV();
-
-            // Load Log Configuration from CSV file
-            LoadLogConfigurationFromCSV();
+            // Note: Configuration file loading is deferred until after PreCheck validation
+            // This happens in the login flow after mandatory settings are verified
 
             // Populate Linux server dropdown for log fetching
             PopulateLinuxServerDropdown();
@@ -308,6 +288,165 @@ namespace SA_ToolBelt
             tabControlMain.TabPages.Add(tabConfiguration);
             tabControlMain.TabPages.Add(tabConsole);
         }
+
+        /// <summary>
+        /// Shows only the Configuration tab for mandatory settings setup.
+        /// Called when PreCheck validation fails and settings need to be configured.
+        /// </summary>
+        private void ShowOnlyConfigurationTab()
+        {
+            tabControlMain.TabPages.Clear();
+            tabControlMain.TabPages.Add(tabConfiguration);
+            tabControlMain.TabPages.Add(tabConsole); // Keep console visible for feedback
+
+            // Ensure the mandatory settings group box is visible/enabled
+            // gbxManditorySettings.Enabled = true; // Uncomment when control exists
+        }
+
+        /// <summary>
+        /// Applies the validated PreCheck settings to the application variables
+        /// and loads the configuration files.
+        /// </summary>
+        private void ApplyPreCheckSettings()
+        {
+            // Apply settings from PreCheck to application variables
+            _vCenterServer = _preCheck.VCenterServer;
+            COMPUTER_LIST_FILE_PATH = _preCheck.ComputerListFullPath;
+            OU_CONFIG_FILE_PATH = _preCheck.OUConfigFullPath;
+            POWERCLI_MODULE_PATH = _preCheck.PowerCLIModuleFullPath;
+            LOG_CONFIG_FILE_PATH = _preCheck.LogConfigFullPath;
+
+            // Update the configuration file path labels
+            lblFilePathLocation.Text = OU_CONFIG_FILE_PATH;
+            lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
+
+            // Now load the configuration files
+            LoadOUConfigurationFromCSV();
+            LoadComputerListFromCSV();
+            LoadImportantVariablesFromCSV();
+            LoadLogConfigurationFromCSV();
+
+            _consoleForm.WriteSuccess("Configuration settings applied successfully.");
+        }
+
+        /// <summary>
+        /// Populates the mandatory settings textboxes and updates their colors.
+        /// Call this when showing the Configuration tab for settings setup.
+        /// </summary>
+        private void PopulateMandatorySettingsUI()
+        {
+            // Load settings from file first
+            _preCheck.LoadSettings();
+            _preCheck.ValidateAllSettings();
+
+            // Populate textboxes - uncomment when controls exist
+            // _preCheck.PopulateTextBoxes(txbVCenterServer, txbComputerList,
+            //                             txbOUConfigFilePath, txbPowerCLIModuleLocation,
+            //                             txbLogConfigFilePath);
+
+            // Update colors based on validation
+            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbComputerList,
+            //                               txbOUConfigFilePath, txbPowerCLIModuleLocation,
+            //                               txbLogConfigFilePath);
+        }
+
+        /// <summary>
+        /// Sets up event handlers for the mandatory settings controls.
+        /// </summary>
+        private void SetupMandatorySettingsHandlers()
+        {
+            // Wire up button click handlers - uncomment when controls exist in Designer
+            // btnVerifyVCenterServer.Click += BtnVerifyVCenterServer_Click;
+            // btnBrowseComputerList.Click += BtnBrowseComputerList_Click;
+            // btnBrowseOUConfigFilePath.Click += BtnBrowseOUConfigFilePath_Click;
+            // btnBrowsePowerCLIModuleLocation.Click += BtnBrowsePowerCLIModuleLocation_Click;
+            // btnBrowseLogConfigFilePath.Click += BtnBrowseLogConfigFilePath_Click;
+            // btnSetAll.Click += BtnSetAll_Click;
+        }
+
+        #region Mandatory Settings Button Handlers
+
+        private void BtnVerifyVCenterServer_Click(object sender, EventArgs e)
+        {
+            // Uncomment when control exists
+            // _preCheck.VerifyVCenterServerWithFeedback(txbVCenterServer.Text);
+            // UpdateMandatorySettingsColors();
+        }
+
+        private void BtnBrowseComputerList_Click(object sender, EventArgs e)
+        {
+            string path = _preCheck.BrowseForFolder("Select the folder containing ComputerList.csv");
+            if (!string.IsNullOrEmpty(path))
+            {
+                // Uncomment when control exists
+                // txbComputerList.Text = path;
+                // UpdateMandatorySettingsColors();
+            }
+        }
+
+        private void BtnBrowseOUConfigFilePath_Click(object sender, EventArgs e)
+        {
+            string path = _preCheck.BrowseForFolder("Select the folder containing ouConfiguration.csv");
+            if (!string.IsNullOrEmpty(path))
+            {
+                // Uncomment when control exists
+                // txbOUConfigFilePath.Text = path;
+                // UpdateMandatorySettingsColors();
+            }
+        }
+
+        private void BtnBrowsePowerCLIModuleLocation_Click(object sender, EventArgs e)
+        {
+            string path = _preCheck.BrowseForFolder("Select the folder containing VMware.PowerCLI module");
+            if (!string.IsNullOrEmpty(path))
+            {
+                // Uncomment when control exists
+                // txbPowerCLIModuleLocation.Text = path;
+                // UpdateMandatorySettingsColors();
+            }
+        }
+
+        private void BtnBrowseLogConfigFilePath_Click(object sender, EventArgs e)
+        {
+            string path = _preCheck.BrowseForFolder("Select the folder containing LogConfiguration.csv");
+            if (!string.IsNullOrEmpty(path))
+            {
+                // Uncomment when control exists
+                // txbLogConfigFilePath.Text = path;
+                // UpdateMandatorySettingsColors();
+            }
+        }
+
+        private void BtnSetAll_Click(object sender, EventArgs e)
+        {
+            // Uncomment when controls exist
+            // bool allValid = _preCheck.ValidateAndSaveAll(txbVCenterServer, txbComputerList,
+            //                                              txbOUConfigFilePath, txbPowerCLIModuleLocation,
+            //                                              txbLogConfigFilePath);
+            //
+            // if (allValid)
+            // {
+            //     // Apply the settings and show all tabs
+            //     ApplyPreCheckSettings();
+            //     ShowAllTabs();
+            //     _consoleForm.WriteSuccess("Mandatory settings configured successfully. All features now available.");
+            // }
+        }
+
+        private void UpdateMandatorySettingsColors()
+        {
+            // Read current values and validate
+            // Uncomment when controls exist
+            // _preCheck.ReadFromTextBoxes(txbVCenterServer, txbComputerList,
+            //                             txbOUConfigFilePath, txbPowerCLIModuleLocation,
+            //                             txbLogConfigFilePath);
+            // _preCheck.ValidateAllSettings();
+            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbComputerList,
+            //                               txbOUConfigFilePath, txbPowerCLIModuleLocation,
+            //                               txbLogConfigFilePath);
+        }
+
+        #endregion
 
         private void ShowControlsAfterLogin()
         {
@@ -656,22 +795,7 @@ namespace SA_ToolBelt
                 if (authenticationSuccessful)
                 {
                     _loggedInUsername = txtUsername.Text;
-                    // Authentication successful
-                    ShowAllTabs();
                     ShowControlsAfterLogin();
-
-                    // Update radio button counters INSIDE try-catch
-                    await UpdateRadioButtonCounters();
-
-                    // Start loading PowerCLI in background
-                    StartBackgroundPowerCLILoadingAsync();
-
-                    // NEW: Populate LDAP security groups dropdown
-                    await PopulateDefaultSecurityGroupsAsync();
-
-                    // Online/Offline status check here
-                    await LoadOnlineOfflineTabAsync();
-                    await CheckAllOnlineOfflineStatusAsync();
 
                     // ================Is in btnLogin_Click Event================
                     // BACKDOOR CHECK - REMOVE WHEN DEPLOYING TO PRODUCTION
@@ -684,8 +808,44 @@ namespace SA_ToolBelt
                     // ==========================================================
                     // END BACKDOOR CHECK
                     // ==========================================================
-                    MessageBox.Show(welcomeMessage, "Login Successful",
-                                  MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // Run PreCheck to validate mandatory settings
+                    bool preCheckPassed = _preCheck.Initialize();
+
+                    if (preCheckPassed)
+                    {
+                        // All mandatory settings are valid - apply them and show all tabs
+                        ApplyPreCheckSettings();
+                        ShowAllTabs();
+
+                        // Update radio button counters INSIDE try-catch
+                        await UpdateRadioButtonCounters();
+
+                        // Start loading PowerCLI in background
+                        StartBackgroundPowerCLILoadingAsync();
+
+                        // NEW: Populate LDAP security groups dropdown
+                        await PopulateDefaultSecurityGroupsAsync();
+
+                        // Online/Offline status check here
+                        await LoadOnlineOfflineTabAsync();
+                        await CheckAllOnlineOfflineStatusAsync();
+
+                        MessageBox.Show(welcomeMessage, "Login Successful",
+                                      MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        // Mandatory settings need to be configured
+                        ShowOnlyConfigurationTab();
+                        PopulateMandatorySettingsUI();
+
+                        MessageBox.Show(
+                            $"{welcomeMessage}\n\nHowever, mandatory settings need to be configured before you can use the toolbelt.\n\n" +
+                            "Please configure the settings in the Mandatory Settings section on the Configuration tab.",
+                            "Configuration Required",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
 
                     _consoleForm.WriteSuccess($"Login successful for user: {username}");
                 }
