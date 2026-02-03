@@ -340,14 +340,10 @@ namespace SA_ToolBelt
             _preCheck.ValidateAllSettings();
 
             // Populate textboxes - uncomment when controls exist
-            // _preCheck.PopulateTextBoxes(txbVCenterServer, txbComputerList,
-            //                             txbOUConfigFilePath, txbPowerCLIModuleLocation,
-            //                             txbLogConfigFilePath);
+            // _preCheck.PopulateTextBoxes(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
 
             // Update colors based on validation
-            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbComputerList,
-            //                               txbOUConfigFilePath, txbPowerCLIModuleLocation,
-            //                               txbLogConfigFilePath);
+            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
         }
 
         /// <summary>
@@ -357,10 +353,8 @@ namespace SA_ToolBelt
         {
             // Wire up button click handlers - uncomment when controls exist in Designer
             // btnVerifyVCenterServer.Click += BtnVerifyVCenterServer_Click;
-            // btnBrowseComputerList.Click += BtnBrowseComputerList_Click;
-            // btnBrowseOUConfigFilePath.Click += BtnBrowseOUConfigFilePath_Click;
+            // btnBrowseBasePath.Click += BtnBrowseBasePath_Click;
             // btnBrowsePowerCLIModuleLocation.Click += BtnBrowsePowerCLIModuleLocation_Click;
-            // btnBrowseLogConfigFilePath.Click += BtnBrowseLogConfigFilePath_Click;
             // btnSetAll.Click += BtnSetAll_Click;
         }
 
@@ -373,24 +367,13 @@ namespace SA_ToolBelt
             // UpdateMandatorySettingsColors();
         }
 
-        private void BtnBrowseComputerList_Click(object sender, EventArgs e)
+        private void BtnBrowseBasePath_Click(object sender, EventArgs e)
         {
-            string path = _preCheck.BrowseForFolder("Select the folder containing ComputerList.csv");
+            string path = _preCheck.BrowseForFolder("Select the folder containing ComputerList.csv, ouConfiguration.csv, and LogConfiguration.csv");
             if (!string.IsNullOrEmpty(path))
             {
                 // Uncomment when control exists
-                // txbComputerList.Text = path;
-                // UpdateMandatorySettingsColors();
-            }
-        }
-
-        private void BtnBrowseOUConfigFilePath_Click(object sender, EventArgs e)
-        {
-            string path = _preCheck.BrowseForFolder("Select the folder containing ouConfiguration.csv");
-            if (!string.IsNullOrEmpty(path))
-            {
-                // Uncomment when control exists
-                // txbOUConfigFilePath.Text = path;
+                // txbBasePath.Text = path;
                 // UpdateMandatorySettingsColors();
             }
         }
@@ -406,23 +389,10 @@ namespace SA_ToolBelt
             }
         }
 
-        private void BtnBrowseLogConfigFilePath_Click(object sender, EventArgs e)
-        {
-            string path = _preCheck.BrowseForFolder("Select the folder containing LogConfiguration.csv");
-            if (!string.IsNullOrEmpty(path))
-            {
-                // Uncomment when control exists
-                // txbLogConfigFilePath.Text = path;
-                // UpdateMandatorySettingsColors();
-            }
-        }
-
         private void BtnSetAll_Click(object sender, EventArgs e)
         {
             // Uncomment when controls exist
-            // bool allValid = _preCheck.ValidateAndSaveAll(txbVCenterServer, txbComputerList,
-            //                                              txbOUConfigFilePath, txbPowerCLIModuleLocation,
-            //                                              txbLogConfigFilePath);
+            // bool allValid = _preCheck.ValidateAndSaveAll(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
             //
             // if (allValid)
             // {
@@ -437,13 +407,9 @@ namespace SA_ToolBelt
         {
             // Read current values and validate
             // Uncomment when controls exist
-            // _preCheck.ReadFromTextBoxes(txbVCenterServer, txbComputerList,
-            //                             txbOUConfigFilePath, txbPowerCLIModuleLocation,
-            //                             txbLogConfigFilePath);
+            // _preCheck.ReadFromTextBoxes(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
             // _preCheck.ValidateAllSettings();
-            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbComputerList,
-            //                               txbOUConfigFilePath, txbPowerCLIModuleLocation,
-            //                               txbLogConfigFilePath);
+            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
         }
 
         #endregion

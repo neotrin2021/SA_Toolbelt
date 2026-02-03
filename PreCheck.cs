@@ -23,27 +23,21 @@ namespace SA_ToolBelt
 
         // Current settings values
         public string VCenterServer { get; private set; } = string.Empty;
-        public string ComputerListPath { get; private set; } = string.Empty;
-        public string OUConfigPath { get; private set; } = string.Empty;
+        public string BasePath { get; private set; } = string.Empty;
         public string PowerCLIModulePath { get; private set; } = string.Empty;
-        public string LogConfigPath { get; private set; } = string.Empty;
 
-        // Full paths with filenames
-        public string ComputerListFullPath => string.IsNullOrEmpty(ComputerListPath) ? string.Empty : Path.Combine(ComputerListPath, "ComputerList.csv");
-        public string OUConfigFullPath => string.IsNullOrEmpty(OUConfigPath) ? string.Empty : Path.Combine(OUConfigPath, "ouConfiguration.csv");
+        // Full paths with filenames (all CSV files are in BasePath)
+        public string ComputerListFullPath => string.IsNullOrEmpty(BasePath) ? string.Empty : Path.Combine(BasePath, "ComputerList.csv");
+        public string OUConfigFullPath => string.IsNullOrEmpty(BasePath) ? string.Empty : Path.Combine(BasePath, "ouConfiguration.csv");
+        public string LogConfigFullPath => string.IsNullOrEmpty(BasePath) ? string.Empty : Path.Combine(BasePath, "LogConfiguration.csv");
         public string PowerCLIModuleFullPath => string.IsNullOrEmpty(PowerCLIModulePath) ? string.Empty : Path.Combine(PowerCLIModulePath, "VMware.PowerCLI");
-        public string LogConfigFullPath => string.IsNullOrEmpty(LogConfigPath) ? string.Empty : Path.Combine(LogConfigPath, "LogConfiguration.csv");
 
         // Validation status
         public bool IsVCenterServerValid { get; private set; } = false;
-        public bool IsComputerListPathValid { get; private set; } = false;
-        public bool IsOUConfigPathValid { get; private set; } = false;
+        public bool IsBasePathValid { get; private set; } = false;
         public bool IsPowerCLIModulePathValid { get; private set; } = false;
-        public bool IsLogConfigPathValid { get; private set; } = false;
 
-        public bool AllSettingsValid => IsVCenterServerValid && IsComputerListPathValid &&
-                                        IsOUConfigPathValid && IsPowerCLIModulePathValid &&
-                                        IsLogConfigPathValid;
+        public bool AllSettingsValid => IsVCenterServerValid && IsBasePathValid && IsPowerCLIModulePathValid;
 
         public bool SettingsFileExists => File.Exists(_settingsFilePath);
 
@@ -116,10 +110,8 @@ namespace SA_ToolBelt
                 {
                     "Item,Location",
                     "VCenter_Server,",
-                    "Computer_List,",
-                    "OU_Config,",
-                    "PowerCLI_Module,",
-                    "Log_Config,"
+                    "Base_Path,",
+                    "PowerCLI_Module,"
                 };
 
                 File.WriteAllLines(_settingsFilePath, lines);
@@ -164,17 +156,11 @@ namespace SA_ToolBelt
                         case "VCenter_Server":
                             VCenterServer = location;
                             break;
-                        case "Computer_List":
-                            ComputerListPath = location;
-                            break;
-                        case "OU_Config":
-                            OUConfigPath = location;
+                        case "Base_Path":
+                            BasePath = location;
                             break;
                         case "PowerCLI_Module":
                             PowerCLIModulePath = location;
-                            break;
-                        case "Log_Config":
-                            LogConfigPath = location;
                             break;
                     }
                 }
@@ -198,10 +184,8 @@ namespace SA_ToolBelt
                 {
                     "Item,Location",
                     $"VCenter_Server,{VCenterServer}",
-                    $"Computer_List,{ComputerListPath}",
-                    $"OU_Config,{OUConfigPath}",
-                    $"PowerCLI_Module,{PowerCLIModulePath}",
-                    $"Log_Config,{LogConfigPath}"
+                    $"Base_Path,{BasePath}",
+                    $"PowerCLI_Module,{PowerCLIModulePath}"
                 };
 
                 File.WriteAllLines(_settingsFilePath, lines);
@@ -220,10 +204,48 @@ namespace SA_ToolBelt
         public void ValidateAllSettings()
         {
             IsVCenterServerValid = ValidateVCenterServer(VCenterServer);
-            IsComputerListPathValid = ValidatePath(ComputerListPath, "ComputerList.csv");
-            IsOUConfigPathValid = ValidatePath(OUConfigPath, "ouConfiguration.csv");
+            IsBasePathValid = ValidateBasePath(BasePath);
             IsPowerCLIModulePathValid = ValidatePath(PowerCLIModulePath, "VMware.PowerCLI", isDirectory: true);
-            IsLogConfigPathValid = ValidatePath(LogConfigPath, "LogConfiguration.csv");
+        }
+
+        /// <summary>
+        /// Validates the base path by checking all three required CSV files exist.
+        /// </summary>
+        private bool ValidateBasePath(string basePath)
+        {
+            if (string.IsNullOrWhiteSpace(basePath))
+            {
+                _consoleForm.WriteWarning("Base path is empty.");
+                return false;
+            }
+
+            if (!Directory.Exists(basePath))
+            {
+                _consoleForm.WriteWarning($"Base path directory not found: {basePath}");
+                return false;
+            }
+
+            // Check all three required CSV files
+            string[] requiredFiles = { "ComputerList.csv", "ouConfiguration.csv", "LogConfiguration.csv" };
+            var missingFiles = new List<string>();
+
+            foreach (var file in requiredFiles)
+            {
+                string fullPath = Path.Combine(basePath, file);
+                if (!File.Exists(fullPath))
+                {
+                    missingFiles.Add(file);
+                }
+            }
+
+            if (missingFiles.Count > 0)
+            {
+                _consoleForm.WriteWarning($"Missing files in base path: {string.Join(", ", missingFiles)}");
+                return false;
+            }
+
+            _consoleForm.WriteSuccess($"Base path validated: {basePath} (all CSV files found)");
+            return true;
         }
 
         /// <summary>
@@ -318,19 +340,11 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Sets the Computer List path.
+        /// Sets the Base path (contains ComputerList.csv, ouConfiguration.csv, LogConfiguration.csv).
         /// </summary>
-        public void SetComputerListPath(string value)
+        public void SetBasePath(string value)
         {
-            ComputerListPath = value?.Trim() ?? string.Empty;
-        }
-
-        /// <summary>
-        /// Sets the OU Config path.
-        /// </summary>
-        public void SetOUConfigPath(string value)
-        {
-            OUConfigPath = value?.Trim() ?? string.Empty;
+            BasePath = value?.Trim() ?? string.Empty;
         }
 
         /// <summary>
@@ -342,63 +356,39 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Sets the Log Config path.
-        /// </summary>
-        public void SetLogConfigPath(string value)
-        {
-            LogConfigPath = value?.Trim() ?? string.Empty;
-        }
-
-        /// <summary>
         /// Updates textbox background colors based on validation status.
         /// </summary>
-        public void UpdateTextBoxColors(TextBox txbVCenterServer, TextBox txbComputerList,
-                                        TextBox txbOUConfigFilePath, TextBox txbPowerCLIModuleLocation,
-                                        TextBox txbLogConfigFilePath)
+        public void UpdateTextBoxColors(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
         {
             // Update colors based on empty or invalid status
             txbVCenterServer.BackColor = string.IsNullOrWhiteSpace(txbVCenterServer.Text) || !IsVCenterServerValid
                 ? _errorColor : _validColor;
 
-            txbComputerList.BackColor = string.IsNullOrWhiteSpace(txbComputerList.Text) || !IsComputerListPathValid
-                ? _errorColor : _validColor;
-
-            txbOUConfigFilePath.BackColor = string.IsNullOrWhiteSpace(txbOUConfigFilePath.Text) || !IsOUConfigPathValid
+            txbBasePath.BackColor = string.IsNullOrWhiteSpace(txbBasePath.Text) || !IsBasePathValid
                 ? _errorColor : _validColor;
 
             txbPowerCLIModuleLocation.BackColor = string.IsNullOrWhiteSpace(txbPowerCLIModuleLocation.Text) || !IsPowerCLIModulePathValid
-                ? _errorColor : _validColor;
-
-            txbLogConfigFilePath.BackColor = string.IsNullOrWhiteSpace(txbLogConfigFilePath.Text) || !IsLogConfigPathValid
                 ? _errorColor : _validColor;
         }
 
         /// <summary>
         /// Populates textboxes with current settings values.
         /// </summary>
-        public void PopulateTextBoxes(TextBox txbVCenterServer, TextBox txbComputerList,
-                                      TextBox txbOUConfigFilePath, TextBox txbPowerCLIModuleLocation,
-                                      TextBox txbLogConfigFilePath)
+        public void PopulateTextBoxes(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
         {
             txbVCenterServer.Text = VCenterServer;
-            txbComputerList.Text = ComputerListPath;
-            txbOUConfigFilePath.Text = OUConfigPath;
+            txbBasePath.Text = BasePath;
             txbPowerCLIModuleLocation.Text = PowerCLIModulePath;
-            txbLogConfigFilePath.Text = LogConfigPath;
         }
 
         /// <summary>
         /// Reads values from textboxes and updates internal settings.
         /// </summary>
-        public void ReadFromTextBoxes(TextBox txbVCenterServer, TextBox txbComputerList,
-                                      TextBox txbOUConfigFilePath, TextBox txbPowerCLIModuleLocation,
-                                      TextBox txbLogConfigFilePath)
+        public void ReadFromTextBoxes(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
         {
             SetVCenterServer(txbVCenterServer.Text);
-            SetComputerListPath(txbComputerList.Text);
-            SetOUConfigPath(txbOUConfigFilePath.Text);
+            SetBasePath(txbBasePath.Text);
             SetPowerCLIModulePath(txbPowerCLIModuleLocation.Text);
-            SetLogConfigPath(txbLogConfigFilePath.Text);
         }
 
         /// <summary>
@@ -449,20 +439,16 @@ namespace SA_ToolBelt
         /// <summary>
         /// Validates and saves all settings. Returns true if all settings are valid.
         /// </summary>
-        public bool ValidateAndSaveAll(TextBox txbVCenterServer, TextBox txbComputerList,
-                                       TextBox txbOUConfigFilePath, TextBox txbPowerCLIModuleLocation,
-                                       TextBox txbLogConfigFilePath)
+        public bool ValidateAndSaveAll(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
         {
             // Read current values from textboxes
-            ReadFromTextBoxes(txbVCenterServer, txbComputerList, txbOUConfigFilePath,
-                             txbPowerCLIModuleLocation, txbLogConfigFilePath);
+            ReadFromTextBoxes(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
 
             // Validate all settings
             ValidateAllSettings();
 
             // Update textbox colors
-            UpdateTextBoxColors(txbVCenterServer, txbComputerList, txbOUConfigFilePath,
-                               txbPowerCLIModuleLocation, txbLogConfigFilePath);
+            UpdateTextBoxColors(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
 
             if (AllSettingsValid)
             {
@@ -477,10 +463,8 @@ namespace SA_ToolBelt
                 // Build error message
                 var errors = new List<string>();
                 if (!IsVCenterServerValid) errors.Add("- VCenter Server is invalid or unreachable");
-                if (!IsComputerListPathValid) errors.Add("- Computer List path is invalid or file not found");
-                if (!IsOUConfigPathValid) errors.Add("- OU Config path is invalid or file not found");
-                if (!IsPowerCLIModulePathValid) errors.Add("- PowerCLI Module path is invalid or folder not found");
-                if (!IsLogConfigPathValid) errors.Add("- Log Config path is invalid or file not found");
+                if (!IsBasePathValid) errors.Add("- Base Path is invalid or missing required CSV files (ComputerList.csv, ouConfiguration.csv, LogConfiguration.csv)");
+                if (!IsPowerCLIModulePathValid) errors.Add("- PowerCLI Module path is invalid or VMware.PowerCLI folder not found");
 
                 MessageBox.Show($"The following settings need to be corrected:\n\n{string.Join("\n", errors)}",
                     "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
