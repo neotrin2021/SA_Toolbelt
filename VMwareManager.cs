@@ -30,6 +30,49 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
+        /// Ensures the PowerShell runspace is valid and recreates it if necessary.
+        /// This handles the case where the runspace becomes stale after sitting idle.
+        /// </summary>
+        private void EnsureRunspaceValid()
+        {
+            try
+            {
+                // Try a simple command to test if the runspace is still valid
+                _persistentRunspace.Commands.Clear();
+                _persistentRunspace.AddScript("$null");
+                _persistentRunspace.Invoke();
+            }
+            catch (Exception ex) when (ex.Message.Contains("RuntimeMetadataVersion") ||
+                                       ex.Message.Contains("System.Object") ||
+                                       ex is System.Management.Automation.ActionPreferenceStopException)
+            {
+                // Runspace is stale, recreate it
+                _consoleForm.WriteWarning("PowerShell runspace became stale, recreating...");
+                RecreateRunspace();
+            }
+        }
+
+        /// <summary>
+        /// Disposes the current runspace and creates a new one.
+        /// Resets the PowerCLI loaded flag since the module will need to be reimported.
+        /// </summary>
+        private void RecreateRunspace()
+        {
+            try
+            {
+                _persistentRunspace?.Dispose();
+            }
+            catch
+            {
+                // Ignore disposal errors
+            }
+
+            _persistentRunspace = PowerShell.Create();
+            _isPowerCLILoaded = false;
+            _consoleForm.WriteInfo("PowerShell runspace recreated successfully");
+        }
+
+        /// <summary>
         /// Set PowerShell execution policy to allow PowerCLI
         /// </summary>
         private Task SetProcessScopeExecutionPolicyAsync()
@@ -172,6 +215,9 @@ namespace SA_ToolBelt
         {
             try
             {
+                // Ensure the runspace is still valid (may have become stale after idle)
+                EnsureRunspaceValid();
+
                 if (_isPowerCLILoaded)
                 {
                     _consoleForm.WriteInfo("PowerCLI already loaded and ready");
@@ -184,6 +230,30 @@ namespace SA_ToolBelt
                 await ConfigurePowerCLISettingsAsync();
                 _isPowerCLILoaded = true;
                 _consoleForm.WriteSuccess("PowerCLI initialization completed - VMware features are now ready!");
+            }
+            catch (Exception ex) when (ex.Message.Contains("RuntimeMetadataVersion") ||
+                                       ex.Message.Contains("System.Object") ||
+                                       ex is System.Management.Automation.ActionPreferenceStopException)
+            {
+                // Runspace became stale during initialization, recreate and retry once
+                _consoleForm.WriteWarning("Runspace error detected, attempting recovery...");
+                RecreateRunspace();
+
+                try
+                {
+                    _consoleForm.WriteInfo("Retrying PowerCLI initialization...");
+                    await SetProcessScopeExecutionPolicyAsync();
+                    await ImportPowerCLIModuleAsync();
+                    await ConfigurePowerCLISettingsAsync();
+                    _isPowerCLILoaded = true;
+                    _consoleForm.WriteSuccess("PowerCLI initialization completed after recovery!");
+                }
+                catch (Exception retryEx)
+                {
+                    _consoleForm.WriteError($"Failed to initialize PowerCLI after retry: {retryEx.Message}");
+                    _isPowerCLILoaded = false;
+                    throw;
+                }
             }
             catch (Exception ex)
             {
