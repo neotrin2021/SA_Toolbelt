@@ -810,6 +810,11 @@ namespace SA_ToolBelt
                     ResetSecretSequenceWithDate();
                 }
             }
+            else
+            {
+                // Magic date is set but sequence state is invalid - reset everything
+                ResetSecretSequenceWithDate();
+            }
         }
 
         /// <summary>
