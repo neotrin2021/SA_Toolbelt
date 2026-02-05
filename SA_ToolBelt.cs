@@ -5473,6 +5473,11 @@ namespace SA_ToolBelt
                 _consoleForm.WriteError($"Error removing selected computers: {ex.Message}");
             }
         }
+
+        private void btnAddExcludeOu_Click(object sender, EventArgs e)
+        {
+
+        }
         #endregion
 
         #region Important Variables Configuration Management Tab Helpers and functions
@@ -6034,5 +6039,6 @@ namespace SA_ToolBelt
         #endregion
     }
 }
+
 
 
