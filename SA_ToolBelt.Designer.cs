@@ -134,6 +134,8 @@ namespace SA_ToolBelt
             rbExpiringAccounts61to90 = new RadioButton();
             lblChangePassword = new Label();
             gbxChangePassword = new GroupBox();
+            lblNotice = new Label();
+            cbxMustChngPwd = new CheckBox();
             cbxUnlockAcnt = new CheckBox();
             btnClearPasswords = new Button();
             btnSubmit = new Button();
@@ -189,26 +191,26 @@ namespace SA_ToolBelt
             tabWindowsTools = new TabPage();
             tabLinuxTools = new TabPage();
             gbxLinuxLogs = new GroupBox();
-            btnExportLogs = new Button();
-            btnClearLogs = new Button();
-            btnFetchLogs = new Button();
-            rtbLogOutput = new RichTextBox();
-            lblLogStatusResults = new Label();
-            lblLogStatus = new Label();
-            cbxServerSelection = new ComboBox();
-            lblServerSelection = new Label();
-            cbxLogSourceSelection = new ComboBox();
-            label1 = new Label();
-            cbxCaseSensitive = new CheckBox();
-            txbLogKeyword = new TextBox();
-            lblKeywordSearch = new Label();
-            lblPrioritySeverityLevel = new Label();
-            cmbLogPriority = new ComboBox();
-            chkLastHourOnly = new CheckBox();
-            lblLogEndDate = new Label();
-            lblLogStartDate = new Label();
-            dtpLogEndDate = new DateTimePicker();
             dtpLogStartDate = new DateTimePicker();
+            btnExportLogs = new Button();
+            dtpLogEndDate = new DateTimePicker();
+            btnClearLogs = new Button();
+            lblLogStartDate = new Label();
+            btnFetchLogs = new Button();
+            lblLogEndDate = new Label();
+            rtbLogOutput = new RichTextBox();
+            chkLastHourOnly = new CheckBox();
+            lblLogStatusResults = new Label();
+            cmbLogPriority = new ComboBox();
+            lblLogStatus = new Label();
+            lblPrioritySeverityLevel = new Label();
+            cbxServerSelection = new ComboBox();
+            lblKeywordSearch = new Label();
+            lblServerSelection = new Label();
+            txbLogKeyword = new TextBox();
+            cbxLogSourceSelection = new ComboBox();
+            cbxCaseSensitive = new CheckBox();
+            label1 = new Label();
             tabVMwareTools = new TabPage();
             tabOnlineOffline = new TabPage();
             lbxCriticalLinux = new ListBox();
@@ -379,6 +381,17 @@ namespace SA_ToolBelt
             tabStartupShutdownPt1 = new TabPage();
             tabStartupShutdownPt2 = new TabPage();
             tabConfiguration = new TabPage();
+            gbxManditorySettings = new GroupBox();
+            txbPowerCliModuleLocation = new TextBox();
+            txbBasePath = new TextBox();
+            lblBasePath = new Label();
+            lblPowerCLIModuleLocation = new Label();
+            lblVCenterServer = new Label();
+            btnSetAll = new Button();
+            btnBrowseBasePath = new Button();
+            btnBrowsePowerCLIModuleLocation = new Button();
+            btnVerifyVCenterServer = new Button();
+            txbVCenterServer = new TextBox();
             gbxServerInstances = new GroupBox();
             btnSubmitServerInstance = new Button();
             txbLdapServerInstace2 = new TextBox();
@@ -433,8 +446,15 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
-            cbxMustChngPwd = new CheckBox();
-            lblNotice = new Label();
+            lblNoticeExcludeOUs = new Label();
+            cbxExcludeOu = new ComboBox();
+            btnAddExcludeOu = new Button();
+            lblDisabledUsersLocation = new Label();
+            txbDisabledUsersLocation = new TextBox();
+            txbLinuxDs = new TextBox();
+            lblLinuxDs = new Label();
+            txbHomeDirectoryLocation = new TextBox();
+            lblHomeDirectoryLocation = new Label();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -483,6 +503,7 @@ namespace SA_ToolBelt
             tabCcesa2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvCcesa2).BeginInit();
             tabConfiguration.SuspendLayout();
+            gbxManditorySettings.SuspendLayout();
             gbxServerInstances.SuspendLayout();
             gbxImportantVariables.SuspendLayout();
             gbxComputerList.SuspendLayout();
@@ -1664,6 +1685,29 @@ namespace SA_ToolBelt
             gbxChangePassword.TabIndex = 62;
             gbxChangePassword.TabStop = false;
             // 
+            // lblNotice
+            // 
+            lblNotice.AutoSize = true;
+            lblNotice.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblNotice.Location = new Point(4, 231);
+            lblNotice.Name = "lblNotice";
+            lblNotice.Size = new Size(447, 15);
+            lblNotice.TabIndex = 73;
+            lblNotice.Text = "NOTE: The user must logoff and then logon again for the change to take effect.";
+            // 
+            // cbxMustChngPwd
+            // 
+            cbxMustChngPwd.AutoSize = true;
+            cbxMustChngPwd.CheckAlign = ContentAlignment.MiddleRight;
+            cbxMustChngPwd.Location = new Point(67, 198);
+            cbxMustChngPwd.Margin = new Padding(4, 3, 4, 3);
+            cbxMustChngPwd.Name = "cbxMustChngPwd";
+            cbxMustChngPwd.RightToLeft = RightToLeft.Yes;
+            cbxMustChngPwd.Size = new Size(247, 19);
+            cbxMustChngPwd.TabIndex = 72;
+            cbxMustChngPwd.Text = "User must change password at next logon";
+            cbxMustChngPwd.UseVisualStyleBackColor = true;
+            // 
             // cbxUnlockAcnt
             // 
             cbxUnlockAcnt.AutoSize = true;
@@ -2257,6 +2301,13 @@ namespace SA_ToolBelt
             gbxLinuxLogs.Text = "Linux Logs";
             gbxLinuxLogs.Visible = false;
             // 
+            // dtpLogStartDate
+            // 
+            dtpLogStartDate.Location = new Point(45, 39);
+            dtpLogStartDate.Name = "dtpLogStartDate";
+            dtpLogStartDate.Size = new Size(200, 23);
+            dtpLogStartDate.TabIndex = 0;
+            // 
             // btnExportLogs
             // 
             btnExportLogs.Location = new Point(358, 579);
@@ -2266,6 +2317,13 @@ namespace SA_ToolBelt
             btnExportLogs.Text = "Export Logs";
             btnExportLogs.UseVisualStyleBackColor = true;
             btnExportLogs.Click += btnExportLogs_Click;
+            // 
+            // dtpLogEndDate
+            // 
+            dtpLogEndDate.Location = new Point(257, 39);
+            dtpLogEndDate.Name = "dtpLogEndDate";
+            dtpLogEndDate.Size = new Size(215, 23);
+            dtpLogEndDate.TabIndex = 1;
             // 
             // btnClearLogs
             // 
@@ -2277,6 +2335,16 @@ namespace SA_ToolBelt
             btnClearLogs.UseVisualStyleBackColor = true;
             btnClearLogs.Click += btnClearLogs_Click;
             // 
+            // lblLogStartDate
+            // 
+            lblLogStartDate.AutoSize = true;
+            lblLogStartDate.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblLogStartDate.Location = new Point(45, 21);
+            lblLogStartDate.Name = "lblLogStartDate";
+            lblLogStartDate.Size = new Size(176, 15);
+            lblLogStartDate.TabIndex = 2;
+            lblLogStartDate.Text = "Start Date/Time for log range:";
+            // 
             // btnFetchLogs
             // 
             btnFetchLogs.Location = new Point(135, 579);
@@ -2287,6 +2355,16 @@ namespace SA_ToolBelt
             btnFetchLogs.UseVisualStyleBackColor = true;
             btnFetchLogs.Click += btnFetchLogs_Click;
             // 
+            // lblLogEndDate
+            // 
+            lblLogEndDate.AutoSize = true;
+            lblLogEndDate.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblLogEndDate.Location = new Point(257, 21);
+            lblLogEndDate.Name = "lblLogEndDate";
+            lblLogEndDate.Size = new Size(168, 15);
+            lblLogEndDate.TabIndex = 3;
+            lblLogEndDate.Text = "End Date/Time for log range:";
+            // 
             // rtbLogOutput
             // 
             rtbLogOutput.BackColor = SystemColors.MenuText;
@@ -2296,111 +2374,6 @@ namespace SA_ToolBelt
             rtbLogOutput.Size = new Size(550, 350);
             rtbLogOutput.TabIndex = 16;
             rtbLogOutput.Text = "";
-            // 
-            // lblLogStatusResults
-            // 
-            lblLogStatusResults.AutoSize = true;
-            lblLogStatusResults.Font = new Font("Segoe UI", 9F);
-            lblLogStatusResults.Location = new Point(227, 192);
-            lblLogStatusResults.Name = "lblLogStatusResults";
-            lblLogStatusResults.Size = new Size(102, 15);
-            lblLogStatusResults.TabIndex = 15;
-            lblLogStatusResults.Text = "Log Status Results";
-            // 
-            // lblLogStatus
-            // 
-            lblLogStatus.AutoSize = true;
-            lblLogStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblLogStatus.Location = new Point(153, 192);
-            lblLogStatus.Name = "lblLogStatus";
-            lblLogStatus.Size = new Size(68, 15);
-            lblLogStatus.TabIndex = 14;
-            lblLogStatus.Text = "Log Status:";
-            // 
-            // cbxServerSelection
-            // 
-            cbxServerSelection.FormattingEnabled = true;
-            cbxServerSelection.Items.AddRange(new object[] { "All", "System Logs (journalctl)", "Security/Authentication", "Directory Server - Errors", "Directory Server - Access", "Directory Server - Audit" });
-            cbxServerSelection.Location = new Point(257, 155);
-            cbxServerSelection.Name = "cbxServerSelection";
-            cbxServerSelection.Size = new Size(215, 23);
-            cbxServerSelection.TabIndex = 13;
-            // 
-            // lblServerSelection
-            // 
-            lblServerSelection.AutoSize = true;
-            lblServerSelection.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblServerSelection.Location = new Point(257, 137);
-            lblServerSelection.Name = "lblServerSelection";
-            lblServerSelection.Size = new Size(100, 15);
-            lblServerSelection.TabIndex = 12;
-            lblServerSelection.Text = "Server Selection";
-            // 
-            // cbxLogSourceSelection
-            // 
-            cbxLogSourceSelection.FormattingEnabled = true;
-            cbxLogSourceSelection.Items.AddRange(new object[] { "All", "System Logs (journalctl)", "Security/Authentication", "Directory Server - Errors", "Directory Server - Access", "Directory Server - Audit" });
-            cbxLogSourceSelection.Location = new Point(45, 155);
-            cbxLogSourceSelection.Name = "cbxLogSourceSelection";
-            cbxLogSourceSelection.Size = new Size(200, 23);
-            cbxLogSourceSelection.TabIndex = 11;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label1.Location = new Point(45, 137);
-            label1.Name = "label1";
-            label1.Size = new Size(124, 15);
-            label1.TabIndex = 10;
-            label1.Text = "Log Source Selection";
-            // 
-            // cbxCaseSensitive
-            // 
-            cbxCaseSensitive.AutoSize = true;
-            cbxCaseSensitive.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            cbxCaseSensitive.Location = new Point(478, 101);
-            cbxCaseSensitive.Name = "cbxCaseSensitive";
-            cbxCaseSensitive.Size = new Size(105, 19);
-            cbxCaseSensitive.TabIndex = 9;
-            cbxCaseSensitive.Text = "Case Sensitive";
-            cbxCaseSensitive.UseVisualStyleBackColor = true;
-            // 
-            // txbLogKeyword
-            // 
-            txbLogKeyword.Location = new Point(257, 99);
-            txbLogKeyword.Name = "txbLogKeyword";
-            txbLogKeyword.Size = new Size(215, 23);
-            txbLogKeyword.TabIndex = 8;
-            // 
-            // lblKeywordSearch
-            // 
-            lblKeywordSearch.AutoSize = true;
-            lblKeywordSearch.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblKeywordSearch.Location = new Point(257, 81);
-            lblKeywordSearch.Name = "lblKeywordSearch";
-            lblKeywordSearch.Size = new Size(222, 15);
-            lblKeywordSearch.TabIndex = 7;
-            lblKeywordSearch.Text = "Enter Keyword to search for (Optional)";
-            // 
-            // lblPrioritySeverityLevel
-            // 
-            lblPrioritySeverityLevel.AutoSize = true;
-            lblPrioritySeverityLevel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblPrioritySeverityLevel.Location = new Point(45, 81);
-            lblPrioritySeverityLevel.Name = "lblPrioritySeverityLevel";
-            lblPrioritySeverityLevel.Size = new Size(133, 15);
-            lblPrioritySeverityLevel.TabIndex = 6;
-            lblPrioritySeverityLevel.Text = "Priority/Severity Level";
-            // 
-            // cmbLogPriority
-            // 
-            cmbLogPriority.FormattingEnabled = true;
-            cmbLogPriority.Items.AddRange(new object[] { "All Levels", "Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug" });
-            cmbLogPriority.Location = new Point(45, 99);
-            cmbLogPriority.Name = "cmbLogPriority";
-            cmbLogPriority.Size = new Size(200, 23);
-            cmbLogPriority.TabIndex = 5;
             // 
             // chkLastHourOnly
             // 
@@ -2414,39 +2387,110 @@ namespace SA_ToolBelt
             chkLastHourOnly.UseVisualStyleBackColor = true;
             chkLastHourOnly.CheckedChanged += chkLastHourOnly_CheckedChanged;
             // 
-            // lblLogEndDate
+            // lblLogStatusResults
             // 
-            lblLogEndDate.AutoSize = true;
-            lblLogEndDate.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblLogEndDate.Location = new Point(257, 21);
-            lblLogEndDate.Name = "lblLogEndDate";
-            lblLogEndDate.Size = new Size(168, 15);
-            lblLogEndDate.TabIndex = 3;
-            lblLogEndDate.Text = "End Date/Time for log range:";
+            lblLogStatusResults.AutoSize = true;
+            lblLogStatusResults.Font = new Font("Segoe UI", 9F);
+            lblLogStatusResults.Location = new Point(227, 192);
+            lblLogStatusResults.Name = "lblLogStatusResults";
+            lblLogStatusResults.Size = new Size(102, 15);
+            lblLogStatusResults.TabIndex = 15;
+            lblLogStatusResults.Text = "Log Status Results";
             // 
-            // lblLogStartDate
+            // cmbLogPriority
             // 
-            lblLogStartDate.AutoSize = true;
-            lblLogStartDate.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblLogStartDate.Location = new Point(45, 21);
-            lblLogStartDate.Name = "lblLogStartDate";
-            lblLogStartDate.Size = new Size(176, 15);
-            lblLogStartDate.TabIndex = 2;
-            lblLogStartDate.Text = "Start Date/Time for log range:";
+            cmbLogPriority.FormattingEnabled = true;
+            cmbLogPriority.Items.AddRange(new object[] { "All Levels", "Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug" });
+            cmbLogPriority.Location = new Point(45, 99);
+            cmbLogPriority.Name = "cmbLogPriority";
+            cmbLogPriority.Size = new Size(200, 23);
+            cmbLogPriority.TabIndex = 5;
             // 
-            // dtpLogEndDate
+            // lblLogStatus
             // 
-            dtpLogEndDate.Location = new Point(257, 39);
-            dtpLogEndDate.Name = "dtpLogEndDate";
-            dtpLogEndDate.Size = new Size(215, 23);
-            dtpLogEndDate.TabIndex = 1;
+            lblLogStatus.AutoSize = true;
+            lblLogStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblLogStatus.Location = new Point(153, 192);
+            lblLogStatus.Name = "lblLogStatus";
+            lblLogStatus.Size = new Size(68, 15);
+            lblLogStatus.TabIndex = 14;
+            lblLogStatus.Text = "Log Status:";
             // 
-            // dtpLogStartDate
+            // lblPrioritySeverityLevel
             // 
-            dtpLogStartDate.Location = new Point(45, 39);
-            dtpLogStartDate.Name = "dtpLogStartDate";
-            dtpLogStartDate.Size = new Size(200, 23);
-            dtpLogStartDate.TabIndex = 0;
+            lblPrioritySeverityLevel.AutoSize = true;
+            lblPrioritySeverityLevel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPrioritySeverityLevel.Location = new Point(45, 81);
+            lblPrioritySeverityLevel.Name = "lblPrioritySeverityLevel";
+            lblPrioritySeverityLevel.Size = new Size(133, 15);
+            lblPrioritySeverityLevel.TabIndex = 6;
+            lblPrioritySeverityLevel.Text = "Priority/Severity Level";
+            // 
+            // cbxServerSelection
+            // 
+            cbxServerSelection.FormattingEnabled = true;
+            cbxServerSelection.Items.AddRange(new object[] { "All", "System Logs (journalctl)", "Security/Authentication", "Directory Server - Errors", "Directory Server - Access", "Directory Server - Audit" });
+            cbxServerSelection.Location = new Point(257, 155);
+            cbxServerSelection.Name = "cbxServerSelection";
+            cbxServerSelection.Size = new Size(215, 23);
+            cbxServerSelection.TabIndex = 13;
+            // 
+            // lblKeywordSearch
+            // 
+            lblKeywordSearch.AutoSize = true;
+            lblKeywordSearch.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblKeywordSearch.Location = new Point(257, 81);
+            lblKeywordSearch.Name = "lblKeywordSearch";
+            lblKeywordSearch.Size = new Size(222, 15);
+            lblKeywordSearch.TabIndex = 7;
+            lblKeywordSearch.Text = "Enter Keyword to search for (Optional)";
+            // 
+            // lblServerSelection
+            // 
+            lblServerSelection.AutoSize = true;
+            lblServerSelection.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblServerSelection.Location = new Point(257, 137);
+            lblServerSelection.Name = "lblServerSelection";
+            lblServerSelection.Size = new Size(100, 15);
+            lblServerSelection.TabIndex = 12;
+            lblServerSelection.Text = "Server Selection";
+            // 
+            // txbLogKeyword
+            // 
+            txbLogKeyword.Location = new Point(257, 99);
+            txbLogKeyword.Name = "txbLogKeyword";
+            txbLogKeyword.Size = new Size(215, 23);
+            txbLogKeyword.TabIndex = 8;
+            // 
+            // cbxLogSourceSelection
+            // 
+            cbxLogSourceSelection.FormattingEnabled = true;
+            cbxLogSourceSelection.Items.AddRange(new object[] { "All", "System Logs (journalctl)", "Security/Authentication", "Directory Server - Errors", "Directory Server - Access", "Directory Server - Audit" });
+            cbxLogSourceSelection.Location = new Point(45, 155);
+            cbxLogSourceSelection.Name = "cbxLogSourceSelection";
+            cbxLogSourceSelection.Size = new Size(200, 23);
+            cbxLogSourceSelection.TabIndex = 11;
+            // 
+            // cbxCaseSensitive
+            // 
+            cbxCaseSensitive.AutoSize = true;
+            cbxCaseSensitive.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            cbxCaseSensitive.Location = new Point(478, 101);
+            cbxCaseSensitive.Name = "cbxCaseSensitive";
+            cbxCaseSensitive.Size = new Size(105, 19);
+            cbxCaseSensitive.TabIndex = 9;
+            cbxCaseSensitive.Text = "Case Sensitive";
+            cbxCaseSensitive.UseVisualStyleBackColor = true;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label1.Location = new Point(45, 137);
+            label1.Name = "label1";
+            label1.Size = new Size(124, 15);
+            label1.TabIndex = 10;
+            label1.Text = "Log Source Selection";
             // 
             // tabVMwareTools
             // 
@@ -3930,6 +3974,7 @@ namespace SA_ToolBelt
             // 
             // tabConfiguration
             // 
+            tabConfiguration.Controls.Add(gbxManditorySettings);
             tabConfiguration.Controls.Add(gbxServerInstances);
             tabConfiguration.Controls.Add(lblPowerCLIPathLocation);
             tabConfiguration.Controls.Add(lblPowerCLIPathLabel);
@@ -3945,6 +3990,122 @@ namespace SA_ToolBelt
             tabConfiguration.TabIndex = 11;
             tabConfiguration.Text = "Configuration";
             tabConfiguration.UseVisualStyleBackColor = true;
+            // 
+            // gbxManditorySettings
+            // 
+            gbxManditorySettings.Controls.Add(txbHomeDirectoryLocation);
+            gbxManditorySettings.Controls.Add(lblHomeDirectoryLocation);
+            gbxManditorySettings.Controls.Add(txbLinuxDs);
+            gbxManditorySettings.Controls.Add(lblLinuxDs);
+            gbxManditorySettings.Controls.Add(txbDisabledUsersLocation);
+            gbxManditorySettings.Controls.Add(lblDisabledUsersLocation);
+            gbxManditorySettings.Controls.Add(btnAddExcludeOu);
+            gbxManditorySettings.Controls.Add(cbxExcludeOu);
+            gbxManditorySettings.Controls.Add(lblNoticeExcludeOUs);
+            gbxManditorySettings.Controls.Add(txbPowerCliModuleLocation);
+            gbxManditorySettings.Controls.Add(txbBasePath);
+            gbxManditorySettings.Controls.Add(lblBasePath);
+            gbxManditorySettings.Controls.Add(lblPowerCLIModuleLocation);
+            gbxManditorySettings.Controls.Add(lblVCenterServer);
+            gbxManditorySettings.Controls.Add(btnSetAll);
+            gbxManditorySettings.Controls.Add(btnBrowseBasePath);
+            gbxManditorySettings.Controls.Add(btnBrowsePowerCLIModuleLocation);
+            gbxManditorySettings.Controls.Add(btnVerifyVCenterServer);
+            gbxManditorySettings.Controls.Add(txbVCenterServer);
+            gbxManditorySettings.Location = new Point(908, 353);
+            gbxManditorySettings.Name = "gbxManditorySettings";
+            gbxManditorySettings.Size = new Size(503, 457);
+            gbxManditorySettings.TabIndex = 133;
+            gbxManditorySettings.TabStop = false;
+            gbxManditorySettings.Text = "Manditory Settings";
+            // 
+            // txbPowerCliModuleLocation
+            // 
+            txbPowerCliModuleLocation.Location = new Point(122, 83);
+            txbPowerCliModuleLocation.Name = "txbPowerCliModuleLocation";
+            txbPowerCliModuleLocation.Size = new Size(210, 23);
+            txbPowerCliModuleLocation.TabIndex = 11;
+            // 
+            // txbBasePath
+            // 
+            txbBasePath.Location = new Point(122, 133);
+            txbBasePath.Name = "txbBasePath";
+            txbBasePath.Size = new Size(210, 23);
+            txbBasePath.TabIndex = 10;
+            // 
+            // lblBasePath
+            // 
+            lblBasePath.AutoSize = true;
+            lblBasePath.Location = new Point(55, 141);
+            lblBasePath.Name = "lblBasePath";
+            lblBasePath.Size = new Size(61, 15);
+            lblBasePath.TabIndex = 9;
+            lblBasePath.Text = "Base Path:";
+            // 
+            // lblPowerCLIModuleLocation
+            // 
+            lblPowerCLIModuleLocation.AutoSize = true;
+            lblPowerCLIModuleLocation.Location = new Point(7, 91);
+            lblPowerCLIModuleLocation.Name = "lblPowerCLIModuleLocation";
+            lblPowerCLIModuleLocation.Size = new Size(109, 15);
+            lblPowerCLIModuleLocation.TabIndex = 8;
+            lblPowerCLIModuleLocation.Text = "PowerCLI Location:";
+            // 
+            // lblVCenterServer
+            // 
+            lblVCenterServer.AutoSize = true;
+            lblVCenterServer.Location = new Point(29, 45);
+            lblVCenterServer.Name = "lblVCenterServer";
+            lblVCenterServer.Size = new Size(87, 15);
+            lblVCenterServer.TabIndex = 7;
+            lblVCenterServer.Text = "VCenter Server:";
+            // 
+            // btnSetAll
+            // 
+            btnSetAll.Location = new Point(210, 428);
+            btnSetAll.Name = "btnSetAll";
+            btnSetAll.Size = new Size(75, 23);
+            btnSetAll.TabIndex = 6;
+            btnSetAll.Text = "Set All";
+            btnSetAll.UseVisualStyleBackColor = true;
+            btnSetAll.Click += btnSetAll_Click;
+            // 
+            // btnBrowseBasePath
+            // 
+            btnBrowseBasePath.Location = new Point(350, 132);
+            btnBrowseBasePath.Name = "btnBrowseBasePath";
+            btnBrowseBasePath.Size = new Size(75, 23);
+            btnBrowseBasePath.TabIndex = 5;
+            btnBrowseBasePath.Text = "Browse";
+            btnBrowseBasePath.UseVisualStyleBackColor = true;
+            btnBrowseBasePath.Click += btnBrowseBasePath_Click;
+            // 
+            // btnBrowsePowerCLIModuleLocation
+            // 
+            btnBrowsePowerCLIModuleLocation.Location = new Point(350, 83);
+            btnBrowsePowerCLIModuleLocation.Name = "btnBrowsePowerCLIModuleLocation";
+            btnBrowsePowerCLIModuleLocation.Size = new Size(75, 23);
+            btnBrowsePowerCLIModuleLocation.TabIndex = 4;
+            btnBrowsePowerCLIModuleLocation.Text = "Browse";
+            btnBrowsePowerCLIModuleLocation.UseVisualStyleBackColor = true;
+            btnBrowsePowerCLIModuleLocation.Click += btnBrowsePowerCLIModuleLocation_Click;
+            // 
+            // btnVerifyVCenterServer
+            // 
+            btnVerifyVCenterServer.Location = new Point(350, 42);
+            btnVerifyVCenterServer.Name = "btnVerifyVCenterServer";
+            btnVerifyVCenterServer.Size = new Size(75, 23);
+            btnVerifyVCenterServer.TabIndex = 3;
+            btnVerifyVCenterServer.Text = "Verify";
+            btnVerifyVCenterServer.UseVisualStyleBackColor = true;
+            btnVerifyVCenterServer.Click += btnVerifyVCenterServer_Click;
+            // 
+            // txbVCenterServer
+            // 
+            txbVCenterServer.Location = new Point(122, 42);
+            txbVCenterServer.Name = "txbVCenterServer";
+            txbVCenterServer.Size = new Size(210, 23);
+            txbVCenterServer.TabIndex = 0;
             // 
             // gbxServerInstances
             // 
@@ -4024,7 +4185,7 @@ namespace SA_ToolBelt
             // lblFilePathLocation
             // 
             lblFilePathLocation.AutoSize = true;
-            lblFilePathLocation.Location = new Point(492, 807);
+            lblFilePathLocation.Location = new Point(1006, 827);
             lblFilePathLocation.Name = "lblFilePathLocation";
             lblFilePathLocation.Size = new Size(64, 15);
             lblFilePathLocation.TabIndex = 129;
@@ -4034,7 +4195,7 @@ namespace SA_ToolBelt
             // 
             lblConfigFileLocationLabel.AutoSize = true;
             lblConfigFileLocationLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblConfigFileLocationLabel.Location = new Point(328, 807);
+            lblConfigFileLocationLabel.Location = new Point(842, 827);
             lblConfigFileLocationLabel.Name = "lblConfigFileLocationLabel";
             lblConfigFileLocationLabel.Size = new Size(158, 15);
             lblConfigFileLocationLabel.TabIndex = 128;
@@ -4104,7 +4265,7 @@ namespace SA_ToolBelt
             gbxComputerList.Controls.Add(txbCriticalWindowsList);
             gbxComputerList.Location = new Point(459, 20);
             gbxComputerList.Name = "gbxComputerList";
-            gbxComputerList.Size = new Size(433, 761);
+            gbxComputerList.Size = new Size(433, 790);
             gbxComputerList.TabIndex = 126;
             gbxComputerList.TabStop = false;
             gbxComputerList.Text = "Computer List";
@@ -4316,7 +4477,7 @@ namespace SA_ToolBelt
             gbxImportantOUs.Controls.Add(cbxListPatriotParkOu);
             gbxImportantOUs.Location = new Point(8, 6);
             gbxImportantOUs.Name = "gbxImportantOUs";
-            gbxImportantOUs.Size = new Size(432, 775);
+            gbxImportantOUs.Size = new Size(432, 804);
             gbxImportantOUs.TabIndex = 102;
             gbxImportantOUs.TabStop = false;
             gbxImportantOUs.Text = "Important OU's";
@@ -4472,28 +4633,80 @@ namespace SA_ToolBelt
             btnLogout.UseVisualStyleBackColor = true;
             btnLogout.Click += btnLogout_Click;
             // 
-            // cbxMustChngPwd
+            // lblNoticeExcludeOUs
             // 
-            cbxMustChngPwd.AutoSize = true;
-            cbxMustChngPwd.CheckAlign = ContentAlignment.MiddleRight;
-            cbxMustChngPwd.Location = new Point(67, 198);
-            cbxMustChngPwd.Margin = new Padding(4, 3, 4, 3);
-            cbxMustChngPwd.Name = "cbxMustChngPwd";
-            cbxMustChngPwd.RightToLeft = RightToLeft.Yes;
-            cbxMustChngPwd.Size = new Size(247, 19);
-            cbxMustChngPwd.TabIndex = 72;
-            cbxMustChngPwd.Text = "User must change password at next logon";
-            cbxMustChngPwd.UseVisualStyleBackColor = true;
+            lblNoticeExcludeOUs.AllowDrop = true;
+            lblNoticeExcludeOUs.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblNoticeExcludeOUs.Location = new Point(7, 181);
+            lblNoticeExcludeOUs.Name = "lblNoticeExcludeOUs";
+            lblNoticeExcludeOUs.Size = new Size(490, 38);
+            lblNoticeExcludeOUs.TabIndex = 12;
+            lblNoticeExcludeOUs.Text = "This tool Keeps track of user accounts set to expire, are expired, and is disabled.  If there are OU's you want to exclude, add them here:";
             // 
-            // lblNotice
+            // cbxExcludeOu
             // 
-            lblNotice.AutoSize = true;
-            lblNotice.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblNotice.Location = new Point(4, 231);
-            lblNotice.Name = "lblNotice";
-            lblNotice.Size = new Size(447, 15);
-            lblNotice.TabIndex = 73;
-            lblNotice.Text = "NOTE: The user must logoff and then logon again for the change to take effect.";
+            cbxExcludeOu.FormattingEnabled = true;
+            cbxExcludeOu.Location = new Point(8, 222);
+            cbxExcludeOu.Name = "cbxExcludeOu";
+            cbxExcludeOu.Size = new Size(324, 23);
+            cbxExcludeOu.TabIndex = 13;
+            // 
+            // btnAddExcludeOu
+            // 
+            btnAddExcludeOu.Location = new Point(350, 215);
+            btnAddExcludeOu.Name = "btnAddExcludeOu";
+            btnAddExcludeOu.Size = new Size(123, 35);
+            btnAddExcludeOu.TabIndex = 14;
+            btnAddExcludeOu.Text = "Add OU to Exclude";
+            btnAddExcludeOu.UseVisualStyleBackColor = true;
+            // 
+            // lblDisabledUsersLocation
+            // 
+            lblDisabledUsersLocation.AutoSize = true;
+            lblDisabledUsersLocation.Location = new Point(6, 260);
+            lblDisabledUsersLocation.Name = "lblDisabledUsersLocation";
+            lblDisabledUsersLocation.Size = new Size(149, 15);
+            lblDisabledUsersLocation.TabIndex = 15;
+            lblDisabledUsersLocation.Text = "Location of Disabled Users:";
+            // 
+            // txbDisabledUsersLocation
+            // 
+            txbDisabledUsersLocation.Location = new Point(6, 278);
+            txbDisabledUsersLocation.Name = "txbDisabledUsersLocation";
+            txbDisabledUsersLocation.Size = new Size(486, 23);
+            txbDisabledUsersLocation.TabIndex = 16;
+            // 
+            // txbLinuxDs
+            // 
+            txbLinuxDs.Location = new Point(6, 331);
+            txbLinuxDs.Name = "txbLinuxDs";
+            txbLinuxDs.Size = new Size(486, 23);
+            txbLinuxDs.TabIndex = 18;
+            // 
+            // lblLinuxDs
+            // 
+            lblLinuxDs.AutoSize = true;
+            lblLinuxDs.Location = new Point(6, 313);
+            lblLinuxDs.Name = "lblLinuxDs";
+            lblLinuxDs.Size = new Size(210, 15);
+            lblLinuxDs.TabIndex = 17;
+            lblLinuxDs.Text = "Location of 1 Red Hat Directory Server:";
+            // 
+            // txbHomeDirectoryLocation
+            // 
+            txbHomeDirectoryLocation.Location = new Point(8, 379);
+            txbHomeDirectoryLocation.Name = "txbHomeDirectoryLocation";
+            txbHomeDirectoryLocation.Size = new Size(486, 23);
+            txbHomeDirectoryLocation.TabIndex = 20;
+            // 
+            // lblHomeDirectoryLocation
+            // 
+            lblHomeDirectoryLocation.AutoSize = true;
+            lblHomeDirectoryLocation.Location = new Point(8, 361);
+            lblHomeDirectoryLocation.Name = "lblHomeDirectoryLocation";
+            lblHomeDirectoryLocation.Size = new Size(177, 15);
+            lblHomeDirectoryLocation.TabIndex = 19;
+            lblHomeDirectoryLocation.Text = "User Home Directories Location:";
             // 
             // SAToolBelt
             // 
@@ -4573,6 +4786,8 @@ namespace SA_ToolBelt
             ((System.ComponentModel.ISupportInitialize)dgvCcesa2).EndInit();
             tabConfiguration.ResumeLayout(false);
             tabConfiguration.PerformLayout();
+            gbxManditorySettings.ResumeLayout(false);
+            gbxManditorySettings.PerformLayout();
             gbxServerInstances.ResumeLayout(false);
             gbxServerInstances.PerformLayout();
             gbxImportantVariables.ResumeLayout(false);
@@ -4993,5 +5208,25 @@ namespace SA_ToolBelt
         private GroupBox gbxLinuxLogs;
         private CheckBox cbxMustChngPwd;
         private Label lblNotice;
+        private GroupBox gbxManditorySettings;
+        private Button btnSetAll;
+        private Button btnBrowseBasePath;
+        private Button btnBrowsePowerCLIModuleLocation;
+        private Button btnVerifyVCenterServer;
+        private TextBox txbVCenterServer;
+        private TextBox txbPowerCliModuleLocation;
+        private TextBox txbBasePath;
+        private Label lblBasePath;
+        private Label lblPowerCLIModuleLocation;
+        private Label lblVCenterServer;
+        private Label lblNoticeExcludeOUs;
+        private Button btnAddExcludeOu;
+        private ComboBox cbxExcludeOu;
+        private TextBox txbLinuxDs;
+        private Label lblLinuxDs;
+        private TextBox txbDisabledUsersLocation;
+        private Label lblDisabledUsersLocation;
+        private TextBox txbHomeDirectoryLocation;
+        private Label lblHomeDirectoryLocation;
     }
 }
