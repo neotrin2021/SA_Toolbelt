@@ -4659,6 +4659,7 @@ namespace SA_ToolBelt
             btnAddExcludeOu.TabIndex = 14;
             btnAddExcludeOu.Text = "Add OU to Exclude";
             btnAddExcludeOu.UseVisualStyleBackColor = true;
+            btnAddExcludeOu.Click += btnAddExcludeOu_Click;
             // 
             // lblDisabledUsersLocation
             // 
@@ -5230,3 +5231,4 @@ namespace SA_ToolBelt
         private Label lblHomeDirectoryLocation;
     }
 }
+
