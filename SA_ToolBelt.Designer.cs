@@ -382,6 +382,14 @@ namespace SA_ToolBelt
             tabStartupShutdownPt2 = new TabPage();
             tabConfiguration = new TabPage();
             gbxManditorySettings = new GroupBox();
+            btnDisabledUsersLocation = new Button();
+            txbHomeDirectoryLocation = new TextBox();
+            lblHomeDirectoryLocation = new Label();
+            txbDisabledUsersLocation = new TextBox();
+            lblDisabledUsersLocation = new Label();
+            btnSelectAddExcludeOu = new Button();
+            cbxExcludeOu = new ComboBox();
+            lblNoticeExcludeOUs = new Label();
             txbPowerCliModuleLocation = new TextBox();
             txbBasePath = new TextBox();
             lblBasePath = new Label();
@@ -446,15 +454,6 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
-            lblNoticeExcludeOUs = new Label();
-            cbxExcludeOu = new ComboBox();
-            btnAddExcludeOu = new Button();
-            lblDisabledUsersLocation = new Label();
-            txbDisabledUsersLocation = new TextBox();
-            txbLinuxDs = new TextBox();
-            lblLinuxDs = new Label();
-            txbHomeDirectoryLocation = new TextBox();
-            lblHomeDirectoryLocation = new Label();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -3993,13 +3992,12 @@ namespace SA_ToolBelt
             // 
             // gbxManditorySettings
             // 
+            gbxManditorySettings.Controls.Add(btnDisabledUsersLocation);
             gbxManditorySettings.Controls.Add(txbHomeDirectoryLocation);
             gbxManditorySettings.Controls.Add(lblHomeDirectoryLocation);
-            gbxManditorySettings.Controls.Add(txbLinuxDs);
-            gbxManditorySettings.Controls.Add(lblLinuxDs);
             gbxManditorySettings.Controls.Add(txbDisabledUsersLocation);
             gbxManditorySettings.Controls.Add(lblDisabledUsersLocation);
-            gbxManditorySettings.Controls.Add(btnAddExcludeOu);
+            gbxManditorySettings.Controls.Add(btnSelectAddExcludeOu);
             gbxManditorySettings.Controls.Add(cbxExcludeOu);
             gbxManditorySettings.Controls.Add(lblNoticeExcludeOUs);
             gbxManditorySettings.Controls.Add(txbPowerCliModuleLocation);
@@ -4018,6 +4016,75 @@ namespace SA_ToolBelt
             gbxManditorySettings.TabIndex = 133;
             gbxManditorySettings.TabStop = false;
             gbxManditorySettings.Text = "Manditory Settings";
+            // 
+            // btnDisabledUsersLocation
+            // 
+            btnDisabledUsersLocation.Location = new Point(350, 278);
+            btnDisabledUsersLocation.Name = "btnDisabledUsersLocation";
+            btnDisabledUsersLocation.Size = new Size(123, 23);
+            btnDisabledUsersLocation.TabIndex = 21;
+            btnDisabledUsersLocation.Text = "Browse";
+            btnDisabledUsersLocation.UseVisualStyleBackColor = true;
+            // 
+            // txbHomeDirectoryLocation
+            // 
+            txbHomeDirectoryLocation.Location = new Point(8, 334);
+            txbHomeDirectoryLocation.Name = "txbHomeDirectoryLocation";
+            txbHomeDirectoryLocation.Size = new Size(324, 23);
+            txbHomeDirectoryLocation.TabIndex = 20;
+            // 
+            // lblHomeDirectoryLocation
+            // 
+            lblHomeDirectoryLocation.AutoSize = true;
+            lblHomeDirectoryLocation.Location = new Point(8, 316);
+            lblHomeDirectoryLocation.Name = "lblHomeDirectoryLocation";
+            lblHomeDirectoryLocation.Size = new Size(177, 15);
+            lblHomeDirectoryLocation.TabIndex = 19;
+            lblHomeDirectoryLocation.Text = "User Home Directories Location:";
+            // 
+            // txbDisabledUsersLocation
+            // 
+            txbDisabledUsersLocation.Location = new Point(6, 278);
+            txbDisabledUsersLocation.Name = "txbDisabledUsersLocation";
+            txbDisabledUsersLocation.Size = new Size(326, 23);
+            txbDisabledUsersLocation.TabIndex = 16;
+            // 
+            // lblDisabledUsersLocation
+            // 
+            lblDisabledUsersLocation.AutoSize = true;
+            lblDisabledUsersLocation.Location = new Point(6, 260);
+            lblDisabledUsersLocation.Name = "lblDisabledUsersLocation";
+            lblDisabledUsersLocation.Size = new Size(149, 15);
+            lblDisabledUsersLocation.TabIndex = 15;
+            lblDisabledUsersLocation.Text = "Location of Disabled Users:";
+            // 
+            // btnSelectAddExcludeOu
+            // 
+            btnSelectAddExcludeOu.Location = new Point(350, 215);
+            btnSelectAddExcludeOu.Name = "btnSelectAddExcludeOu";
+            btnSelectAddExcludeOu.Size = new Size(123, 42);
+            btnSelectAddExcludeOu.TabIndex = 14;
+            btnSelectAddExcludeOu.Text = "Select and Add OU to Exclude";
+            btnSelectAddExcludeOu.UseVisualStyleBackColor = true;
+            btnSelectAddExcludeOu.Click += btnAddExcludeOu_Click;
+            // 
+            // cbxExcludeOu
+            // 
+            cbxExcludeOu.FormattingEnabled = true;
+            cbxExcludeOu.Location = new Point(8, 222);
+            cbxExcludeOu.Name = "cbxExcludeOu";
+            cbxExcludeOu.Size = new Size(324, 23);
+            cbxExcludeOu.TabIndex = 13;
+            // 
+            // lblNoticeExcludeOUs
+            // 
+            lblNoticeExcludeOUs.AllowDrop = true;
+            lblNoticeExcludeOUs.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblNoticeExcludeOUs.Location = new Point(7, 181);
+            lblNoticeExcludeOUs.Name = "lblNoticeExcludeOUs";
+            lblNoticeExcludeOUs.Size = new Size(490, 38);
+            lblNoticeExcludeOUs.TabIndex = 12;
+            lblNoticeExcludeOUs.Text = "This tool Keeps track of user accounts set to expire, are expired, and is disabled.  If there are OU's you want to exclude, add them here:";
             // 
             // txbPowerCliModuleLocation
             // 
@@ -4062,7 +4129,7 @@ namespace SA_ToolBelt
             // 
             // btnSetAll
             // 
-            btnSetAll.Location = new Point(210, 428);
+            btnSetAll.Location = new Point(210, 374);
             btnSetAll.Name = "btnSetAll";
             btnSetAll.Size = new Size(75, 23);
             btnSetAll.TabIndex = 6;
@@ -4625,89 +4692,13 @@ namespace SA_ToolBelt
             // 
             // btnLogout
             // 
-            btnLogout.Location = new Point(745, 881);
+            btnLogout.Location = new Point(736, 881);
             btnLogout.Name = "btnLogout";
             btnLogout.Size = new Size(110, 39);
             btnLogout.TabIndex = 1;
             btnLogout.Text = "Log Out";
             btnLogout.UseVisualStyleBackColor = true;
             btnLogout.Click += btnLogout_Click;
-            // 
-            // lblNoticeExcludeOUs
-            // 
-            lblNoticeExcludeOUs.AllowDrop = true;
-            lblNoticeExcludeOUs.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblNoticeExcludeOUs.Location = new Point(7, 181);
-            lblNoticeExcludeOUs.Name = "lblNoticeExcludeOUs";
-            lblNoticeExcludeOUs.Size = new Size(490, 38);
-            lblNoticeExcludeOUs.TabIndex = 12;
-            lblNoticeExcludeOUs.Text = "This tool Keeps track of user accounts set to expire, are expired, and is disabled.  If there are OU's you want to exclude, add them here:";
-            // 
-            // cbxExcludeOu
-            // 
-            cbxExcludeOu.FormattingEnabled = true;
-            cbxExcludeOu.Location = new Point(8, 222);
-            cbxExcludeOu.Name = "cbxExcludeOu";
-            cbxExcludeOu.Size = new Size(324, 23);
-            cbxExcludeOu.TabIndex = 13;
-            // 
-            // btnAddExcludeOu
-            // 
-            btnAddExcludeOu.Location = new Point(350, 215);
-            btnAddExcludeOu.Name = "btnAddExcludeOu";
-            btnAddExcludeOu.Size = new Size(123, 35);
-            btnAddExcludeOu.TabIndex = 14;
-            btnAddExcludeOu.Text = "Add OU to Exclude";
-            btnAddExcludeOu.UseVisualStyleBackColor = true;
-            btnAddExcludeOu.Click += btnAddExcludeOu_Click;
-            // 
-            // lblDisabledUsersLocation
-            // 
-            lblDisabledUsersLocation.AutoSize = true;
-            lblDisabledUsersLocation.Location = new Point(6, 260);
-            lblDisabledUsersLocation.Name = "lblDisabledUsersLocation";
-            lblDisabledUsersLocation.Size = new Size(149, 15);
-            lblDisabledUsersLocation.TabIndex = 15;
-            lblDisabledUsersLocation.Text = "Location of Disabled Users:";
-            // 
-            // txbDisabledUsersLocation
-            // 
-            txbDisabledUsersLocation.Location = new Point(6, 278);
-            txbDisabledUsersLocation.Name = "txbDisabledUsersLocation";
-            txbDisabledUsersLocation.Size = new Size(486, 23);
-            txbDisabledUsersLocation.TabIndex = 16;
-            // 
-            // txbLinuxDs
-            // 
-            txbLinuxDs.Location = new Point(6, 331);
-            txbLinuxDs.Name = "txbLinuxDs";
-            txbLinuxDs.Size = new Size(486, 23);
-            txbLinuxDs.TabIndex = 18;
-            // 
-            // lblLinuxDs
-            // 
-            lblLinuxDs.AutoSize = true;
-            lblLinuxDs.Location = new Point(6, 313);
-            lblLinuxDs.Name = "lblLinuxDs";
-            lblLinuxDs.Size = new Size(210, 15);
-            lblLinuxDs.TabIndex = 17;
-            lblLinuxDs.Text = "Location of 1 Red Hat Directory Server:";
-            // 
-            // txbHomeDirectoryLocation
-            // 
-            txbHomeDirectoryLocation.Location = new Point(8, 379);
-            txbHomeDirectoryLocation.Name = "txbHomeDirectoryLocation";
-            txbHomeDirectoryLocation.Size = new Size(486, 23);
-            txbHomeDirectoryLocation.TabIndex = 20;
-            // 
-            // lblHomeDirectoryLocation
-            // 
-            lblHomeDirectoryLocation.AutoSize = true;
-            lblHomeDirectoryLocation.Location = new Point(8, 361);
-            lblHomeDirectoryLocation.Name = "lblHomeDirectoryLocation";
-            lblHomeDirectoryLocation.Size = new Size(177, 15);
-            lblHomeDirectoryLocation.TabIndex = 19;
-            lblHomeDirectoryLocation.Text = "User Home Directories Location:";
             // 
             // SAToolBelt
             // 
@@ -5221,14 +5212,12 @@ namespace SA_ToolBelt
         private Label lblPowerCLIModuleLocation;
         private Label lblVCenterServer;
         private Label lblNoticeExcludeOUs;
-        private Button btnAddExcludeOu;
+        private Button btnSelectAddExcludeOu;
         private ComboBox cbxExcludeOu;
-        private TextBox txbLinuxDs;
-        private Label lblLinuxDs;
         private TextBox txbDisabledUsersLocation;
         private Label lblDisabledUsersLocation;
         private TextBox txbHomeDirectoryLocation;
         private Label lblHomeDirectoryLocation;
+        private Button btnDisabledUsersLocation;
     }
 }
-
