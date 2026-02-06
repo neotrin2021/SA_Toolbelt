@@ -31,17 +31,24 @@ namespace SA_ToolBelt
         private Linux_Service _linuxService;
         private VMwareManager _vmwareManager;
         private PreCheck _preCheck;
+        private DatabaseService _databaseService;
 
         // Startup Shutdown Variables
         public string VMMode = "NormalRun";
         public bool startUpShutdown = false;
         private Dictionary<string, bool> pingStatus = new Dictionary<string, bool>();
 
-        // Configuration paths - now populated from PreCheck after validation
+        // Configuration values - now populated from SQLite database
         private string _vCenterServer = string.Empty;
+        private string POWERCLI_MODULE_PATH = string.Empty;
+        private string _disabledUsersOu = string.Empty;
+        private string _homeDirectoryPath = string.Empty;
+        private string _excludedOUs = string.Empty;
+
+        // These CSV paths are kept for backward compatibility during migration
+        // They will be populated from the database's ouConfiguration/ComputerList/LogConfiguration tables
         private string COMPUTER_LIST_FILE_PATH = string.Empty;
         private string OU_CONFIG_FILE_PATH = string.Empty;
-        private string POWERCLI_MODULE_PATH = string.Empty;
         private string LOG_CONFIG_FILE_PATH = string.Empty;
 
         // Store the logged in SA's username globally
@@ -64,6 +71,7 @@ namespace SA_ToolBelt
             _linuxService = new Linux_Service(_consoleForm);
             _rhdsService = new RHDS_Service(_consoleForm);
             _preCheck = new PreCheck(_consoleForm);
+            _databaseService = new DatabaseService(_consoleForm);
 
             this.KeyPreview = true;
 
@@ -304,112 +312,262 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Applies the validated PreCheck settings to the application variables
-        /// and loads the configuration files.
+        /// Applies settings from the SQLite database to application variables
+        /// and loads configuration data from the database tables.
+        /// This is the primary settings-loading method now that we use SQLite.
+        /// </summary>
+        private void ApplyDatabaseSettings()
+        {
+            var config = _databaseService.LoadToolbeltConfig();
+            if (config == null)
+            {
+                _consoleForm.WriteWarning("No configuration found in database.");
+                return;
+            }
+
+            // Apply Toolbelt_Config values to application variables
+            _vCenterServer = config.VCenterServer;
+            POWERCLI_MODULE_PATH = !string.IsNullOrEmpty(config.PowerCLILocation)
+                ? Path.Combine(config.PowerCLILocation, "VMware.PowerCLI")
+                : string.Empty;
+            _disabledUsersOu = config.DisabledUsersOu;
+            _homeDirectoryPath = config.HomeDirectory;
+            _excludedOUs = config.ExcludedOU;
+
+            // Update the excluded OUs in the AD Service
+            if (!string.IsNullOrEmpty(_excludedOUs))
+            {
+                var ouList = _excludedOUs.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                _adService.SetExcludedOUs(new HashSet<string>(ouList));
+            }
+
+            // Update the home directory base path in the Linux Service
+            if (!string.IsNullOrEmpty(_homeDirectoryPath))
+            {
+                _linuxService.SetHomeDirectoryBasePath(_homeDirectoryPath);
+            }
+
+            // Update the configuration file path labels
+            lblFilePathLocation.Text = _databaseService.DatabasePath;
+            lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
+
+            // Load data from database tables into the UI
+            LoadOUConfigurationFromCSV();
+            LoadComputerListFromCSV();
+            LoadImportantVariablesFromCSV();
+            LoadLogConfigurationFromCSV();
+
+            _consoleForm.WriteSuccess("Configuration settings loaded from database successfully.");
+        }
+
+        /// <summary>
+        /// Legacy method - calls ApplyDatabaseSettings for backward compatibility.
         /// </summary>
         private void ApplyPreCheckSettings()
         {
-            // Apply settings from PreCheck to application variables
+            // Try loading from database first
+            if (_databaseService.HasValidConfig())
+            {
+                ApplyDatabaseSettings();
+                return;
+            }
+
+            // Fall back to PreCheck CSV-based settings if no database config exists
             _vCenterServer = _preCheck.VCenterServer;
             COMPUTER_LIST_FILE_PATH = _preCheck.ComputerListFullPath;
             OU_CONFIG_FILE_PATH = _preCheck.OUConfigFullPath;
             POWERCLI_MODULE_PATH = _preCheck.PowerCLIModuleFullPath;
             LOG_CONFIG_FILE_PATH = _preCheck.LogConfigFullPath;
 
-            // Update the configuration file path labels
             lblFilePathLocation.Text = OU_CONFIG_FILE_PATH;
             lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
 
-            // Now load the configuration files
             LoadOUConfigurationFromCSV();
             LoadComputerListFromCSV();
             LoadImportantVariablesFromCSV();
             LoadLogConfigurationFromCSV();
 
-            _consoleForm.WriteSuccess("Configuration settings applied successfully.");
+            _consoleForm.WriteSuccess("Configuration settings applied from legacy CSV files.");
         }
 
         /// <summary>
-        /// Populates the mandatory settings textboxes and updates their colors.
+        /// Populates the mandatory settings textboxes from the database.
         /// Call this when showing the Configuration tab for settings setup.
         /// </summary>
         private void PopulateMandatorySettingsUI()
         {
-            // Load settings from file first
-            _preCheck.LoadSettings();
-            _preCheck.ValidateAllSettings();
+            var config = _databaseService.LoadToolbeltConfig();
+            if (config != null)
+            {
+                txbVCenterServer.Text = config.VCenterServer;
+                txbSqlPath.Text = config.SqlPath;
+                txbPowerCliModuleLocation.Text = config.PowerCLILocation;
+                txbDisabledUsersLocation.Text = config.DisabledUsersOu;
+                txbHomeDirectoryLocation.Text = config.HomeDirectory;
 
-            // Populate textboxes - uncomment when controls exist
-            // _preCheck.PopulateTextBoxes(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
-
-            // Update colors based on validation
-            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
+                // Populate excluded OUs combobox
+                if (!string.IsNullOrEmpty(config.ExcludedOU))
+                {
+                    cbxExcludeOu.Items.Clear();
+                    var ous = config.ExcludedOU.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var ou in ous)
+                    {
+                        cbxExcludeOu.Items.Add(ou);
+                    }
+                    if (cbxExcludeOu.Items.Count > 0)
+                        cbxExcludeOu.SelectedIndex = 0;
+                }
+            }
+            else
+            {
+                // Fall back to PreCheck CSV loading
+                _preCheck.LoadSettings();
+                txbVCenterServer.Text = _preCheck.VCenterServer;
+                txbSqlPath.Text = _preCheck.BasePath;
+                txbPowerCliModuleLocation.Text = _preCheck.PowerCLIModulePath;
+            }
         }
 
         /// <summary>
         /// Sets up event handlers for the mandatory settings controls.
+        /// Note: btnVerifyVCenterServer, btnBrowseSqlPath, btnBrowsePowerCLIModuleLocation,
+        /// btnSetAll, btnSelectAddExcludeOu, btnDisabledUsersLocation, and btnLinuxDs
+        /// are wired via the Designer.cs Click += events.
         /// </summary>
         private void SetupMandatorySettingsHandlers()
         {
-            // Wire up button click handlers - uncomment when controls exist in Designer
-            // btnVerifyVCenterServer.Click += BtnVerifyVCenterServer_Click;
-            // btnBrowseBasePath.Click += BtnBrowseBasePath_Click;
-            // btnBrowsePowerCLIModuleLocation.Click += BtnBrowsePowerCLIModuleLocation_Click;
-            // btnSetAll.Click += BtnSetAll_Click;
+            // Event handlers are wired in the Designer.cs file via Click += assignments.
+            // No additional wiring needed here.
         }
 
         #region Mandatory Settings Button Handlers
 
-        private void BtnVerifyVCenterServer_Click(object sender, EventArgs e)
+        private void btnVerifyVCenterServer_Click(object sender, EventArgs e)
         {
-            // Uncomment when control exists
-            // _preCheck.VerifyVCenterServerWithFeedback(txbVCenterServer.Text);
-            // UpdateMandatorySettingsColors();
+            _preCheck.VerifyVCenterServerWithFeedback(txbVCenterServer.Text);
         }
 
-        private void BtnBrowseBasePath_Click(object sender, EventArgs e)
+        private void btnBrowseSqlPath_Click(object sender, EventArgs e)
         {
-            string path = _preCheck.BrowseForFolder("Select the folder containing ComputerList.csv, ouConfiguration.csv, and LogConfiguration.csv");
+            string path = _preCheck.BrowseForFolder("Select the folder where the SA_Toolbelt database will be stored");
             if (!string.IsNullOrEmpty(path))
             {
-                // Uncomment when control exists
-                // txbBasePath.Text = path;
-                // UpdateMandatorySettingsColors();
+                txbSqlPath.Text = path;
             }
         }
 
-        private void BtnBrowsePowerCLIModuleLocation_Click(object sender, EventArgs e)
+        private void btnBrowsePowerCLIModuleLocation_Click(object sender, EventArgs e)
         {
             string path = _preCheck.BrowseForFolder("Select the folder containing VMware.PowerCLI module");
             if (!string.IsNullOrEmpty(path))
             {
-                // Uncomment when control exists
-                // txbPowerCLIModuleLocation.Text = path;
-                // UpdateMandatorySettingsColors();
+                txbPowerCliModuleLocation.Text = path;
             }
         }
 
-        private void BtnSetAll_Click(object sender, EventArgs e)
+        private void btnSetAll_Click(object sender, EventArgs e)
         {
-            // Uncomment when controls exist
-            // bool allValid = _preCheck.ValidateAndSaveAll(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
-            //
-            // if (allValid)
-            // {
-            //     // Apply the settings and show all tabs
-            //     ApplyPreCheckSettings();
-            //     ShowAllTabs();
-            //     _consoleForm.WriteSuccess("Mandatory settings configured successfully. All features now available.");
-            // }
+            try
+            {
+                // Read values from all mandatory settings controls
+                string vCenterServer = txbVCenterServer.Text.Trim();
+                string sqlPath = txbSqlPath.Text.Trim();
+                string powerCliLocation = txbPowerCliModuleLocation.Text.Trim();
+                string excludedOu = cbxExcludeOu.Text.Trim();
+                string disabledUsersOu = txbDisabledUsersLocation.Text.Trim();
+                string homeDirectory = txbHomeDirectoryLocation.Text.Trim();
+
+                // Validate vCenter server
+                bool vCenterValid = _preCheck.ValidateVCenterServer(vCenterServer);
+                txbVCenterServer.BackColor = vCenterValid ? Color.White : Color.LightCoral;
+
+                // Validate PowerCLI path
+                bool powerCliValid = !string.IsNullOrEmpty(powerCliLocation) && Directory.Exists(Path.Combine(powerCliLocation, "VMware.PowerCLI"));
+                txbPowerCliModuleLocation.BackColor = powerCliValid ? Color.White : Color.LightCoral;
+
+                // Validate SQL path (must be a valid directory or we can create it)
+                bool sqlPathValid = !string.IsNullOrEmpty(sqlPath);
+                if (sqlPathValid && !Directory.Exists(sqlPath))
+                {
+                    try { Directory.CreateDirectory(sqlPath); }
+                    catch { sqlPathValid = false; }
+                }
+                txbSqlPath.BackColor = sqlPathValid ? Color.White : Color.LightCoral;
+
+                if (!vCenterValid || !powerCliValid || !sqlPathValid)
+                {
+                    var errors = new List<string>();
+                    if (!vCenterValid) errors.Add("- VCenter Server is invalid or unreachable");
+                    if (!powerCliValid) errors.Add("- PowerCLI Module path is invalid or VMware.PowerCLI folder not found");
+                    if (!sqlPathValid) errors.Add("- SQL Path is empty or invalid");
+
+                    MessageBox.Show($"The following settings need to be corrected:\n\n{string.Join("\n", errors)}",
+                        "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Initialize database in Documents first
+                _databaseService.InitializeDatabase();
+
+                // Gather all excluded OUs from the combobox items
+                var excludedOuList = new List<string>();
+                foreach (var item in cbxExcludeOu.Items)
+                {
+                    excludedOuList.Add(item.ToString());
+                }
+                // Also include current text if it's not already in the list
+                if (!string.IsNullOrEmpty(excludedOu) && !excludedOuList.Contains(excludedOu))
+                {
+                    excludedOuList.Add(excludedOu);
+                }
+                string excludedOuCombined = string.Join("|", excludedOuList);
+
+                // Save configuration to database
+                _databaseService.SaveToolbeltConfig(
+                    vCenterServer,
+                    powerCliLocation,
+                    sqlPath,
+                    excludedOuCombined,
+                    disabledUsersOu,
+                    homeDirectory
+                );
+
+                // Move database to the user-specified SQL path
+                if (!string.IsNullOrEmpty(sqlPath))
+                {
+                    bool moved = _databaseService.MoveDatabase(sqlPath);
+                    if (!moved)
+                    {
+                        _consoleForm.WriteWarning("Database could not be moved to the specified path. It remains in Documents.");
+                    }
+                }
+
+                // Store the Sql_Path in the registry
+                DatabaseService.SetSqlPathInRegistry(sqlPath);
+
+                // Apply the settings to application variables
+                ApplyDatabaseSettings();
+                ShowAllTabs();
+
+                _consoleForm.WriteSuccess("All mandatory settings saved to database successfully.");
+                MessageBox.Show("All settings validated and saved to database successfully!", "Success",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error saving settings: {ex.Message}");
+                MessageBox.Show($"Error saving settings: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
-        private void UpdateMandatorySettingsColors()
+        private void btnLinuxDs_Click(object sender, EventArgs e)
         {
-            // Read current values and validate
-            // Uncomment when controls exist
-            // _preCheck.ReadFromTextBoxes(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
-            // _preCheck.ValidateAllSettings();
-            // _preCheck.UpdateTextBoxColors(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
+            string path = _preCheck.BrowseForFolder("Select the Linux DS server path");
+            if (!string.IsNullOrEmpty(path))
+            {
+                txbLinuxDs.Text = path;
+            }
         }
 
         #endregion
@@ -2451,7 +2609,10 @@ namespace SA_ToolBelt
                     {
                         try
                         {
-                            string targetOU = "OU=Disabled Users,OU=People,OU=CDC,OU=spectre,DC=spectre,DC=afspc,DC=af,DC=smil,DC=mil";
+                            // Read disabled users OU from database config; fall back to hardcoded default
+                            string targetOU = !string.IsNullOrEmpty(_disabledUsersOu)
+                                ? _disabledUsersOu
+                                : "OU=Disabled Users,OU=People,OU=CDC,OU=spectre,DC=spectre,DC=afspc,DC=af,DC=smil,DC=mil";
 
                             // Create DirectoryEntry for target OU
                             using (var targetOUEntry = new System.DirectoryServices.DirectoryEntry($"LDAP://{targetOU}"))
@@ -5476,7 +5637,56 @@ namespace SA_ToolBelt
 
         private void btnAddExcludeOu_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string selectedOU = ShowOUSelectionDialog("Exclude OU");
 
+                if (!string.IsNullOrEmpty(selectedOU))
+                {
+                    // Check if OU already exists in the ComboBox
+                    bool exists = false;
+                    foreach (var item in cbxExcludeOu.Items)
+                    {
+                        if (item.ToString().Equals(selectedOU, StringComparison.OrdinalIgnoreCase))
+                        {
+                            exists = true;
+                            break;
+                        }
+                    }
+
+                    if (exists)
+                    {
+                        _consoleForm.WriteWarning($"OU already in exclusion list: {selectedOU}");
+                        return;
+                    }
+
+                    cbxExcludeOu.Items.Add(selectedOU);
+                    cbxExcludeOu.SelectedItem = selectedOU;
+                    _consoleForm.WriteSuccess($"Added OU to exclusion list: {selectedOU}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error adding excluded OU: {ex.Message}");
+            }
+        }
+
+        private void btnDisabledUsersLocation_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string selectedOU = ShowOUSelectionDialog("Disabled Users Location");
+
+                if (!string.IsNullOrEmpty(selectedOU))
+                {
+                    txbDisabledUsersLocation.Text = selectedOU;
+                    _consoleForm.WriteSuccess($"Set Disabled Users location: {selectedOU}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error selecting Disabled Users OU: {ex.Message}");
+            }
         }
         #endregion
 

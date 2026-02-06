@@ -9,7 +9,7 @@ namespace SA_ToolBelt
 {
     /// <summary>
     /// Handles mandatory settings validation and management for the SA Toolbelt.
-    /// Manages the Mandatory_Settings.csv file in the user's Documents\SA_Toolbelt folder.
+    /// Now checks SQLite database first, with CSV file as legacy fallback.
     /// </summary>
     public class PreCheck
     {
@@ -17,7 +17,7 @@ namespace SA_ToolBelt
         private readonly Color _errorColor = Color.LightCoral;
         private readonly Color _validColor = Color.White;
 
-        // Settings file location
+        // Settings file location (legacy CSV)
         private readonly string _settingsFolder;
         private readonly string _settingsFilePath;
 
@@ -26,7 +26,10 @@ namespace SA_ToolBelt
         public string BasePath { get; private set; } = string.Empty;
         public string PowerCLIModulePath { get; private set; } = string.Empty;
 
-        // Full paths with filenames (all CSV files are in BasePath)
+        // Whether config was loaded from database
+        public bool LoadedFromDatabase { get; private set; } = false;
+
+        // Full paths with filenames (all CSV files are in BasePath) - legacy support
         public string ComputerListFullPath => string.IsNullOrEmpty(BasePath) ? string.Empty : Path.Combine(BasePath, "ComputerList.csv");
         public string OUConfigFullPath => string.IsNullOrEmpty(BasePath) ? string.Empty : Path.Combine(BasePath, "ouConfiguration.csv");
         public string LogConfigFullPath => string.IsNullOrEmpty(BasePath) ? string.Empty : Path.Combine(BasePath, "LogConfiguration.csv");
@@ -37,7 +40,7 @@ namespace SA_ToolBelt
         public bool IsBasePathValid { get; private set; } = false;
         public bool IsPowerCLIModulePathValid { get; private set; } = false;
 
-        public bool AllSettingsValid => IsVCenterServerValid && IsBasePathValid && IsPowerCLIModulePathValid;
+        public bool AllSettingsValid => IsVCenterServerValid && IsPowerCLIModulePathValid && (LoadedFromDatabase || IsBasePathValid);
 
         public bool SettingsFileExists => File.Exists(_settingsFilePath);
 
@@ -52,7 +55,9 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Initializes the PreCheck system. Creates settings file if it doesn't exist.
+        /// Initializes the PreCheck system.
+        /// First checks for a SQLite database (via registry or Documents).
+        /// Falls back to CSV settings file if no database is found.
         /// Returns true if all settings are valid and the app can proceed normally.
         /// Returns false if settings need to be configured.
         /// </summary>
@@ -61,6 +66,15 @@ namespace SA_ToolBelt
             try
             {
                 _consoleForm.WriteInfo("Checking mandatory settings...");
+
+                // Check for SQLite database first
+                if (TryLoadFromDatabase())
+                {
+                    _consoleForm.WriteSuccess("Configuration loaded from SQLite database.");
+                    return true;
+                }
+
+                _consoleForm.WriteInfo("No valid database found. Checking legacy CSV settings...");
 
                 // Ensure the settings folder exists
                 if (!Directory.Exists(_settingsFolder))
@@ -72,12 +86,12 @@ namespace SA_ToolBelt
                 // Check if settings file exists
                 if (!File.Exists(_settingsFilePath))
                 {
-                    _consoleForm.WriteWarning("Mandatory_Settings.csv not found. Creating new file...");
+                    _consoleForm.WriteWarning("No configuration found. First-time setup required.");
                     CreateEmptySettingsFile();
                     return false; // Settings need to be configured
                 }
 
-                // Load and validate settings
+                // Load and validate settings from CSV
                 LoadSettings();
                 ValidateAllSettings();
 
@@ -97,6 +111,65 @@ namespace SA_ToolBelt
                 _consoleForm.WriteError($"Error initializing PreCheck: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Attempts to load configuration from the SQLite database.
+        /// Checks the registry for the database path, then falls back to Documents.
+        /// </summary>
+        private bool TryLoadFromDatabase()
+        {
+            try
+            {
+                // Check registry for database path
+                string registryPath = DatabaseService.GetSqlPathFromRegistry();
+                if (!string.IsNullOrEmpty(registryPath))
+                {
+                    string dbPath = Path.Combine(registryPath, "SA_Toolbelt.db");
+                    if (File.Exists(dbPath))
+                    {
+                        _consoleForm.WriteInfo($"Found database at registry path: {dbPath}");
+                        var dbService = new DatabaseService(_consoleForm);
+                        var config = dbService.LoadToolbeltConfig();
+                        if (config != null && !string.IsNullOrEmpty(config.VCenterServer))
+                        {
+                            VCenterServer = config.VCenterServer;
+                            PowerCLIModulePath = config.PowerCLILocation;
+                            BasePath = config.SqlPath;
+                            IsVCenterServerValid = true; // Trust the database - it was validated when saved
+                            IsPowerCLIModulePathValid = !string.IsNullOrEmpty(config.PowerCLILocation);
+                            LoadedFromDatabase = true;
+                            return true;
+                        }
+                    }
+                }
+
+                // Check Documents folder
+                string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string defaultDbPath = Path.Combine(documentsPath, "SA_Toolbelt", "SA_Toolbelt.db");
+                if (File.Exists(defaultDbPath))
+                {
+                    _consoleForm.WriteInfo($"Found database in Documents: {defaultDbPath}");
+                    var dbService = new DatabaseService(_consoleForm);
+                    var config = dbService.LoadToolbeltConfig();
+                    if (config != null && !string.IsNullOrEmpty(config.VCenterServer))
+                    {
+                        VCenterServer = config.VCenterServer;
+                        PowerCLIModulePath = config.PowerCLILocation;
+                        BasePath = config.SqlPath;
+                        IsVCenterServerValid = true;
+                        IsPowerCLIModulePathValid = !string.IsNullOrEmpty(config.PowerCLILocation);
+                        LoadedFromDatabase = true;
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteWarning($"Error checking database: {ex.Message}");
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -125,7 +198,7 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Loads settings from the CSV file.
+        /// Loads settings from the CSV file (legacy support).
         /// </summary>
         public void LoadSettings()
         {
@@ -165,7 +238,7 @@ namespace SA_ToolBelt
                     }
                 }
 
-                _consoleForm.WriteInfo("Settings loaded from file.");
+                _consoleForm.WriteInfo("Settings loaded from CSV file.");
             }
             catch (Exception ex)
             {
@@ -174,7 +247,7 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Saves current settings to the CSV file.
+        /// Saves current settings to the CSV file (legacy support).
         /// </summary>
         public void SaveSettings()
         {
@@ -340,7 +413,7 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Sets the Base path (contains ComputerList.csv, ouConfiguration.csv, LogConfiguration.csv).
+        /// Sets the Base path.
         /// </summary>
         public void SetBasePath(string value)
         {
@@ -353,42 +426,6 @@ namespace SA_ToolBelt
         public void SetPowerCLIModulePath(string value)
         {
             PowerCLIModulePath = value?.Trim() ?? string.Empty;
-        }
-
-        /// <summary>
-        /// Updates textbox background colors based on validation status.
-        /// </summary>
-        public void UpdateTextBoxColors(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
-        {
-            // Update colors based on empty or invalid status
-            txbVCenterServer.BackColor = string.IsNullOrWhiteSpace(txbVCenterServer.Text) || !IsVCenterServerValid
-                ? _errorColor : _validColor;
-
-            txbBasePath.BackColor = string.IsNullOrWhiteSpace(txbBasePath.Text) || !IsBasePathValid
-                ? _errorColor : _validColor;
-
-            txbPowerCLIModuleLocation.BackColor = string.IsNullOrWhiteSpace(txbPowerCLIModuleLocation.Text) || !IsPowerCLIModulePathValid
-                ? _errorColor : _validColor;
-        }
-
-        /// <summary>
-        /// Populates textboxes with current settings values.
-        /// </summary>
-        public void PopulateTextBoxes(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
-        {
-            txbVCenterServer.Text = VCenterServer;
-            txbBasePath.Text = BasePath;
-            txbPowerCLIModuleLocation.Text = PowerCLIModulePath;
-        }
-
-        /// <summary>
-        /// Reads values from textboxes and updates internal settings.
-        /// </summary>
-        public void ReadFromTextBoxes(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
-        {
-            SetVCenterServer(txbVCenterServer.Text);
-            SetBasePath(txbBasePath.Text);
-            SetPowerCLIModulePath(txbPowerCLIModuleLocation.Text);
         }
 
         /// <summary>
@@ -433,42 +470,6 @@ namespace SA_ToolBelt
             {
                 MessageBox.Show($"Unable to reach vCenter server: {server}\n\nPlease verify the server address and try again.",
                     "Verification Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        /// <summary>
-        /// Validates and saves all settings. Returns true if all settings are valid.
-        /// </summary>
-        public bool ValidateAndSaveAll(TextBox txbVCenterServer, TextBox txbBasePath, TextBox txbPowerCLIModuleLocation)
-        {
-            // Read current values from textboxes
-            ReadFromTextBoxes(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
-
-            // Validate all settings
-            ValidateAllSettings();
-
-            // Update textbox colors
-            UpdateTextBoxColors(txbVCenterServer, txbBasePath, txbPowerCLIModuleLocation);
-
-            if (AllSettingsValid)
-            {
-                // Save settings to file
-                SaveSettings();
-                MessageBox.Show("All settings validated and saved successfully!", "Success",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return true;
-            }
-            else
-            {
-                // Build error message
-                var errors = new List<string>();
-                if (!IsVCenterServerValid) errors.Add("- VCenter Server is invalid or unreachable");
-                if (!IsBasePathValid) errors.Add("- Base Path is invalid or missing required CSV files (ComputerList.csv, ouConfiguration.csv, LogConfiguration.csv)");
-                if (!IsPowerCLIModulePathValid) errors.Add("- PowerCLI Module path is invalid or VMware.PowerCLI folder not found");
-
-                MessageBox.Show($"The following settings need to be corrected:\n\n{string.Join("\n", errors)}",
-                    "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
             }
         }
     }

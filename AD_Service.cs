@@ -15,13 +15,26 @@ namespace SA_ToolBelt
         private readonly string _domainController;
         private readonly ConsoleForm _consoleForm;
 
-        // Add these excluded OU paths
-        private readonly HashSet<string> _excludedOUs = new HashSet<string>
+        // Excluded OU paths - loaded from database at startup, with hardcoded defaults as fallback
+        private HashSet<string> _excludedOUs = new HashSet<string>
         {
             "spectre.afspc.af.smil.mil/Users",
             "spectre.afspc.af.smil.mil/spectre/people/MGMT USERS",
             "spectre.afspc.af.smil.mil/spectre/people/Disabled Users"
         };
+
+        /// <summary>
+        /// Replaces the excluded OUs with values loaded from the database.
+        /// Called from SA_ToolBelt after reading the Toolbelt_Config table.
+        /// </summary>
+        public void SetExcludedOUs(HashSet<string> excludedOUs)
+        {
+            if (excludedOUs != null && excludedOUs.Count > 0)
+            {
+                _excludedOUs = excludedOUs;
+                _consoleForm?.WriteInfo($"Excluded OUs updated from database: {excludedOUs.Count} entries.");
+            }
+        }
 
         public AD_Service(ConsoleForm consoleForm = null, string? domain = null, string? domainController = null)
         {

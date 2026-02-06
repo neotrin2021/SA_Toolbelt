@@ -12,6 +12,7 @@ namespace SA_ToolBelt
     public class Linux_Service
     {
         private readonly ConsoleForm _consoleForm;
+        private string _homeDirectoryBasePath = "/net/cce-data/home";
 
         // Windows API for setting windows focus
         [DllImport("user32.dll")]
@@ -20,6 +21,18 @@ namespace SA_ToolBelt
         public Linux_Service(ConsoleForm consoleForm = null)
         {
             _consoleForm = consoleForm;
+        }
+
+        /// <summary>
+        /// Sets the base path for home directories, loaded from the database.
+        /// </summary>
+        public void SetHomeDirectoryBasePath(string basePath)
+        {
+            if (!string.IsNullOrEmpty(basePath))
+            {
+                _homeDirectoryBasePath = basePath.TrimEnd('/');
+                _consoleForm?.WriteInfo($"Home directory base path set to: {_homeDirectoryBasePath}");
+            }
         }
 
         #region Data Classes Shit
@@ -639,7 +652,7 @@ namespace SA_ToolBelt
                 _consoleForm?.WriteInfo($"SSH Connection - Host: {hostname}, User: {username}");
 
                 // Directory path where we'll create the user's home directory
-                string directoryPath = $"/net/cce-data/home/{ntUserId}";
+                string directoryPath = $"{_homeDirectoryBasePath}/{ntUserId}";
 
                 _consoleForm?.WriteInfo($"Target directory: {directoryPath}");
 
