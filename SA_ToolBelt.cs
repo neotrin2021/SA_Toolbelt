@@ -307,14 +307,13 @@ namespace SA_ToolBelt
             tabControlMain.TabPages.Add(tabConfiguration);
             tabControlMain.TabPages.Add(tabConsole); // Keep console visible for feedback
 
-            // Ensure the mandatory settings group box is visible/enabled
-            // gbxManditorySettings.Enabled = true; // Uncomment when control exists
+            gbxManditorySettings.Enabled = true;
         }
 
         /// <summary>
         /// Applies settings from the SQLite database to application variables
         /// and loads configuration data from the database tables.
-        /// This is the primary settings-loading method now that we use SQLite.
+        /// This is the ONLY settings-loading method. No CSV fallback.
         /// </summary>
         private void ApplyDatabaseSettings()
         {
@@ -361,38 +360,8 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Legacy method - calls ApplyDatabaseSettings for backward compatibility.
-        /// </summary>
-        private void ApplyPreCheckSettings()
-        {
-            // Try loading from database first
-            if (_databaseService.HasValidConfig())
-            {
-                ApplyDatabaseSettings();
-                return;
-            }
-
-            // Fall back to PreCheck CSV-based settings if no database config exists
-            _vCenterServer = _preCheck.VCenterServer;
-            COMPUTER_LIST_FILE_PATH = _preCheck.ComputerListFullPath;
-            OU_CONFIG_FILE_PATH = _preCheck.OUConfigFullPath;
-            POWERCLI_MODULE_PATH = _preCheck.PowerCLIModuleFullPath;
-            LOG_CONFIG_FILE_PATH = _preCheck.LogConfigFullPath;
-
-            lblFilePathLocation.Text = OU_CONFIG_FILE_PATH;
-            lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
-
-            LoadOUConfigurationFromCSV();
-            LoadComputerListFromCSV();
-            LoadImportantVariablesFromCSV();
-            LoadLogConfigurationFromCSV();
-
-            _consoleForm.WriteSuccess("Configuration settings applied from legacy CSV files.");
-        }
-
-        /// <summary>
         /// Populates the mandatory settings textboxes from the database.
-        /// Call this when showing the Configuration tab for settings setup.
+        /// Called when the Configuration tab is shown for first-time or re-configuration.
         /// </summary>
         private void PopulateMandatorySettingsUI()
         {
@@ -418,13 +387,32 @@ namespace SA_ToolBelt
                         cbxExcludeOu.SelectedIndex = 0;
                 }
             }
-            else
+        }
+
+        /// <summary>
+        /// Disables all controls in gbxManditorySettings EXCEPT txbSqlPath and btnBrowseSqlPath.
+        /// Used during first-time setup when no registry key exists - user must provide the DB path first.
+        /// </summary>
+        private void DisableMandatoryControlsExceptSqlPath()
+        {
+            foreach (Control ctrl in gbxManditorySettings.Controls)
             {
-                // Fall back to PreCheck CSV loading
-                _preCheck.LoadSettings();
-                txbVCenterServer.Text = _preCheck.VCenterServer;
-                txbSqlPath.Text = _preCheck.BasePath;
-                txbPowerCliModuleLocation.Text = _preCheck.PowerCLIModulePath;
+                ctrl.Enabled = false;
+            }
+            // Only these two stay enabled so the user can browse for the DB
+            txbSqlPath.Enabled = true;
+            btnBrowseSqlPath.Enabled = true;
+        }
+
+        /// <summary>
+        /// Enables all controls in gbxManditorySettings.
+        /// Called when the user needs to fill out all fields for a fresh setup.
+        /// </summary>
+        private void EnableAllMandatoryControls()
+        {
+            foreach (Control ctrl in gbxManditorySettings.Controls)
+            {
+                ctrl.Enabled = true;
             }
         }
 
@@ -449,10 +437,45 @@ namespace SA_ToolBelt
 
         private void btnBrowseSqlPath_Click(object sender, EventArgs e)
         {
-            string path = _preCheck.BrowseForFolder("Select the folder where the SA_Toolbelt database will be stored");
-            if (!string.IsNullOrEmpty(path))
+            string path = _preCheck.BrowseForFolder("Select the folder where the SA_Toolbelt database is stored (or will be created)");
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            txbSqlPath.Text = path;
+
+            // Check if a database already exists at this path
+            if (_preCheck.DatabaseExistsAtPath(path))
             {
-                txbSqlPath.Text = path;
+                _consoleForm.WriteInfo($"Existing database found at: {path}");
+
+                // Update the registry to point here and reload
+                DatabaseService.SetSqlPathInRegistry(path);
+                _databaseService = new DatabaseService(_consoleForm);
+
+                if (_databaseService.HasValidConfig())
+                {
+                    // DB has valid config - load it and open everything up
+                    ApplyDatabaseSettings();
+                    PopulateMandatorySettingsUI();
+                    EnableAllMandatoryControls();
+                    ShowAllTabs();
+
+                    _consoleForm.WriteSuccess("Existing database loaded successfully. All tabs now available.");
+                    MessageBox.Show("Existing database found and loaded successfully!\nAll features are now available.",
+                        "Database Loaded", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    // DB exists but has no valid config - enable controls for setup
+                    _consoleForm.WriteWarning("Database found but contains no valid configuration. Please fill in the settings.");
+                    EnableAllMandatoryControls();
+                }
+            }
+            else
+            {
+                // No database at this path - this is a fresh setup
+                _consoleForm.WriteInfo($"No existing database at: {path}. Enabling all settings for first-time configuration.");
+                EnableAllMandatoryControls();
             }
         }
 
@@ -933,42 +956,42 @@ namespace SA_ToolBelt
                     // END BACKDOOR CHECK
                     // ==========================================================
 
-                    // Run PreCheck to validate mandatory settings
-                    bool preCheckPassed = _preCheck.Initialize();
+                    // Run PreCheck - checks registry for database path
+                    var preCheckResult = _preCheck.Initialize();
 
-                    if (preCheckPassed)
+                    switch (preCheckResult)
                     {
-                        // All mandatory settings are valid - apply them and show all tabs
-                        ApplyPreCheckSettings();
-                        ShowAllTabs();
+                        case PreCheck.InitResult.DatabaseFound:
+                            // Registry key exists, DB found, config valid - load and go
+                            ApplyDatabaseSettings();
+                            ShowAllTabs();
 
-                        // Update radio button counters INSIDE try-catch
-                        await UpdateRadioButtonCounters();
+                            await UpdateRadioButtonCounters();
+                            StartBackgroundPowerCLILoadingAsync();
+                            await PopulateDefaultSecurityGroupsAsync();
+                            await LoadOnlineOfflineTabAsync();
+                            await CheckAllOnlineOfflineStatusAsync();
 
-                        // Start loading PowerCLI in background
-                        StartBackgroundPowerCLILoadingAsync();
+                            MessageBox.Show(welcomeMessage, "Login Successful",
+                                          MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            break;
 
-                        // NEW: Populate LDAP security groups dropdown
-                        await PopulateDefaultSecurityGroupsAsync();
+                        case PreCheck.InitResult.NoRegistryKey:
+                        case PreCheck.InitResult.RegistryExistsButDbMissing:
+                            // No registry key OR registry points to missing DB
+                            // Show only Configuration tab with just SQL Path enabled
+                            ShowOnlyConfigurationTab();
+                            DisableMandatoryControlsExceptSqlPath();
 
-                        // Online/Offline status check here
-                        await LoadOnlineOfflineTabAsync();
-                        await CheckAllOnlineOfflineStatusAsync();
+                            string setupMessage = preCheckResult == PreCheck.InitResult.NoRegistryKey
+                                ? "First-time setup: Please browse to the location where the database should be stored (or already exists)."
+                                : $"The database was not found at the registered path.\nPlease browse to the correct location.";
 
-                        MessageBox.Show(welcomeMessage, "Login Successful",
-                                      MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        // Mandatory settings need to be configured
-                        ShowOnlyConfigurationTab();
-                        PopulateMandatorySettingsUI();
-
-                        MessageBox.Show(
-                            $"{welcomeMessage}\n\nHowever, mandatory settings need to be configured before you can use the toolbelt.\n\n" +
-                            "Please configure the settings in the Mandatory Settings section on the Configuration tab.",
-                            "Configuration Required",
-                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show(
+                                $"{welcomeMessage}\n\n{setupMessage}",
+                                "Configuration Required",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            break;
                     }
 
                     _consoleForm.WriteSuccess($"Login successful for user: {username}");
