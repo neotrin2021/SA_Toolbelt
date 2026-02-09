@@ -452,6 +452,13 @@ namespace SA_ToolBelt
                 DatabaseService.SetSqlPathInRegistry(path);
                 _databaseService = new DatabaseService(_consoleForm);
 
+                // Check for lock before trying to read
+                if (!_databaseService.CheckAndHandleLock())
+                {
+                    _consoleForm.WriteWarning("Database is locked. Cannot load configuration.");
+                    return;
+                }
+
                 if (_databaseService.HasValidConfig())
                 {
                     // DB has valid config - load it and open everything up
@@ -962,7 +969,21 @@ namespace SA_ToolBelt
                     switch (preCheckResult)
                     {
                         case PreCheck.InitResult.DatabaseFound:
-                            // Registry key exists, DB found, config valid - load and go
+                            // Registry key exists, DB found, config valid - check for lock first
+                            if (!_databaseService.CheckAndHandleLock())
+                            {
+                                // DB is locked and user declined or unlock failed
+                                _consoleForm.WriteWarning("Database is locked. Showing configuration tab.");
+                                ShowOnlyConfigurationTab();
+                                DisableMandatoryControlsExceptSqlPath();
+                                MessageBox.Show(
+                                    $"{welcomeMessage}\n\nThe database is currently locked and could not be accessed.\n" +
+                                    "You can browse to a different database location, or try again later.",
+                                    "Database Locked",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                break;
+                            }
+
                             ApplyDatabaseSettings();
                             ShowAllTabs();
 

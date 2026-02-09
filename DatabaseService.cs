@@ -204,6 +204,176 @@ namespace SA_ToolBelt
 
         #endregion
 
+        #region Database Lock Detection & Recovery
+
+        /// <summary>
+        /// Checks if the database is currently locked by attempting a quick write test.
+        /// Returns true if the database is locked, false if it's accessible.
+        /// </summary>
+        public bool IsDatabaseLocked()
+        {
+            try
+            {
+                if (!File.Exists(_databasePath))
+                    return false;
+
+                using (var connection = new SqliteConnection($"Data Source={_databasePath}"))
+                {
+                    connection.Open();
+
+                    // Set a very short timeout - we just want to know if it's locked, not wait
+                    using (var timeoutCmd = new SqliteCommand("PRAGMA busy_timeout=100;", connection))
+                    {
+                        timeoutCmd.ExecuteNonQuery();
+                    }
+
+                    // Try to start and immediately rollback a write transaction
+                    using (var cmd = new SqliteCommand("BEGIN IMMEDIATE;", connection))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+                    using (var cmd = new SqliteCommand("ROLLBACK;", connection))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                return false; // No lock - write was possible
+            }
+            catch (SqliteException ex) when (ex.SqliteErrorCode == 5) // SQLITE_BUSY
+            {
+                _consoleForm?.WriteWarning("Database is currently locked by another process.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error checking database lock status: {ex.Message}");
+                return false; // Can't determine - assume not locked
+            }
+        }
+
+        /// <summary>
+        /// Force-unlocks the database by deleting the WAL and SHM journal files.
+        /// WARNING: Any uncommitted data from the locking process will be lost.
+        /// Returns true if the unlock was successful.
+        /// </summary>
+        public bool ForceUnlockDatabase()
+        {
+            try
+            {
+                string walFile = _databasePath + "-wal";
+                string shmFile = _databasePath + "-shm";
+                string journalFile = _databasePath + "-journal";
+
+                _consoleForm?.WriteWarning("Attempting to force-unlock database. Uncommitted data from the locking process will be lost.");
+
+                // Delete the WAL file if it exists
+                if (File.Exists(walFile))
+                {
+                    File.Delete(walFile);
+                    _consoleForm?.WriteInfo($"Deleted WAL file: {walFile}");
+                }
+
+                // Delete the SHM file if it exists
+                if (File.Exists(shmFile))
+                {
+                    File.Delete(shmFile);
+                    _consoleForm?.WriteInfo($"Deleted SHM file: {shmFile}");
+                }
+
+                // Delete the journal file if it exists (rollback journal mode)
+                if (File.Exists(journalFile))
+                {
+                    File.Delete(journalFile);
+                    _consoleForm?.WriteInfo($"Deleted journal file: {journalFile}");
+                }
+
+                // Verify the database is now accessible by running an integrity check
+                using (var connection = new SqliteConnection($"Data Source={_databasePath}"))
+                {
+                    connection.Open();
+
+                    using (var cmd = new SqliteCommand("PRAGMA integrity_check;", connection))
+                    {
+                        string result = cmd.ExecuteScalar()?.ToString();
+                        if (result == "ok")
+                        {
+                            _consoleForm?.WriteSuccess("Database force-unlocked successfully. Integrity check passed.");
+
+                            // Re-enable WAL mode since we just deleted the WAL file
+                            using (var walCmd = new SqliteCommand("PRAGMA journal_mode=WAL;", connection))
+                            {
+                                walCmd.ExecuteNonQuery();
+                            }
+
+                            return true;
+                        }
+                        else
+                        {
+                            _consoleForm?.WriteError($"Database integrity check failed after unlock: {result}");
+                            return false;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Failed to force-unlock database: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the database is locked and prompts the user to force-unlock if needed.
+        /// Returns true if the database is accessible (either wasn't locked, or was unlocked).
+        /// Returns false if the database is still locked (user declined or unlock failed).
+        /// </summary>
+        public bool CheckAndHandleLock()
+        {
+            if (!IsDatabaseLocked())
+                return true;
+
+            _consoleForm?.WriteWarning("Database lock detected. Prompting user for action.");
+
+            var result = System.Windows.Forms.MessageBox.Show(
+                "The database is currently locked by another process.\n\n" +
+                "This can happen if another SA has the toolbelt open, or if a previous session crashed.\n\n" +
+                "Would you like to force-unlock the database?\n\n" +
+                "WARNING: Any data that was being written at the time of the lock will be lost.",
+                "Database Locked",
+                System.Windows.Forms.MessageBoxButtons.YesNo,
+                System.Windows.Forms.MessageBoxIcon.Warning);
+
+            if (result == System.Windows.Forms.DialogResult.Yes)
+            {
+                bool unlocked = ForceUnlockDatabase();
+                if (unlocked)
+                {
+                    System.Windows.Forms.MessageBox.Show(
+                        "Database unlocked successfully. Integrity check passed.",
+                        "Unlock Successful",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Information);
+                    return true;
+                }
+                else
+                {
+                    System.Windows.Forms.MessageBox.Show(
+                        "Failed to unlock the database. Please check the console for details.\n\n" +
+                        "You may need to close all other instances of the toolbelt and try again.",
+                        "Unlock Failed",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+
+            _consoleForm?.WriteInfo("User declined to force-unlock the database.");
+            return false;
+        }
+
+        #endregion
+
         #region Toolbelt_Config CRUD
 
         /// <summary>
