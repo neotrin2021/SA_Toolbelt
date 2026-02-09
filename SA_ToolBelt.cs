@@ -2597,6 +2597,8 @@ namespace SA_ToolBelt
                     $"This will:\n" +
                     $"• Disable the user account\n" +
                     $"• Update description: {disableDescription}\n" +
+                    $"• Remove user from all AD security groups\n" +
+                    $"• Add user to 'pending_removal' group\n" +
                     $"• Move user to Disabled Users OU\n\n" +
                     $"This action can be reversed, but the user will immediately lose access.",
                     "Confirm Account Disable",
@@ -2615,110 +2617,23 @@ namespace SA_ToolBelt
 
                 _consoleForm?.WriteInfo($"Starting disable process for user: {username}");
 
-                // Perform the disable operation
-                using (var context = new PrincipalContext(ContextType.Domain))
-                using (var user = UserPrincipal.FindByIdentity(context, username))
+                // Read disabled users OU from database config; fall back to hardcoded default
+                string targetOU = !string.IsNullOrEmpty(_disabledUsersOu)
+                    ? _disabledUsersOu
+                    : "OU=Disabled Users,OU=People,OU=CDC,OU=spectre,DC=spectre,DC=afspc,DC=af,DC=smil,DC=mil";
+
+                // Step 1: Disable the account, update description, and move to Disabled Users OU (all via AD)
+                bool disableSuccess = _adService.DisableAndMoveUser(username, disableDescription, targetOU);
+
+                if (!disableSuccess)
                 {
-                    if (user == null)
-                    {
-                        _consoleForm?.WriteError($"User not found: {username}");
-                        MessageBox.Show($"User not found: {username}", "User Not Found",
-                                      MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
-                    // Check if user is already disabled
-                    if (user.Enabled.HasValue && !user.Enabled.Value)
-                    {
-                        _consoleForm?.WriteWarning($"User {username} is already disabled.");
-                        MessageBox.Show($"User {username} is already disabled.", "Already Disabled",
-                                      MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        return;
-                    }
-
-                    // Disable the account
-                    user.Enabled = false;
-
-                    // Update the description
-                    user.Description = disableDescription;
-
-                    // Save the changes
-                    user.Save();
-
-                    _consoleForm?.WriteSuccess($"Account disabled and description updated for: {username}");
-
-                    // Move user to Disabled Users OU
-                    var userEntry = user.GetUnderlyingObject() as System.DirectoryServices.DirectoryEntry;
-                    if (userEntry != null)
-                    {
-                        try
-                        {
-                            // Read disabled users OU from database config; fall back to hardcoded default
-                            string targetOU = !string.IsNullOrEmpty(_disabledUsersOu)
-                                ? _disabledUsersOu
-                                : "OU=Disabled Users,OU=People,OU=CDC,OU=spectre,DC=spectre,DC=afspc,DC=af,DC=smil,DC=mil";
-
-                            // Create DirectoryEntry for target OU
-                            using (var targetOUEntry = new System.DirectoryServices.DirectoryEntry($"LDAP://{targetOU}"))
-                            {
-                                // Move the user
-                                userEntry.MoveTo(targetOUEntry);
-                                userEntry.CommitChanges();
-
-                                _consoleForm?.WriteSuccess($"User {username} moved to Disabled Users OU successfully.");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _consoleForm?.WriteError($"Account disabled but failed to move to Disabled Users OU: {ex.Message}");
-                            MessageBox.Show($"Account was disabled successfully, but failed to move to Disabled Users OU:\n\n{ex.Message}",
-                                          "Partial Success", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
-                    }
-                    // NEW: Remove user from ALL Directory Services (RHDS) security groups
-                    try
-                    {
-                        _consoleForm?.WriteInfo($"Removing {username} from all Directory Services security groups...");
-
-                        // Get configured Security Groups OU from CSV
-                        string securityGroupsOU = GetSecurityGroupsOU();
-
-                        if (string.IsNullOrEmpty(securityGroupsOU))
-                        {
-                            _consoleForm?.WriteWarning("No Security Groups OU configured. Skipping Directory Services group removal.");
-                            _consoleForm?.WriteInfo("Configure Security Groups OU in the Configuration tab to enable this feature.");
-                        }
-                        else
-                        {
-                            // Remove user from all DS groups
-                            int groupsRemoved = _rhdsService.RemoveUserFromAllDSGroups(username, securityGroupsOU);
-
-                            if (groupsRemoved > 0)
-                            {
-                                _consoleForm?.WriteSuccess($"Removed {username} from {groupsRemoved} Directory Services security groups.");
-                            }
-                            else
-                            {
-                                _consoleForm?.WriteInfo($"User {username} was not a member of any Directory Services security groups.");
-                            }
-                        }
-                    }
-                    catch (Exception dsEx)
-                    {
-                        _consoleForm?.WriteError($"Error removing user from Directory Services groups: {dsEx.Message}");
-                        _consoleForm?.WriteWarning("User account was disabled in AD and moved to Disabled Users OU, but DS group removal failed.");
-                        _consoleForm?.WriteWarning("Manual cleanup of Directory Services groups may be required.");
-
-                        // Don't fail the whole operation - AD disable was successful
-                        MessageBox.Show(
-                            $"Account was successfully disabled in AD, but there was an error removing the user from Directory Services groups:\n\n{dsEx.Message}\n\nManual cleanup may be required.",
-                            "Partial Success",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Warning);
-                    }
+                    _consoleForm?.WriteError($"Failed to disable and move user: {username}");
+                    MessageBox.Show($"Failed to disable account for {username}. Check the console for details.",
+                                  "Disable Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
                 }
 
-                // After disabling the account, remove from all groups and add to group "pending_removal"
+                // Step 2: Remove from all AD security groups and add to "pending_removal" group
                 bool groupCleanupSuccess = _adService.RemoveUserFromAllGroupsAndAddToPendingRemoval(username);
 
                 if (groupCleanupSuccess)
