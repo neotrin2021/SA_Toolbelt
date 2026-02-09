@@ -6243,29 +6243,19 @@ namespace SA_ToolBelt
         /// </summary>
         private async void btnOnOffline_Click(object sender, EventArgs e)
         {
-
-            /*
             try
             {
-                // Disable button during operation
                 btnOnOffline.Enabled = false;
                 btnOnOffline.Text = "Checking Status...";
 
-                // Check authentication
                 if (!CredentialManager.IsAuthenticated)
                 {
                     _consoleForm.WriteError("Please log in first before checking online/offline status.");
                     return;
                 }
 
-                // Load computers from configuration if not already loaded
-                if (lbxWindows.Items.Count == 0 && dgvWorkstations.Rows.Count == 0)
-                {
-                    _consoleForm.WriteInfo("Loading computers from configuration...");
-                    await LoadOnlineOfflineTabAsync();
-                }
-
-                // Check online/offline status
+                // Reload computers and re-check all statuses
+                await LoadOnlineOfflineTabAsync();
                 await CheckAllOnlineOfflineStatusAsync();
             }
             catch (Exception ex)
@@ -6274,11 +6264,9 @@ namespace SA_ToolBelt
             }
             finally
             {
-                // Re-enable button
                 btnOnOffline.Enabled = true;
                 btnOnOffline.Text = "ReCheck Online/Offline Status";
             }
-            */
         }
 
         /// <summary>
