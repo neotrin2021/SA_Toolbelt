@@ -184,6 +184,21 @@ namespace SA_ToolBelt
         {
             var connection = new SqliteConnection($"Data Source={_databasePath}");
             connection.Open();
+
+            // Enable WAL mode - allows concurrent reads while writing
+            // and prevents most "database is locked" errors
+            using (var walCmd = new SqliteCommand("PRAGMA journal_mode=WAL;", connection))
+            {
+                walCmd.ExecuteNonQuery();
+            }
+
+            // Wait up to 5 seconds if the DB is locked by another operation
+            // instead of immediately throwing an error
+            using (var timeoutCmd = new SqliteCommand("PRAGMA busy_timeout=5000;", connection))
+            {
+                timeoutCmd.ExecuteNonQuery();
+            }
+
             return connection;
         }
 
