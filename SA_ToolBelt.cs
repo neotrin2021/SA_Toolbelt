@@ -77,7 +77,7 @@ namespace SA_ToolBelt
             SetupMandatorySettingsHandlers();
 
             // Hide all controls until successful login
-            HideControlsAtStartup();
+            HideControlsAtStartUp();
 
             // Note: Configuration file loading is deferred until after PreCheck validation
             // This happens in the login flow after mandatory settings are verified
@@ -5860,6 +5860,7 @@ namespace SA_ToolBelt
         #endregion
     }
 }
+
 
 
 
