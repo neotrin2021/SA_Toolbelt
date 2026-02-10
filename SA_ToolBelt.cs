@@ -351,10 +351,10 @@ namespace SA_ToolBelt
             lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
 
             // Load data from database tables into the UI
-            LoadOUConfigurationFromCSV();
-            LoadComputerListFromCSV();
-            LoadImportantVariablesFromCSV();
-            LoadLogConfigurationFromCSV();
+            LoadComputerListFromDB();
+            LoadOUConfigurationFromDB();
+            LoadImportantVariablesFromDB();
+            LoadLogConfigurationFromDB();
 
             _consoleForm.WriteSuccess("Configuration settings loaded from database successfully.");
         }
@@ -4430,43 +4430,165 @@ namespace SA_ToolBelt
         {
             try
             {
-                if (!File.Exists(OU_CONFIG_FILE_PATH))
+                var entries = _databaseService.LoadOUConfiguration();
+
+                foreach (var entry in entries)
                 {
-                    _consoleForm?.WriteWarning($"OU configuration file not found: {OU_CONFIG_FILE_PATH}");
-                    return null;
-                }
-
-                string[] lines = File.ReadAllLines(OU_CONFIG_FILE_PATH);
-
-                // Skip header, look for SecurityGroups middleName
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    string line = lines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 2)
+                    if (entry.MiddleName.Equals("SecurityGroups", StringComparison.OrdinalIgnoreCase))
                     {
-                        string ou = columns[0].Trim().Trim('"');
-                        string middleName = columns[1].Trim().Trim('"');
-
-                        if (middleName.Equals("SecurityGroups", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _consoleForm?.WriteInfo($"Found Security Groups OU: {ou}");
-                            return ou;
-                        }
+                        _consoleForm?.WriteInfo($"Found Security Groups OU: {entry.OU}");
+                        return entry.OU;
                     }
                 }
 
-                _consoleForm?.WriteWarning("No Security Groups OU found in configuration file.");
+                _consoleForm?.WriteWarning("No Security Groups OU found in database.");
             }
             catch (Exception ex)
             {
-                _consoleForm?.WriteError($"Error reading Security Groups OU from config: {ex.Message}");
+                _consoleForm?.WriteError($"Error reading Security Groups OU from database: {ex.Message}");
             }
 
             return null;
         }
+        #endregion
+
+        #region Database Loading Methods
+
+        private void LoadComputerListFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading Computer List from database...");
+
+                ClearComputerListCheckedListBoxes();
+
+                var entries = _databaseService.LoadComputerList();
+
+                if (entries.Count == 0)
+                {
+                    _consoleForm.WriteWarning("No computer entries found in database.");
+                    return;
+                }
+
+                foreach (var entry in entries)
+                {
+                    AddComputerToCheckedListBox(entry.Computername, entry.Type);
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {entries.Count} computer entries from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading Computer List from database: {ex.Message}");
+            }
+        }
+
+        private void LoadOUConfigurationFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading OU configuration from database...");
+
+                ClearOUCheckedListBoxes();
+
+                var entries = _databaseService.LoadOUConfiguration();
+
+                if (entries.Count == 0)
+                {
+                    _consoleForm.WriteWarning("No OU configuration entries found in database.");
+                    return;
+                }
+
+                int loadedCount = 0;
+                foreach (var entry in entries)
+                {
+                    if (entry.MiddleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
+                    {
+                        txbSecurityGroupKW.Text = entry.Keyword;
+                        _consoleForm.WriteInfo($"Loaded security group filter keyword: {entry.Keyword}");
+                    }
+                    else
+                    {
+                        AddOUToCheckedListBox(entry.OU, entry.MiddleName);
+                        loadedCount++;
+                    }
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {loadedCount} OU configuration entries from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading OU configuration from database: {ex.Message}");
+            }
+        }
+
+        private void LoadImportantVariablesFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading Important Variables from database...");
+
+                ClearImportantTextBoxes();
+
+                var entries = _databaseService.LoadOUConfiguration();
+
+                foreach (var entry in entries)
+                {
+                    if (entry.MiddleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
+                    {
+                        txbSecurityGroupKW.Text = entry.Keyword;
+                    }
+                }
+
+                _consoleForm.WriteSuccess("Important variables loaded from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading Important Variables from database: {ex.Message}");
+            }
+        }
+
+        private void LoadLogConfigurationFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading Log Configuration from database...");
+
+                _ldapServerInstances.Clear();
+
+                var entries = _databaseService.LoadLogConfiguration();
+
+                if (entries.Count == 0)
+                {
+                    _consoleForm.WriteWarning("No log configuration entries found in database.");
+                    return;
+                }
+
+                foreach (var entry in entries)
+                {
+                    _ldapServerInstances[entry.Server] = entry.ServerInstance;
+                }
+
+                if (_ldapServerInstances.Count >= 1)
+                {
+                    var firstServer = _ldapServerInstances.ElementAt(0);
+                    txbLdapServerInstace1.Text = $"{firstServer.Key}: {firstServer.Value}";
+                }
+
+                if (_ldapServerInstances.Count >= 2)
+                {
+                    var secondServer = _ldapServerInstances.ElementAt(1);
+                    txbLdapServerInstace2.Text = $"{secondServer.Key}: {secondServer.Value}";
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {entries.Count} LDAP server instance entries from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading Log Configuration from database: {ex.Message}");
+            }
+        }
+
         #endregion
 
         #region OU Configuration Management tab functions
