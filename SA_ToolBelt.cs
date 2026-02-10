@@ -45,11 +45,6 @@ namespace SA_ToolBelt
         private string _homeDirectoryPath = string.Empty;
         private string _excludedOUs = string.Empty;
 
-        // These CSV paths are kept for backward compatibility during migration
-        // They will be populated from the database's ouConfiguration/ComputerList/LogConfiguration tables
-        private string COMPUTER_LIST_FILE_PATH = string.Empty;
-        private string OU_CONFIG_FILE_PATH = string.Empty;
-        private string LOG_CONFIG_FILE_PATH = string.Empty;
 
         // Store the logged in SA's username globally
         public string _loggedInUsername = string.Empty;
@@ -351,10 +346,10 @@ namespace SA_ToolBelt
             lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
 
             // Load data from database tables into the UI
-            LoadOUConfigurationFromCSV();
-            LoadComputerListFromCSV();
-            LoadImportantVariablesFromCSV();
-            LoadLogConfigurationFromCSV();
+            LoadComputerListFromDB();
+            LoadOUConfigurationFromDB();
+            LoadImportantVariablesFromDB();
+            LoadLogConfigurationFromDB();
 
             _consoleForm.WriteSuccess("Configuration settings loaded from database successfully.");
         }
@@ -1391,51 +1386,23 @@ namespace SA_ToolBelt
         #region Application Button Events
         private void btnLogout_Click(object sender, EventArgs e)
         {
-            try
-            {
-                // Get the selected security group from cbxDefaultSecurityGroups
-                string selectedSecurityGroup = null;
-                foreach (int checkedIndex in cbxDefaultSecurityGroups.CheckedIndices)
-                {
-                    selectedSecurityGroup = cbxDefaultSecurityGroups.Items[checkedIndex].ToString();
-                    break; // Only get first checked item
-                }
+            // Clear stored credentials
+            CredentialManager.ClearCredentials();
+            _loggedInUsername = string.Empty;
 
-                if (string.IsNullOrEmpty(selectedSecurityGroup))
-                {
-                    MessageBox.Show("Please select a security group first.", "No Selection",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+            // Clear login fields
+            txtUsername.Clear();
+            txtPassword.Clear();
 
-                _consoleForm?.WriteInfo($"Retrieving notes for security group: {selectedSecurityGroup}");
+            // Return to login state
+            HideAllTabsExceptLogin();
+            HideControlsAtStartUp();
 
-                // Get the Notes field from the group
-                string notes = _adService.GetGroupNotes(selectedSecurityGroup);
+            // Ensure login button is ready
+            btnLogin.Enabled = true;
+            btnLogin.Text = "Login";
 
-                if (!string.IsNullOrEmpty(notes))
-                {
-                    MessageBox.Show($"Notes for '{selectedSecurityGroup}':\n\n{notes}",
-                        "Security Group Notes",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    _consoleForm?.WriteSuccess($"Retrieved notes for group: {selectedSecurityGroup}");
-                }
-                else
-                {
-                    MessageBox.Show($"No notes found for security group: {selectedSecurityGroup}",
-                        "No Notes",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    _consoleForm?.WriteInfo($"No notes found for group: {selectedSecurityGroup}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _consoleForm?.WriteError($"Error retrieving group notes: {ex.Message}");
-                MessageBox.Show($"Error: {ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            _consoleForm?.WriteInfo("User logged out successfully.");
         }
 
         #endregion
@@ -4270,203 +4237,254 @@ namespace SA_ToolBelt
         */
         #endregion
 
-        #region CSV Functionality
+        #region Database Loading and Saving Methods
 
-        // Parse a CSV line handling quotes and commas
-        private string[] ParseCSVLine(string line)
-        {
-            var result = new List<string>();
-            bool inQuotes = false;
-            string currentField = "";
-
-            for (int i = 0; i < line.Length; i++)
-            {
-                char c = line[i];
-
-                if (c == '"')
-                {
-                    inQuotes = !inQuotes;
-                }
-                else if (c == ',' && !inQuotes)
-                {
-                    result.Add(currentField);
-                    currentField = "";
-                }
-                else
-                {
-                    currentField += c;
-                }
-            }
-
-            result.Add(currentField); // Add the last field
-            return result.ToArray();
-        }
-
-        // Escape CSV field (add quotes if needed)
-        private string EscapeCSVField(string field)
-        {
-            if (string.IsNullOrEmpty(field))
-                return "";
-
-            // Add quotes if field contains comma, quote, or newline
-            if (field.Contains(",") || field.Contains("\"") || field.Contains("\n") || field.Contains("\r"))
-            {
-                return "\"" + field.Replace("\"", "\"\"") + "\"";
-            }
-
-            return field;
-        }
-
-        // Load Computer List configuration from CSV and populate CheckedListBoxes
-        private void LoadComputerListFromCSV()
-        {
-            try
-            {
-                _consoleForm.WriteInfo("Loading Computer List configuration from CSV file...");
-
-                // Clear all Computer List CheckedListBoxes first
-                ClearComputerListCheckedListBoxes();
-
-                // Check if CSV file exists
-                if (!File.Exists(COMPUTER_LIST_FILE_PATH))
-                {
-                    _consoleForm.WriteWarning($"Computer List file not found at: {COMPUTER_LIST_FILE_PATH}");
-                    CreateComputerListCSV();
-                    return;
-                }
-
-                // Read CSV file
-                string[] csvLines = File.ReadAllLines(COMPUTER_LIST_FILE_PATH);
-
-                if (csvLines.Length <= 1) // Header only or empty
-                {
-                    _consoleForm.WriteWarning("Computer List file is empty or contains only headers.");
-                    return;
-                }
-
-                // Parse CSV data (skip header row)
-                int loadedCount = 0;
-                for (int i = 1; i < csvLines.Length; i++)
-                {
-                    string line = csvLines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 2) // At minimum need ComputerName and Type
-                    {
-                        string computerName = columns[0].Trim().Trim('"');
-                        string type = columns[1].Trim().Trim('"');
-
-                        // Add to appropriate CheckedListBox based on type
-                        AddComputerToCheckedListBox(computerName, type);
-                        loadedCount++;
-                    }
-                }
-
-                _consoleForm.WriteSuccess($"Loaded {loadedCount} computer entries from CSV file.");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error loading Computer List from CSV: {ex.Message}");
-            }
-        }
-
-        // Create Computer List CSV file with headers
-        private void CreateComputerListCSV()
-        {
-            try
-            {
-                // Ensure directory exists
-                string directory = Path.GetDirectoryName(COMPUTER_LIST_FILE_PATH);
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Create CSV with headers
-                string csvContent = "ComputerName,Type,VMWare,Instructions\n";
-                File.WriteAllText(COMPUTER_LIST_FILE_PATH, csvContent);
-
-                _consoleForm.WriteSuccess($"Created Computer List file: {COMPUTER_LIST_FILE_PATH}");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error creating Computer List CSV: {ex.Message}");
-            }
-        }
-
-
-        // Save Computer List configuration to CSV
-        private void SaveComputerListToCSV()
-        {
-            try
-            {
-                _consoleForm.WriteInfo("Saving Computer List to CSV file...");
-
-                var csvContent = new StringBuilder();
-                csvContent.AppendLine("ComputerName,Type,VMWare,Instructions");
-
-                // Collect all computers from CheckedListBoxes
-                AddComputersFromCheckedListBox(csvContent, cbxLinuxList, "Linux");
-                AddComputersFromCheckedListBox(csvContent, cbxCriticalLinuxList, "CriticalLinux");
-                AddComputersFromCheckedListBox(csvContent, cbxCriticalWindowsList, "CriticalWindows");
-                AddComputersFromCheckedListBox(csvContent, cbxCriticalNasList, "CriticalNas");
-                AddComputersFromCheckedListBox(csvContent, cbxOfficeExemptList, "OfficeExempt");
-
-                // Write to file
-                File.WriteAllText(COMPUTER_LIST_FILE_PATH, csvContent.ToString());
-
-                _consoleForm.WriteSuccess($"Computer List saved to: {COMPUTER_LIST_FILE_PATH}");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error saving Computer List to CSV: {ex.Message}");
-            }
-        }
-        /// <summary>
-        /// Get the configured Security Groups OU from ouConfiguration.csv
-        /// </summary>
         private string GetSecurityGroupsOU()
         {
             try
             {
-                if (!File.Exists(OU_CONFIG_FILE_PATH))
+                var entries = _databaseService.LoadOUConfiguration();
+
+                foreach (var entry in entries)
                 {
-                    _consoleForm?.WriteWarning($"OU configuration file not found: {OU_CONFIG_FILE_PATH}");
-                    return null;
-                }
-
-                string[] lines = File.ReadAllLines(OU_CONFIG_FILE_PATH);
-
-                // Skip header, look for SecurityGroups middleName
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    string line = lines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 2)
+                    if (entry.MiddleName.Equals("SecurityGroups", StringComparison.OrdinalIgnoreCase))
                     {
-                        string ou = columns[0].Trim().Trim('"');
-                        string middleName = columns[1].Trim().Trim('"');
-
-                        if (middleName.Equals("SecurityGroups", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _consoleForm?.WriteInfo($"Found Security Groups OU: {ou}");
-                            return ou;
-                        }
+                        _consoleForm?.WriteInfo($"Found Security Groups OU: {entry.OU}");
+                        return entry.OU;
                     }
                 }
 
-                _consoleForm?.WriteWarning("No Security Groups OU found in configuration file.");
+                _consoleForm?.WriteWarning("No Security Groups OU found in database.");
             }
             catch (Exception ex)
             {
-                _consoleForm?.WriteError($"Error reading Security Groups OU from config: {ex.Message}");
+                _consoleForm?.WriteError($"Error reading Security Groups OU from database: {ex.Message}");
             }
 
             return null;
         }
+
+        private void SaveComputerListToDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Saving Computer List to database...");
+
+                var entries = new List<ComputerListEntry>();
+
+                CollectComputersFromCheckedListBox(entries, cbxLinuxList, "Linux");
+                CollectComputersFromCheckedListBox(entries, cbxCriticalLinuxList, "CriticalLinux");
+                CollectComputersFromCheckedListBox(entries, cbxCriticalWindowsList, "CriticalWindows");
+                CollectComputersFromCheckedListBox(entries, cbxCriticalNasList, "CriticalNas");
+                CollectComputersFromCheckedListBox(entries, cbxOfficeExemptList, "OfficeExempt");
+
+                _databaseService.SaveComputerList(entries);
+                _consoleForm.WriteSuccess($"Computer List saved to database ({entries.Count} entries).");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error saving Computer List to database: {ex.Message}");
+            }
+        }
+
+        private void CollectComputersFromCheckedListBox(List<ComputerListEntry> entries, CheckedListBox checkedListBox, string type)
+        {
+            foreach (string computerName in checkedListBox.Items)
+            {
+                entries.Add(new ComputerListEntry
+                {
+                    Computername = computerName,
+                    Type = type,
+                    VMWare = "N/A",
+                    Instructions = "Added via Configuration"
+                });
+            }
+        }
+
+        private void SaveOUConfigurationToDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Saving OU configuration to database...");
+
+                var entries = new List<OUConfigEntry>();
+
+                CollectOUsFromCheckedListBox(entries, cbxListWorkStationOu);
+                CollectOUsFromCheckedListBox(entries, cbxListPatriotParkOu);
+                CollectOUsFromCheckedListBox(entries, cbxListWindowsServersOu);
+                CollectOUsFromCheckedListBox(entries, cbxListSecurityGroupsOu);
+
+                // Include sgfilter keyword if set
+                string keyword = txbSecurityGroupKW.Text.Trim();
+                if (!string.IsNullOrEmpty(keyword))
+                {
+                    entries.Add(new OUConfigEntry
+                    {
+                        OU = "NA",
+                        MiddleName = "sgfilter",
+                        Keyword = keyword
+                    });
+                }
+
+                _databaseService.SaveOUConfiguration(entries);
+                _consoleForm.WriteSuccess($"OU configuration saved to database ({entries.Count} entries).");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error saving OU configuration to database: {ex.Message}");
+            }
+        }
+
+        private void CollectOUsFromCheckedListBox(List<OUConfigEntry> entries, CheckedListBox checkedListBox)
+        {
+            string middleName = GetMiddleNameFromControlName(checkedListBox.Name);
+
+            foreach (string ou in checkedListBox.Items)
+            {
+                entries.Add(new OUConfigEntry
+                {
+                    OU = ou,
+                    MiddleName = middleName,
+                    Keyword = ""
+                });
+            }
+        }
+
+        private void LoadComputerListFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading Computer List from database...");
+
+                ClearComputerListCheckedListBoxes();
+
+                var entries = _databaseService.LoadComputerList();
+
+                if (entries.Count == 0)
+                {
+                    _consoleForm.WriteWarning("No computer entries found in database.");
+                    return;
+                }
+
+                foreach (var entry in entries)
+                {
+                    AddComputerToCheckedListBox(entry.Computername, entry.Type);
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {entries.Count} computer entries from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading Computer List from database: {ex.Message}");
+            }
+        }
+
+        private void LoadOUConfigurationFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading OU configuration from database...");
+
+                ClearOUCheckedListBoxes();
+
+                var entries = _databaseService.LoadOUConfiguration();
+
+                if (entries.Count == 0)
+                {
+                    _consoleForm.WriteWarning("No OU configuration entries found in database.");
+                    return;
+                }
+
+                int loadedCount = 0;
+                foreach (var entry in entries)
+                {
+                    if (entry.MiddleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
+                    {
+                        txbSecurityGroupKW.Text = entry.Keyword;
+                        _consoleForm.WriteInfo($"Loaded security group filter keyword: {entry.Keyword}");
+                    }
+                    else
+                    {
+                        AddOUToCheckedListBox(entry.OU, entry.MiddleName);
+                        loadedCount++;
+                    }
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {loadedCount} OU configuration entries from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading OU configuration from database: {ex.Message}");
+            }
+        }
+
+        private void LoadImportantVariablesFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading Important Variables from database...");
+
+                ClearImportantTextBoxes();
+
+                var entries = _databaseService.LoadOUConfiguration();
+
+                foreach (var entry in entries)
+                {
+                    if (entry.MiddleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
+                    {
+                        txbSecurityGroupKW.Text = entry.Keyword;
+                    }
+                }
+
+                _consoleForm.WriteSuccess("Important variables loaded from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading Important Variables from database: {ex.Message}");
+            }
+        }
+
+        private void LoadLogConfigurationFromDB()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Loading Log Configuration from database...");
+
+                _ldapServerInstances.Clear();
+
+                var entries = _databaseService.LoadLogConfiguration();
+
+                if (entries.Count == 0)
+                {
+                    _consoleForm.WriteWarning("No log configuration entries found in database.");
+                    return;
+                }
+
+                foreach (var entry in entries)
+                {
+                    _ldapServerInstances[entry.Server] = entry.ServerInstance;
+                }
+
+                if (_ldapServerInstances.Count >= 1)
+                {
+                    var firstServer = _ldapServerInstances.ElementAt(0);
+                    txbLdapServerInstace1.Text = $"{firstServer.Key}: {firstServer.Value}";
+                }
+
+                if (_ldapServerInstances.Count >= 2)
+                {
+                    var secondServer = _ldapServerInstances.ElementAt(1);
+                    txbLdapServerInstace2.Text = $"{secondServer.Key}: {secondServer.Value}";
+                }
+
+                _consoleForm.WriteSuccess($"Loaded {entries.Count} LDAP server instance entries from database.");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error loading Log Configuration from database: {ex.Message}");
+            }
+        }
+
         #endregion
 
         #region OU Configuration Management tab functions
@@ -4484,248 +4502,13 @@ namespace SA_ToolBelt
             return "Unknown";
         }
 
-        // Load OU configuration from CSV and populate CheckedListBoxes
-        private void LoadOUConfigurationFromCSV()
-        {
-            try
-            {
-                _consoleForm.WriteInfo("Loading OU configuration from CSV file...");
-
-                // Clear all OU CheckedListBoxes first
-                ClearOUCheckedListBoxes();
-
-                // Check if CSV file exists
-                if (!File.Exists(OU_CONFIG_FILE_PATH))
-                {
-                    _consoleForm.WriteWarning($"OU configuration file not found at: {OU_CONFIG_FILE_PATH}");
-                    CreateOUConfigurationCSV();
-                    return;
-                }
-
-                // Read CSV file
-                string[] csvLines = File.ReadAllLines(OU_CONFIG_FILE_PATH);
-
-                if (csvLines.Length <= 1) // Header only or empty
-                {
-                    _consoleForm.WriteWarning("OU configuration file is empty or contains only headers.");
-                    return;
-                }
-
-                // Parse CSV data (skip header row)
-                int loadedCount = 0;
-                for (int i = 1; i < csvLines.Length; i++)
-                {
-                    string line = csvLines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 2)
-                    {
-                        string ou = columns[0].Trim().Trim('"');
-                        string middleName = columns[1].Trim().Trim('"');
-                        string keyWord = columns.Length >= 3 ? columns[2].Trim().Trim('"') : "";
-
-                        if (middleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
-                        {
-                            txbSecurityGroupKW.Text = keyWord;
-                            _consoleForm.WriteInfo($"Loaded security group filter keyword {keyWord}");
-                        }
-                        else
-                        {
-                            // Add to appropriate CheckedListBox based on middleName
-                            AddOUToCheckedListBox(ou, middleName);
-                            loadedCount++;
-                        }
-                    }
-                }
-
-                _consoleForm.WriteSuccess($"Loaded {loadedCount} OU configuration entries from CSV file.");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error loading OU configuration from CSV: {ex.Message}");
-            }
-        }
-        private void LoadImportantVariablesFromCSV()
-        {
-            try
-            {
-                _consoleForm.WriteInfo("Loading Important Variables from CSV file...");
-
-                // Clear all Keyword text box's first
-                ClearImportantTextBoxes();
-
-                // Check if CSV file exists
-                if (!File.Exists(OU_CONFIG_FILE_PATH))
-                {
-                    _consoleForm.WriteWarning($"Configuration file not found at: {OU_CONFIG_FILE_PATH}");
-                    CreateOUConfigurationCSV();
-                    return;
-                }
-
-                // Read CSV file
-                string[] csvLines = File.ReadAllLines(OU_CONFIG_FILE_PATH);
-
-                if (csvLines.Length <= 1) // Header only or empty
-                {
-                    _consoleForm.WriteWarning("OU configuration file is empty or contains only headers.");
-                    return;
-                }
-
-                // Parse CSV data (skip header row)
-                int loadedCount = 0;
-                for (int i = 1; i < csvLines.Length; i++)
-                {
-                    string line = csvLines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 2)
-                    {
-                        string middleName = columns[1].Trim().Trim('"');
-                        string kw = columns[2].Trim().Trim('"');
-
-                        // Add to appropriate CheckedListBox based on middleName
-                        if (middleName == "sgfilter")
-                        {
-                            txbSecurityGroupKW.Text = kw;
-                        }
-                        loadedCount++;
-                    }
-                }
-
-                _consoleForm.WriteSuccess($"Loaded {loadedCount} OU configuration entries from CSV file.");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error loading OU configuration from CSV: {ex.Message}");
-            }
-        }
         private void ClearImportantTextBoxes()
         {
             txbSecurityGroupKW.Text = "";
         }
-        // Create OU configuration CSV file with headers
-        private void CreateOUConfigurationCSV()
-        {
-            try
-            {
-                // Ensure directory exists
-                string directory = Path.GetDirectoryName(OU_CONFIG_FILE_PATH);
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Create CSV with headers
-                string csvContent = "ou,middleName,keyWord\n";
-                File.WriteAllText(OU_CONFIG_FILE_PATH, csvContent);
-
-                _consoleForm.WriteSuccess($"Created OU configuration file: {OU_CONFIG_FILE_PATH}");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error creating OU configuration CSV: {ex.Message}");
-            }
-        }
 
         #region Log Configuration and Fetching
 
-        // Load Log Configuration from CSV file
-        private void LoadLogConfigurationFromCSV()
-        {
-            try
-            {
-                _consoleForm.WriteInfo("Loading Log Configuration from CSV file...");
-
-                // Check if CSV file exists
-                if (!File.Exists(LOG_CONFIG_FILE_PATH))
-                {
-                    _consoleForm.WriteWarning($"Log Configuration file not found at: {LOG_CONFIG_FILE_PATH}");
-                    CreateLogConfigurationCSV();
-                    return;
-                }
-
-                // Read CSV file
-                string[] csvLines = File.ReadAllLines(LOG_CONFIG_FILE_PATH);
-
-                if (csvLines.Length <= 1) // Header only or empty
-                {
-                    _consoleForm.WriteWarning("Log Configuration file is empty or contains only headers.");
-                    return;
-                }
-
-                // Clear existing dictionary
-                _ldapServerInstances.Clear();
-
-                // Parse CSV data (skip header row)
-                int loadedCount = 0;
-                for (int i = 1; i < csvLines.Length; i++)
-                {
-                    string line = csvLines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 2)
-                    {
-                        string server = columns[0].Trim().Trim('"');
-                        string serverInstance = columns[1].Trim().Trim('"');
-
-                        // Add to dictionary
-                        _ldapServerInstances[server] = serverInstance;
-                        loadedCount++;
-                    }
-                }
-
-                // Populate the textboxes with loaded data
-                if (_ldapServerInstances.Count >= 1)
-                {
-                    var firstServer = _ldapServerInstances.ElementAt(0);
-                    txbLdapServerInstace1.Text = $"{firstServer.Key}: {firstServer.Value}";
-                }
-
-                if (_ldapServerInstances.Count >= 2)
-                {
-                    var secondServer = _ldapServerInstances.ElementAt(1);
-                    txbLdapServerInstace2.Text = $"{secondServer.Key}: {secondServer.Value}";
-                }
-
-                _consoleForm.WriteSuccess($"Loaded {loadedCount} LDAP server instance entries from CSV file.");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error loading Log Configuration from CSV: {ex.Message}");
-            }
-        }
-
-        // Create Log Configuration CSV file with headers
-        private void CreateLogConfigurationCSV()
-        {
-            try
-            {
-                // Ensure directory exists
-                string directory = Path.GetDirectoryName(LOG_CONFIG_FILE_PATH);
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Create CSV with headers and default values
-                string csvContent = "server,server_instance\n";
-                csvContent += "ccesa1,slapd-ccesa1\n";
-                csvContent += "ccesa2,slapd-ccesa2\n";
-
-                File.WriteAllText(LOG_CONFIG_FILE_PATH, csvContent);
-
-                _consoleForm.WriteSuccess($"Created Log Configuration file: {LOG_CONFIG_FILE_PATH}");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error creating Log Configuration CSV: {ex.Message}");
-            }
-        }
-
-        // Save Log Configuration to CSV when button is clicked
         private void btnSubmitServerInstance_Click(object sender, EventArgs e)
         {
             try
@@ -4753,22 +4536,19 @@ namespace SA_ToolBelt
                     }
                 }
 
-                // Build CSV content
-                var csvContent = new StringBuilder();
-                csvContent.AppendLine("server,server_instance");
-
-                foreach (var kvp in instances)
+                // Save to database
+                var entries = instances.Select(kvp => new LogConfigEntry
                 {
-                    csvContent.AppendLine($"{kvp.Key},{kvp.Value}");
-                }
+                    Server = kvp.Key,
+                    ServerInstance = kvp.Value
+                }).ToList();
 
-                // Write to file
-                File.WriteAllText(LOG_CONFIG_FILE_PATH, csvContent.ToString());
+                _databaseService.SaveLogConfiguration(entries);
 
                 // Update in-memory dictionary
                 _ldapServerInstances = instances;
 
-                _consoleForm.WriteSuccess($"LDAP Server Instance configuration saved to: {LOG_CONFIG_FILE_PATH}");
+                _consoleForm.WriteSuccess("LDAP Server Instance configuration saved to database.");
                 MessageBox.Show("LDAP Server Instance configuration saved successfully!", "Success",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -4780,51 +4560,23 @@ namespace SA_ToolBelt
             }
         }
 
-        // Populate Linux server dropdown
         private void PopulateLinuxServerDropdown()
         {
             try
             {
                 cbxServerSelection.Items.Clear();
 
-                // Check if CSV file exists
-                if (!File.Exists(COMPUTER_LIST_FILE_PATH))
+                var entries = _databaseService.LoadComputerList();
+
+                foreach (var entry in entries)
                 {
-                    _consoleForm.WriteWarning($"Computer List file not found at: {COMPUTER_LIST_FILE_PATH}");
-                    return;
-                }
-
-                // Read CSV file
-                string[] csvLines = File.ReadAllLines(COMPUTER_LIST_FILE_PATH);
-
-                if (csvLines.Length <= 1) // Header only or empty
-                {
-                    _consoleForm.WriteWarning("Computer List file is empty or contains only headers.");
-                    return;
-                }
-
-                // Parse CSV data and filter for Linux servers
-                for (int i = 1; i < csvLines.Length; i++)
-                {
-                    string line = csvLines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 2)
+                    if (entry.Type.Equals("Linux", StringComparison.OrdinalIgnoreCase) ||
+                        entry.Type.Equals("CriticalLinux", StringComparison.OrdinalIgnoreCase))
                     {
-                        string computerName = columns[0].Trim().Trim('"');
-                        string type = columns[1].Trim().Trim('"');
-
-                        // Add only Linux and CriticalLinux servers
-                        if (type.Equals("Linux", StringComparison.OrdinalIgnoreCase) ||
-                            type.Equals("CriticalLinux", StringComparison.OrdinalIgnoreCase))
-                        {
-                            cbxServerSelection.Items.Add(computerName);
-                        }
+                        cbxServerSelection.Items.Add(entry.Computername);
                     }
                 }
 
-                // Set default selection
                 if (cbxServerSelection.Items.Count > 0)
                 {
                     cbxServerSelection.SelectedIndex = 0;
@@ -5102,47 +4854,6 @@ namespace SA_ToolBelt
         }
 
 
-        // Save OU configuration to CSV
-        private void SaveOUConfigurationToCSV()
-        {
-            try
-            {
-                _consoleForm.WriteInfo("Saving OU configuration to CSV file...");
-
-                var csvContent = new StringBuilder();
-                csvContent.AppendLine("ou,middleName,keyWord"); // ADD keyWord COLUMN
-
-                // Collect all OUs from CheckedListBoxes using dynamic extraction
-                AddOUsFromCheckedListBox(csvContent, cbxListWorkStationOu);
-                AddOUsFromCheckedListBox(csvContent, cbxListPatriotParkOu);
-                AddOUsFromCheckedListBox(csvContent, cbxListWindowsServersOu);
-                AddOUsFromCheckedListBox(csvContent, cbxListSecurityGroupsOu); // ADD THIS LINE
-
-                // Write to file
-                File.WriteAllText(OU_CONFIG_FILE_PATH, csvContent.ToString());
-
-                _consoleForm.WriteSuccess($"OU configuration saved to: {OU_CONFIG_FILE_PATH}");
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error saving OU configuration to CSV: {ex.Message}");
-            }
-        }
-
-        // Helper method to add OUs from a CheckedListBox to CSV content
-        private void AddOUsFromCheckedListBox(StringBuilder csvContent, CheckedListBox checkedListBox)
-        {
-            // Extract middleName dynamically from control name
-            string middleName = GetMiddleNameFromControlName(checkedListBox.Name);
-
-            foreach (string ou in checkedListBox.Items)
-            {
-                // Escape CSV field if needed
-                string escapedOU = EscapeCSVField(ou);
-                csvContent.AppendLine($"{escapedOU},{middleName},"); // ADD EMPTY keyWord COLUMN
-            }
-        }
-
         // Show native Windows OU selection dialog
         private string ShowOUSelectionDialog(string categoryName)
         {
@@ -5271,8 +4982,8 @@ namespace SA_ToolBelt
                     // Add to CheckedListBox
                     targetCheckedListBox.Items.Add(selectedOU, false);
 
-                    // Save to CSV
-                    SaveOUConfigurationToCSV();
+                    // Save to database
+                    SaveOUConfigurationToDB();
 
                     _consoleForm.WriteSuccess($"Added OU to {middleName}: {selectedOU}");
                 }
@@ -5303,8 +5014,8 @@ namespace SA_ToolBelt
                     // Add to CheckedListBox
                     targetCheckedListBox.Items.Add(selectedOU, false);
 
-                    // Save to CSV
-                    SaveOUConfigurationToCSV();
+                    // Save to database
+                    SaveOUConfigurationToDB();
 
                     _consoleForm.WriteSuccess($"Added OU to {middleName}: {selectedOU}");
                 }
@@ -5355,8 +5066,8 @@ namespace SA_ToolBelt
 
                 if (totalRemoved > 0)
                 {
-                    // Save updated configuration to CSV
-                    SaveOUConfigurationToCSV();
+                    // Save updated configuration to database
+                    SaveOUConfigurationToDB();
                     _consoleForm.WriteSuccess($"Removed {totalRemoved} selected OUs from configuration.");
                 }
                 else
@@ -5442,21 +5153,6 @@ namespace SA_ToolBelt
             }
         }
 
-        // Helper method to add computers from a CheckedListBox to CSV content
-        private void AddComputersFromCheckedListBox(StringBuilder csvContent, CheckedListBox checkedListBox, string type)
-        {
-            foreach (string computerName in checkedListBox.Items)
-            {
-                // Escape CSV fields if needed
-                string escapedComputerName = EscapeCSVField(computerName);
-                string escapedType = EscapeCSVField(type);
-                string vmware = EscapeCSVField("N/A"); // Default value
-                string instructions = EscapeCSVField("Added via Configuration"); // Default value
-
-                csvContent.AppendLine($"{escapedComputerName},{escapedType},{vmware},{instructions}");
-            }
-        }
-
         // Generic method to add computer to list
         private void AddComputerToList(System.Windows.Forms.TextBox sourceTextBox, CheckedListBox targetCheckedListBox, string computerType)
         {
@@ -5484,8 +5180,8 @@ namespace SA_ToolBelt
                 // Clear the textbox
                 sourceTextBox.Clear();
 
-                // Save to CSV
-                SaveComputerListToCSV();
+                // Save to database
+                SaveComputerListToDB();
 
                 _consoleForm.WriteSuccess($"Added computer to {computerType}: {computerName}");
             }
@@ -5579,8 +5275,8 @@ namespace SA_ToolBelt
 
                 if (totalRemoved > 0)
                 {
-                    // Save updated configuration to CSV
-                    SaveComputerListToCSV();
+                    // Save updated configuration to database
+                    SaveComputerListToDB();
                     _consoleForm.WriteSuccess($"Removed {totalRemoved} selected computers from configuration.");
                 }
                 else
@@ -5660,38 +5356,26 @@ namespace SA_ToolBelt
             {
                 _consoleForm?.WriteInfo($"Saving security group filter keyword: {keyword}");
 
-                if (!File.Exists(OU_CONFIG_FILE_PATH))
-                {
-                    _consoleForm?.WriteError("OU configuration file not found. Creating new file...");
-                    CreateOUConfigurationCSV();
-                }
+                // Load current OU config, update/add sgfilter entry, save back
+                var entries = _databaseService.LoadOUConfiguration();
 
-                var lines = File.ReadAllLines(OU_CONFIG_FILE_PATH).ToList();
-                bool keywordLineExists = false;
-
-                // Look for existing sgfilter line and update it
-                for (int i = 1; i < lines.Count; i++)
+                bool found = false;
+                for (int i = 0; i < entries.Count; i++)
                 {
-                    string[] columns = ParseCSVLine(lines[i]);
-                    if (columns.Length >= 2 && columns[1].Trim().Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
+                    if (entries[i].MiddleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Update existing line
-                        lines[i] = $"NA,sgfilter,{EscapeCSVField(keyword)}";
-                        keywordLineExists = true;
-                        _consoleForm?.WriteInfo("Updated existing security group filter keyword");
+                        entries[i] = new OUConfigEntry { OU = "NA", MiddleName = "sgfilter", Keyword = keyword };
+                        found = true;
                         break;
                     }
                 }
 
-                // If no sgfilter line exists, add it
-                if (!keywordLineExists)
+                if (!found)
                 {
-                    lines.Add($"NA,sgfilter,{EscapeCSVField(keyword)}");
-                    _consoleForm?.WriteInfo("Added new security group filter keyword");
+                    entries.Add(new OUConfigEntry { OU = "NA", MiddleName = "sgfilter", Keyword = keyword });
                 }
 
-                // Write back to file
-                File.WriteAllLines(OU_CONFIG_FILE_PATH, lines);
+                _databaseService.SaveOUConfiguration(entries);
                 _consoleForm?.WriteSuccess($"Security group filter keyword saved: {keyword}");
             }
             catch (Exception ex)
@@ -5701,47 +5385,27 @@ namespace SA_ToolBelt
             }
         }
 
-        /// <summary>
-        /// Get the security group filter keyword from ouConfiguration.csv
-        /// </summary>
         private string GetSecurityGroupKeyword()
         {
             try
             {
-                if (!File.Exists(OU_CONFIG_FILE_PATH))
+                var entries = _databaseService.LoadOUConfiguration();
+
+                foreach (var entry in entries)
                 {
-                    _consoleForm?.WriteWarning($"OU configuration file not found: {OU_CONFIG_FILE_PATH}");
-                    return null;
-                }
-
-                string[] lines = File.ReadAllLines(OU_CONFIG_FILE_PATH);
-
-                // Skip header, look for sgfilter middleName
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    string line = lines[i].Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-
-                    string[] columns = ParseCSVLine(line);
-                    if (columns.Length >= 3)
+                    if (entry.MiddleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
                     {
-                        string middleName = columns[1].Trim().Trim('"');
-
-                        if (middleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
-                        {
-                            string keyword = columns[2].Trim().Trim('"');
-                            _consoleForm?.WriteInfo($"Found security group filter keyword: {keyword}");
-                            return keyword;
-                        }
+                        _consoleForm?.WriteInfo($"Found security group filter keyword: {entry.Keyword}");
+                        return entry.Keyword;
                     }
                 }
 
-                _consoleForm?.WriteInfo("No security group filter keyword found in configuration.");
+                _consoleForm?.WriteInfo("No security group filter keyword found in database.");
                 return null;
             }
             catch (Exception ex)
             {
-                _consoleForm?.WriteError($"Error reading security group keyword from config: {ex.Message}");
+                _consoleForm?.WriteError($"Error reading security group keyword from database: {ex.Message}");
                 return null;
             }
         }
@@ -5891,24 +5555,24 @@ namespace SA_ToolBelt
         {
             try
             {
-                _consoleForm.WriteInfo("Loading critical systems from CSV configuration...");
+                _consoleForm.WriteInfo("Loading critical systems from configuration...");
 
-                // Load Critical Windows from CSV-based CheckedListBox
+                // Load Critical Windows from CheckedListBox
                 await LoadComputersFromCheckedListBoxToListBoxAsync(cbxCriticalWindowsList, lbxCriticalWindows, "Critical Windows");
 
-                // Load Critical NAS from CSV-based CheckedListBox
+                // Load Critical NAS from CheckedListBox
                 await LoadComputersFromCheckedListBoxToListBoxAsync(cbxCriticalNasList, lbxCriticalNas, "Critical NAS");
 
-                // Load Critical Linux from CSV-based CheckedListBox
+                // Load Critical Linux from CheckedListBox
                 await LoadComputersFromCheckedListBoxToListBoxAsync(cbxCriticalLinuxList, lbxCriticalLinux, "Critical Linux");
 
-                // Load Office Exempt from CSV-based CheckedListBox
+                // Load Office Exempt from CheckedListBox
                 await LoadComputersFromCheckedListBoxToListBoxAsync(cbxOfficeExemptList, lbxOfficeExempt, "Office Exempt");
 
-                // Load regular Linux from CSV-based CheckedListBox
+                // Load regular Linux from CheckedListBox
                 await LoadComputersFromCheckedListBoxToListBoxAsync(cbxLinuxList, lbxLinux, "Linux");
 
-                _consoleForm.WriteSuccess("Critical systems configuration loaded from CSV");
+                _consoleForm.WriteSuccess("Critical systems configuration loaded.");
             }
             catch (Exception ex)
             {
@@ -5922,7 +5586,7 @@ namespace SA_ToolBelt
             {
                 if (sourceCheckedListBox.Items.Count == 0)
                 {
-                    _consoleForm.WriteInfo($"No computers configured for {categoryName} category in CSV");
+                    _consoleForm.WriteInfo($"No computers configured for {categoryName} category.");
                     return;
                 }
 
@@ -5939,7 +5603,7 @@ namespace SA_ToolBelt
                     });
                 });
 
-                _consoleForm.WriteSuccess($"Loaded {sourceCheckedListBox.Items.Count} computers for {categoryName} from CSV configuration");
+                _consoleForm.WriteSuccess($"Loaded {sourceCheckedListBox.Items.Count} computers for {categoryName}.");
             }
             catch (Exception ex)
             {

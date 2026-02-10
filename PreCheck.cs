@@ -63,19 +63,20 @@ namespace SA_ToolBelt
                     return InitResult.RegistryExistsButDbMissing;
                 }
 
-                // DB exists - verify it has valid config
+                // DB file exists - verify if it has valid config and log accordingly
                 var dbService = new DatabaseService(_consoleForm);
                 var config = dbService.LoadToolbeltConfig();
 
                 if (config != null && !string.IsNullOrEmpty(config.VCenterServer))
                 {
                     _consoleForm.WriteSuccess($"Database found and loaded from: {dbPath}");
-                    return InitResult.DatabaseFound;
+                }
+                else
+                {
+                    _consoleForm.WriteWarning("Database exists but contains no valid configuration.");
                 }
 
-                // DB exists but is empty/invalid - treat as first-time setup
-                _consoleForm.WriteWarning("Database exists but contains no valid configuration.");
-                return InitResult.NoRegistryKey;
+                return InitResult.DatabaseFound;
             }
             catch (Exception ex)
             {
