@@ -1386,51 +1386,23 @@ namespace SA_ToolBelt
         #region Application Button Events
         private void btnLogout_Click(object sender, EventArgs e)
         {
-            try
-            {
-                // Get the selected security group from cbxDefaultSecurityGroups
-                string selectedSecurityGroup = null;
-                foreach (int checkedIndex in cbxDefaultSecurityGroups.CheckedIndices)
-                {
-                    selectedSecurityGroup = cbxDefaultSecurityGroups.Items[checkedIndex].ToString();
-                    break; // Only get first checked item
-                }
+            // Clear stored credentials
+            CredentialManager.ClearCredentials();
+            _loggedInUsername = string.Empty;
 
-                if (string.IsNullOrEmpty(selectedSecurityGroup))
-                {
-                    MessageBox.Show("Please select a security group first.", "No Selection",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+            // Clear login fields
+            txtUsername.Clear();
+            txtPassword.Clear();
 
-                _consoleForm?.WriteInfo($"Retrieving notes for security group: {selectedSecurityGroup}");
+            // Return to login state
+            HideAllTabsExceptLogin();
+            HideControlsAtStartUp();
 
-                // Get the Notes field from the group
-                string notes = _adService.GetGroupNotes(selectedSecurityGroup);
+            // Ensure login button is ready
+            btnLogin.Enabled = true;
+            btnLogin.Text = "Login";
 
-                if (!string.IsNullOrEmpty(notes))
-                {
-                    MessageBox.Show($"Notes for '{selectedSecurityGroup}':\n\n{notes}",
-                        "Security Group Notes",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    _consoleForm?.WriteSuccess($"Retrieved notes for group: {selectedSecurityGroup}");
-                }
-                else
-                {
-                    MessageBox.Show($"No notes found for security group: {selectedSecurityGroup}",
-                        "No Notes",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    _consoleForm?.WriteInfo($"No notes found for group: {selectedSecurityGroup}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _consoleForm?.WriteError($"Error retrieving group notes: {ex.Message}");
-                MessageBox.Show($"Error: {ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            _consoleForm?.WriteInfo("User logged out successfully.");
         }
 
         #endregion
