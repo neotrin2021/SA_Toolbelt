@@ -4298,7 +4298,7 @@ namespace SA_ToolBelt
             {
                 _consoleForm.WriteInfo("Saving Computer List to database...");
 
-                var entries = new List<DatabaseService.ComputerListEntry>();
+                var entries = new List<ComputerListEntry>();
 
                 CollectComputersFromCheckedListBox(entries, cbxLinuxList, "Linux");
                 CollectComputersFromCheckedListBox(entries, cbxCriticalLinuxList, "CriticalLinux");
@@ -4315,11 +4315,11 @@ namespace SA_ToolBelt
             }
         }
 
-        private void CollectComputersFromCheckedListBox(List<DatabaseService.ComputerListEntry> entries, CheckedListBox checkedListBox, string type)
+        private void CollectComputersFromCheckedListBox(List<ComputerListEntry> entries, CheckedListBox checkedListBox, string type)
         {
             foreach (string computerName in checkedListBox.Items)
             {
-                entries.Add(new DatabaseService.ComputerListEntry
+                entries.Add(new ComputerListEntry
                 {
                     Computername = computerName,
                     Type = type,
@@ -4335,7 +4335,7 @@ namespace SA_ToolBelt
             {
                 _consoleForm.WriteInfo("Saving OU configuration to database...");
 
-                var entries = new List<DatabaseService.OUConfigEntry>();
+                var entries = new List<OUConfigEntry>();
 
                 CollectOUsFromCheckedListBox(entries, cbxListWorkStationOu);
                 CollectOUsFromCheckedListBox(entries, cbxListPatriotParkOu);
@@ -4346,7 +4346,7 @@ namespace SA_ToolBelt
                 string keyword = txbSecurityGroupKW.Text.Trim();
                 if (!string.IsNullOrEmpty(keyword))
                 {
-                    entries.Add(new DatabaseService.OUConfigEntry
+                    entries.Add(new OUConfigEntry
                     {
                         OU = "NA",
                         MiddleName = "sgfilter",
@@ -4363,13 +4363,13 @@ namespace SA_ToolBelt
             }
         }
 
-        private void CollectOUsFromCheckedListBox(List<DatabaseService.OUConfigEntry> entries, CheckedListBox checkedListBox)
+        private void CollectOUsFromCheckedListBox(List<OUConfigEntry> entries, CheckedListBox checkedListBox)
         {
             string middleName = GetMiddleNameFromControlName(checkedListBox.Name);
 
             foreach (string ou in checkedListBox.Items)
             {
-                entries.Add(new DatabaseService.OUConfigEntry
+                entries.Add(new OUConfigEntry
                 {
                     OU = ou,
                     MiddleName = middleName,
@@ -4565,7 +4565,7 @@ namespace SA_ToolBelt
                 }
 
                 // Save to database
-                var entries = instances.Select(kvp => new DatabaseService.LogConfigEntry
+                var entries = instances.Select(kvp => new LogConfigEntry
                 {
                     Server = kvp.Key,
                     ServerInstance = kvp.Value
@@ -5392,7 +5392,7 @@ namespace SA_ToolBelt
                 {
                     if (entries[i].MiddleName.Equals("sgfilter", StringComparison.OrdinalIgnoreCase))
                     {
-                        entries[i] = new DatabaseService.OUConfigEntry { OU = "NA", MiddleName = "sgfilter", Keyword = keyword };
+                        entries[i] = new OUConfigEntry { OU = "NA", MiddleName = "sgfilter", Keyword = keyword };
                         found = true;
                         break;
                     }
@@ -5400,7 +5400,7 @@ namespace SA_ToolBelt
 
                 if (!found)
                 {
-                    entries.Add(new DatabaseService.OUConfigEntry { OU = "NA", MiddleName = "sgfilter", Keyword = keyword });
+                    entries.Add(new OUConfigEntry { OU = "NA", MiddleName = "sgfilter", Keyword = keyword });
                 }
 
                 _databaseService.SaveOUConfiguration(entries);
