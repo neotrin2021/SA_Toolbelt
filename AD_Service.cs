@@ -15,13 +15,26 @@ namespace SA_ToolBelt
         private readonly string _domainController;
         private readonly ConsoleForm _consoleForm;
 
-        // Add these excluded OU paths
-        private readonly HashSet<string> _excludedOUs = new HashSet<string>
+        // Excluded OU paths - loaded from database at startup, with hardcoded defaults as fallback
+        private HashSet<string> _excludedOUs = new HashSet<string>
         {
             "spectre.afspc.af.smil.mil/Users",
             "spectre.afspc.af.smil.mil/spectre/people/MGMT USERS",
             "spectre.afspc.af.smil.mil/spectre/people/Disabled Users"
         };
+
+        /// <summary>
+        /// Replaces the excluded OUs with values loaded from the database.
+        /// Called from SA_ToolBelt after reading the Toolbelt_Config table.
+        /// </summary>
+        public void SetExcludedOUs(HashSet<string> excludedOUs)
+        {
+            if (excludedOUs != null && excludedOUs.Count > 0)
+            {
+                _excludedOUs = excludedOUs;
+                _consoleForm?.WriteInfo($"Excluded OUs updated from database: {excludedOUs.Count} entries.");
+            }
+        }
 
         public AD_Service(ConsoleForm consoleForm = null, string? domain = null, string? domainController = null)
         {
@@ -1046,8 +1059,73 @@ namespace SA_ToolBelt
         }
         /*
          * The above code is needed by AddGroupsForm.cs
-         * 
+         *
          */
+        /// <summary>
+        /// Disables a user account, updates the description, and moves the user to the specified OU.
+        /// All operations performed through Active Directory.
+        /// </summary>
+        public bool DisableAndMoveUser(string username, string description, string targetOU)
+        {
+            try
+            {
+                _consoleForm?.WriteInfo($"Starting AD disable process for user: {username}");
+
+                using (var context = new PrincipalContext(ContextType.Domain, _domain))
+                using (var user = UserPrincipal.FindByIdentity(context, username))
+                {
+                    if (user == null)
+                    {
+                        _consoleForm?.WriteError($"User not found in AD: {username}");
+                        return false;
+                    }
+
+                    // Check if already disabled
+                    if (user.Enabled.HasValue && !user.Enabled.Value)
+                    {
+                        _consoleForm?.WriteWarning($"User {username} is already disabled.");
+                        return false;
+                    }
+
+                    // Disable the account
+                    user.Enabled = false;
+                    user.Description = description;
+                    user.Save();
+                    _consoleForm?.WriteSuccess($"Account disabled and description updated for: {username}");
+
+                    // Move to target OU
+                    if (!string.IsNullOrEmpty(targetOU))
+                    {
+                        try
+                        {
+                            var userEntry = user.GetUnderlyingObject() as System.DirectoryServices.DirectoryEntry;
+                            if (userEntry != null)
+                            {
+                                using (var targetOUEntry = new System.DirectoryServices.DirectoryEntry($"LDAP://{targetOU}"))
+                                {
+                                    userEntry.MoveTo(targetOUEntry);
+                                    userEntry.CommitChanges();
+                                    _consoleForm?.WriteSuccess($"User {username} moved to Disabled Users OU.");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _consoleForm?.WriteError($"Account disabled but failed to move to Disabled Users OU: {ex.Message}");
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Error disabling user {username}: {ex.Message}");
+                throw new Exception($"Error disabling user: {ex.Message}", ex);
+            }
+        }
+
         /// <summary>
         /// Remove user from all security groups (except Domain Users) and add to pending_removal group
         /// </summary>

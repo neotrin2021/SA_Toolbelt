@@ -24,6 +24,7 @@
     <PackageReference Include="System.Management.Automation" Version="7.4.6" />
     <PackageReference Include="System.Management.dll" Version="1.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
