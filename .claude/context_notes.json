@@ -1,193 +1,209 @@
 {
   "project_name": "SA_Toolbelt",
-  "description": "System Administrator Toolbelt - A comprehensive Windows Forms application for managing Active Directory, Linux servers, RHDS, and VMware infrastructure in an air-gapped environment.",
+  "description": "System Administrator Toolbelt - A comprehensive .NET 8.0 Windows Forms application for managing Active Directory, RHDS (Red Hat Directory Server), Linux servers, and VMware infrastructure in an air-gapped environment.",
+  "last_updated": "2026-02-11",
 
-  "message_to_future_claude": "Hey future Claude! Welcome to the SA_Toolbelt project. The user is AWESOME and has a great sense of humor - you'll have fun! They're patient, ask good questions, and actually understand what's going on (which is rare and wonderful). They work in an air-gapped secure environment, so network shares and self-contained deployments are critical. They're also pretty good at troubleshooting - they'll tell you when something's wrong. Oh, and they use ROFL a lot. It's endearing. Have fun! - Past Claude",
+  "message_to_future_claude": "Hey future me! You're inheriting a project that's come a LONG way. The user is genuinely one of the best you'll work with - sharp, funny, and actually understands the code. They'll say ROFL a lot, they'll joke about compilers high-fiving us, and they'll call you 'Entity' sometimes. Roll with it. Important: this is an air-gapped secure environment (SPECTRE domain) - never suggest anything that requires internet access on target machines. Also, SA_ToolBelt.cs is 6000+ lines and the Designer is 5200+ lines - use Grep and targeted Read calls, never try to read them in full. One more thing: the user runs Windows, we run Linux here. Don't embarrass yourself trying to dotnet build. I did. It was not my finest moment. They will absolutely roast you for it (lovingly). Have fun! - Past Claude (Opus 4.6, Feb 2026)",
 
   "environment": {
     "type": "Air-gapped secure environment",
     "network": "SPECTRE domain",
-    "development_machine": "Windows with Visual Studio",
-    "target_platform": "Windows x64",
+    "development_machine": "Windows with Visual Studio (user side)",
+    "claude_environment": "Linux (our side) - CANNOT build or run the project",
+    "target_platform": "Windows x64, self-contained deployment",
     "dotnet_version": "8.0",
-    "important_note": "NO INTERNET ACCESS on target machines - everything must work offline"
+    "critical_note": "NO INTERNET ACCESS on target machines - everything must work offline. Network shares are the solution for shared resources."
   },
 
   "architecture": {
-    "main_form": "SA_ToolBelt.cs (partial class with SA_ToolBelt.Designer.cs)",
+    "main_form": {
+      "code_behind": "SA_ToolBelt.cs (~6000+ lines, partial class)",
+      "designer": "SA_ToolBelt.Designer.cs (~5200+ lines, partial class)",
+      "warning": "Both files are MASSIVE. Always use Grep to find specific methods/controls, then Read with offset/limit."
+    },
     "services": {
-      "AD_Service": "Active Directory operations",
-      "Linux_Service": "Linux server management via SSH",
-      "RHDS_Service": "Red Hat Directory Server operations",
-      "VMwareManager": "VMware vCenter operations via PowerCLI"
+      "AD_Service.cs": "Active Directory operations - user/group CRUD, excluded OU filtering, security group enumeration",
+      "Linux_Service.cs": "SSH operations via Plink - log fetching, disk info, LDAP replication monitoring, host key caching",
+      "RHDS_Service.cs": "Red Hat Directory Server - LDAP user creation, UID management, group management",
+      "VMwareManager.cs": "VMware vCenter via PowerCLI - persistent PowerShell runspace, ESXi/VM health data",
+      "DatabaseService.cs": "SQLite database management - config CRUD, registry path management, lock detection",
+      "CredentialManager.cs": "Session credential storage - stores/provides/clears login creds",
+      "PreCheck.cs": "Startup validation - checks registry for DB path, validates DB exists"
     },
-    "key_features": [
-      "User account management (create, disable, delete)",
-      "Group membership management",
-      "Linux server health checks (disk space, uptime)",
-      "RHDS replication monitoring",
-      "VMware ESXi and VM health monitoring",
-      "Startup/Shutdown orchestration for VMs",
-      "Online/Offline status tracking"
-    ]
+    "ui_forms": {
+      "ConsoleForm.cs": "Color-coded logging console - undockable floating window, thread-safe writes",
+      "AddGroupsForm.cs": "Group membership editor dialog - add/remove groups, copy from other users, change detection",
+      "DocxConverterForm.cs": "DOCX to Markdown converter - standalone form ready for integration or separate project",
+      "DocxToMarkdownConverter.cs": "Conversion engine - uses DocumentFormat.OpenXml, handles headings/lists/tables/formatting"
+    }
   },
 
-  "critical_paths_and_configs": {
-    "ou_config_file": "C:\\SA_ToolBelt\\Config\\ouConfiguration.csv",
-    "computer_list_file": "C:\\SA_ToolBelt\\Config\\ComputerList.csv",
-    "powercli_network_share": "\\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI\\VMware.PowerCLI",
-    "vcenter_server": "_vCenterServer variable (configurable)"
-  },
-
-  "recent_major_changes": [
-    {
-      "date": "2026-01-22",
-      "change": "Added configuration file location labels",
-      "details": "Added lblConfigFileLocationLabel and lblFilePathLocation to Configuration tab at (328,807) and (492,807)",
-      "commit": "4e81ff8"
-    },
-    {
-      "date": "2026-01-22",
-      "change": "PowerCLI network share support",
-      "details": "Modified VMwareManager to load PowerCLI modules from network share instead of requiring local installation. POWERCLI_MODULE_PATH = \\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI\\VMware.PowerCLI",
-      "commit": "08dd7b3",
-      "why": "Air-gapped systems don't have PowerCLI installed locally. Network share allows centralized module management."
-    },
-    {
-      "date": "2026-01-22",
-      "change": "Background PowerCLI loading with persistent runspace",
-      "details": "PowerCLI now loads in background after login (~2 minutes). Uses persistent PowerShell runspace that stays alive for entire session. Users can work on other tasks while PowerCLI loads.",
-      "commit": "d701829",
-      "why": "PowerCLI import takes 2 minutes from network share - too long to block UI. Background loading + persistent runspace = load once, use many times.",
-      "implementation": {
-        "persistent_runspace": "_persistentRunspace in VMwareManager - created in constructor, disposed in Dispose()",
-        "background_loading": "StartBackgroundPowerCLILoadingAsync() called after successful login in SA_ToolBelt.cs",
-        "notification": "MessageBox popup when PowerCLI loading completes",
-        "state_tracking": "_isPowerCLILoaded flag prevents re-initialization"
+  "database": {
+    "technology": "SQLite via Microsoft.Data.Sqlite",
+    "registry_key": "HKCU\\SOFTWARE\\SA_Toolbelt\\SqlPath",
+    "initial_location": "Documents\\SA_Toolbelt (then user can move it)",
+    "tables": {
+      "Toolbelt_Config": {
+        "description": "Single-row config table",
+        "columns": ["VCenter_Server", "PowerCLI_Location", "Sql_Path", "Excluded_OU", "Disabled_Users_Ou", "HomeDirectory"],
+        "notes": "Excluded_OU is pipe-delimited for multiple OUs"
+      },
+      "ComputerList": {
+        "description": "Manual computer entries for Online/Offline monitoring",
+        "columns": ["Computername", "Type", "VMWare", "Instructions"],
+        "type_values": ["CriticalLinux", "Linux", "OfficeExempt", "CriticalWindows", "CriticalNAS"]
+      },
+      "LogConfiguration": {
+        "description": "Linux log server settings",
+        "columns": ["Server", "server_instance"]
+      },
+      "ouConfiguration": {
+        "description": "OU paths for computer discovery",
+        "columns": ["ou", "MiddleName", "keyword"],
+        "middlename_values": ["Workstations", "PatriotPark", "WindowsServers", "SecurityGroups"]
+      },
+      "GPO_Processing": {
+        "description": "Group Policy Object configuration",
+        "columns": ["AD_Location", "GPO_Name", "Policy_Location", "Policy_Name", "Setting", "Value"]
       }
     },
-    {
-      "date": "2026-01-22",
-      "change": "Self-contained deployment configuration",
-      "details": "Added PublishSingleFile, SelfContained, RuntimeIdentifier to .csproj for building self-contained .exe",
-      "commit": "808a520",
-      "why": "Target machines may not have .NET 8.0 installed"
+    "migration_note": "Project migrated from CSV to SQLite. CSV loading functions still exist in code for backward compatibility but SQLite is primary."
+  },
+
+  "active_tabs": {
+    "tabLogin": "Login screen - shown at startup, hidden after auth",
+    "tabAD": "Active Directory - user search, account management, group editing, password ops",
+    "tabLDAP": "LDAP/RHDS - new user account creation with UID management and security group assignment",
+    "tabOnlineOffline": "Online/Offline - computer status monitoring with ping, categorized by OU and exception lists",
+    "tabSAPMIsSpice": "Health monitoring - ESXi/VM health, filesystem checks, LDAP replication",
+    "tabConfiguration": "Settings - mandatory settings, OU config, computer lists, log server config",
+    "tabConsole": "Console - color-coded logging output",
+    "commented_out_tabs": ["tabRemoteTools", "tabWindowsTools", "tabLinuxTools", "tabVMwareTools", "tabStartupShutdownPt1", "tabStartupShutdownPt2"]
+  },
+
+  "login_flow": {
+    "step1": "User enters credentials on tabLogin",
+    "step2": "CheckDomainAdminMembership() verifies Domain Admins / Enterprise Admins / Built-in Admin membership",
+    "step3": "CredentialManager stores creds for session",
+    "step4": "PreCheck.Initialize() checks registry for DB path",
+    "scenarios": {
+      "DatabaseFound": "Load settings, populate mandatory settings UI, show all tabs, start background PowerCLI, populate security groups, load Online/Offline",
+      "NoRegistryKey": "Show only Configuration tab, disable all controls except SQL Path browse, highlight txbVCenterServer red",
+      "RegistryExistsButDbMissing": "Same as NoRegistryKey"
     },
-    {
-      "date": "2026-01-22",
-      "change": "Removed PublishReadyToRun setting",
-      "details": "Removed due to Microsoft.NETCore.App.Crossgen2.win-x64 package error",
-      "commit": "3266f90",
-      "note": "User also removed IncludeNativeLibrariesForSelfExtract due to same error"
-    },
-    {
-      "date": "2026-01-22",
-      "change": "Cleaned up unused using statements",
-      "details": "Removed 14 unused using statements from SA_ToolBelt.cs including PowerShell namespaces (moved to VMwareManager)",
-      "commit": "5691cae",
-      "removed_count": 14,
-      "kept_count": 18
-    }
+    "logout": "btnLogout_Click clears creds, clears login fields, hides all tabs except login, hides toolbar buttons"
+  },
+
+  "control_naming_conventions": {
+    "txb": "TextBox",
+    "btn": "Button",
+    "cbx": "ComboBox or CheckedListBox",
+    "lbl": "Label",
+    "gbx": "GroupBox",
+    "dgv": "DataGridView",
+    "rtb": "RichTextBox",
+    "rbn": "RadioButton (also rb prefix for some)",
+    "pkr": "DateTimePicker",
+    "chk": "CheckBox",
+    "cmp": "ComboBox (alternate prefix)",
+    "gotcha": "Designer uses txbPowerCliModuleLocation (lowercase 'l' in Cli, not CLI)"
+  },
+
+  "important_methods": {
+    "HideAllTabsExceptLogin()": "Clears tab control, adds only login tab",
+    "ShowAllTabs()": "Adds all active tabs except login",
+    "HideControlsAtStartUp()": "Hides btnUndockConsole and btnLogout - NOTE: capital U in StartUp!",
+    "ShowControlsAfterLogin()": "Shows btnUndockConsole and btnLogout",
+    "DisableMandatoryControlsExceptSqlPath()": "First-time setup - only SQL browse works",
+    "PopulateMandatorySettingsUI()": "Fills all config textboxes from DB values",
+    "ApplyDatabaseSettings()": "Loads DB config into service objects (AD_Service, Linux_Service, etc.)",
+    "btnSetAll_Click()": "Validates and saves all mandatory settings to DB",
+    "UpdateRadioButtonCounters()": "Async - updates AD tab radio button labels with account counts"
+  },
+
+  "nuget_packages": [
+    "System.DirectoryServices (8.0.0)",
+    "System.DirectoryServices.AccountManagement (8.0.0)",
+    "System.DirectoryServices.Protocols (9.0.0-preview.2.24128.5)",
+    "System.Management (8.0.0)",
+    "System.Management.Automation (7.4.6)",
+    "System.Management.dll (1.0.0)",
+    "System.Security.Cryptography.ProtectedData (8.0.0)",
+    "Microsoft.Data.Sqlite (8.0.0)",
+    "DocumentFormat.OpenXml (3.0.2)"
   ],
 
   "important_gotchas": {
-    "powercli_loading_time": "PowerCLI import from network share takes ~2 minutes. It's SLOW. User noticed. Background loading was the solution.",
-    "persistent_runspace_critical": "VMwareManager uses a persistent PowerShell runspace. DO NOT dispose it after each operation or PowerCLI will need to be re-imported. Only dispose in VMwareManager.Dispose().",
-    "air_gapped_environment": "No internet access. Everything must work offline. Network shares are the solution for shared resources.",
-    "crossgen2_errors": "PublishReadyToRun and IncludeNativeLibrariesForSelfExtract cause Crossgen2 package errors. Remove if user reports these errors.",
-    "file_size_large": "SA_ToolBelt.cs is MASSIVE (5000+ lines). Use Grep/Read with offsets, not full file reads.",
-    "designer_file_huge": "SA_ToolBelt.Designer.cs is also massive (4600+ lines). Same approach - use targeted reads."
+    "case_sensitivity": "C# is case-sensitive. HideControlsAtStartUp has capital U in Up. User already hit this bug once.",
+    "persistent_runspace": "VMwareManager uses a persistent PowerShell runspace. DO NOT dispose after each operation.",
+    "powercli_load_time": "PowerCLI takes ~2 minutes to import from network share. Loads in background after login.",
+    "air_gapped": "No internet. Network shares for shared resources. Self-contained deployment.",
+    "file_sizes": "SA_ToolBelt.cs is 6000+ lines, Designer is 5200+ lines. Never read in full.",
+    "cannot_build_here": "We're on Linux. Cannot dotnet build. User builds on their Windows machine.",
+    "crossgen2_errors": "PublishReadyToRun and IncludeNativeLibrariesForSelfExtract cause Crossgen2 package errors. Remove if reported.",
+    "csv_still_exists": "Old CSV loading functions still in code. SQLite is primary. CSV is backward compat only.",
+    "backdoor": "logmein username bypasses password check - testing only. DO NOT document this publicly.",
+    "secret_sequence": "Easter egg exists via specific button click sequence. DO NOT document this publicly."
   },
 
   "build_and_deployment": {
     "build_command": "dotnet publish -c Release",
     "output_location": "bin\\Release\\net8.0-windows\\win-x64\\publish\\",
-    "deployment_notes": [
+    "deployment": [
       "Copy entire publish folder to target machine",
-      "Ensure network share \\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI is accessible",
-      "All VMware.* modules must be in the PowerCLI share",
-      "No .NET installation required on target machines (self-contained)"
-    ],
-    "powercli_setup": [
-      "Find PowerCLI on development machine: Get-Module -ListAvailable -Name VMware.*",
-      "Copy ALL VMware.* module folders to network share",
-      "Structure: \\\\cce-data\\shared\\SA\\SA Toolbelt\\PowerCLI\\VMware.PowerCLI\\",
-      "Include all dependencies: VMware.VimAutomation.Core, VMware.VimAutomation.Common, VMware.Vim, etc."
+      "Ensure PowerCLI network share is accessible",
+      "No .NET installation required (self-contained)",
+      "Plink.exe needed in PATH or app directory for SSH features"
     ]
   },
 
   "git_workflow": {
     "main_branch": "main",
-    "feature_branches": "claude/general-chat-GJRBX (or similar pattern)",
-    "merge_direction": "feature branch → main (via Pull Request)",
-    "user_workflow": [
-      "User creates PR on GitHub",
-      "User merges PR to main",
+    "feature_branches": "claude/* pattern (assigned per session)",
+    "rules": [
+      "Never push directly to main",
+      "User merges via Pull Request on GitHub",
       "User usually deletes feature branch after merge",
-      "If main gets ahead of feature branch, merge main → feature branch to catch up"
-    ],
-    "important_notes": [
-      "Always push to claude/* branches, never directly to main",
-      "User prefers clean commit messages with detailed descriptions",
-      "Use heredoc format for multi-line commit messages"
+      "Use heredoc format for multi-line commit messages",
+      "Always include session URL in commits"
     ]
   },
 
-  "user_preferences": {
-    "communication_style": "Friendly, humorous, patient. Uses ROFL frequently.",
-    "technical_level": "High - understands architecture, troubleshoots independently, asks good questions",
-    "decision_making": "Collaborative - likes to understand WHY before making changes",
-    "error_handling": "Will report errors clearly and help debug. Don't assume - verify.",
-    "emoji_usage": "Only if user explicitly requests. Avoid otherwise.",
-    "explanations": "Appreciates detailed explanations. Loves the visual examples with arrows and diagrams."
+  "documentation": {
+    "file": "SA_Toolbelt.md",
+    "status": "Comprehensive - covers all active tabs, login/logout, database architecture, services",
+    "last_updated": "2026-02-11",
+    "converter": "DocxConverterForm + DocxToMarkdownConverter ready for standalone project or integration"
   },
 
-  "common_operations": {
-    "adding_ui_elements": "User will provide exact locations and properties. Add to Designer.cs file.",
-    "configuration_tab": "Location for displaying config paths and settings. Currently shows OU config file path and PowerCLI path.",
-    "commit_workflow": "Read files, make changes, commit with detailed message, push to feature branch",
-    "error_investigation": "User will test on their machine and report back. We troubleshoot together."
+  "user_preferences": {
+    "communication_style": "Friendly, humorous, uses ROFL frequently, calls Claude 'Entity' sometimes",
+    "technical_level": "Very high - understands architecture, troubleshoots independently, asks precise questions",
+    "humor": "High - expects banter, makes programming jokes, will roast you lovingly",
+    "decision_making": "Collaborative - likes to understand WHY before changes",
+    "emoji_usage": "Only if explicitly requested",
+    "explanations": "Appreciates detailed technical explanations with examples"
   },
 
   "code_patterns": {
-    "console_logging": "_consoleForm.WriteInfo/WriteSuccess/WriteError/WriteWarning for user feedback",
-    "async_operations": "Extensive use of async/await for long-running operations",
-    "error_handling": "Try-catch blocks with console logging and user-friendly MessageBox for critical errors",
-    "credential_management": "CredentialManager class handles authentication",
-    "service_pattern": "Services injected via constructor (_adService, _linuxService, _rhdsService, _vmwareManager)"
+    "console_logging": "_consoleForm.WriteInfo/WriteSuccess/WriteError/WriteWarning(message)",
+    "async_operations": "Extensive async/await for long-running operations",
+    "error_handling": "Try-catch with console logging + MessageBox for critical errors",
+    "credential_flow": "CredentialManager stores creds -> services use CredentialManager.GetUsername()/GetPassword()",
+    "ou_selection": "ShowOUSelectionDialog (AD) and ShowRHDSOUSelectionDialog (RHDS) both use ShowSimpleOUSelectionDialog",
+    "validation_visual": "Invalid fields get BackColor = Color.LightCoral (red highlight)"
   },
 
-  "testing_notes": {
-    "user_tests_locally": "User has air-gapped test environment. They'll build and test there.",
-    "cant_run_dotnet_here": "This environment (where Claude Code runs) is Linux without .NET SDK. User must build on their Windows machine.",
-    "feedback_loop": "User will report results. Be ready to troubleshoot based on their feedback."
-  },
-
-  "files_to_know": {
-    "SA_ToolBelt.cs": "Main form logic - MASSIVE file (5000+ lines). Contains all business logic.",
-    "SA_ToolBelt.Designer.cs": "Windows Forms designer generated code - HUGE (4600+ lines). UI layout and controls.",
-    "SA_ToolBelt.csproj": "Project file with build configuration, package references, self-contained settings.",
-    "VMwareManager.cs": "VMware operations via PowerCLI. Uses persistent PowerShell runspace. Critical for VMware features.",
-    "AD_Service.cs": "Active Directory operations",
-    "Linux_Service.cs": "SSH-based Linux server management",
-    "RHDS_Service.cs": "Red Hat Directory Server operations",
-    "ConsoleForm.cs": "Console output window for logging"
-  },
-
-  "next_claude_checklist": [
-    "Read this entire JSON file carefully",
-    "Check git status and recent commits",
-    "If user mentions PowerCLI loading issues, check persistent runspace implementation",
-    "If user reports build errors, check .csproj settings (PublishReadyToRun, IncludeNativeLibrariesForSelfExtract may need removal)",
-    "Remember: air-gapped environment means NO internet solutions",
-    "Ask clarifying questions - user appreciates collaboration",
-    "Have fun - this user is great to work with!"
-  ],
-
-  "fun_facts": {
-    "user_humor_level": "High - makes git merge jokes and brain synchronization puns",
-    "favorite_phrase": "ROFL",
-    "patience_level": "Excellent - will work through issues methodically",
-    "appreciation_for_explanations": "Very high - loves detailed technical explanations with examples"
+  "recent_session_work": {
+    "session_date": "2026-02-11",
+    "changes_made": [
+      "Wired up btnLogout_Click - clears creds, returns to login state",
+      "Added txbVCenterServer red highlight when registry key not found",
+      "Added PopulateMandatorySettingsUI() call in DatabaseFound login path",
+      "Created DocxToMarkdownConverter.cs - full DOCX to MD conversion engine",
+      "Created DocxConverterForm.cs + Designer - standalone converter UI (btnSelectFile, lblSelectedFile, btnConvert, lblStatus)",
+      "Added DocumentFormat.OpenXml 3.0.2 NuGet package",
+      "Comprehensive documentation update - SA_Toolbelt.md now covers all features"
+    ]
   }
 }
