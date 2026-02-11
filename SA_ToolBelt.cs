@@ -980,6 +980,7 @@ namespace SA_ToolBelt
                             }
 
                             ApplyDatabaseSettings();
+                            PopulateMandatorySettingsUI();
                             ShowAllTabs();
 
                             await UpdateRadioButtonCounters();
@@ -998,6 +999,7 @@ namespace SA_ToolBelt
                             // Show only Configuration tab with just SQL Path enabled
                             ShowOnlyConfigurationTab();
                             DisableMandatoryControlsExceptSqlPath();
+                            txbVCenterServer.BackColor = Color.LightCoral;
 
                             string setupMessage = preCheckResult == PreCheck.InitResult.NoRegistryKey
                                 ? "First-time setup: Please browse to the location where the database should be stored (or already exists)."
