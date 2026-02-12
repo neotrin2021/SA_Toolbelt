@@ -3394,11 +3394,9 @@ namespace SA_ToolBelt
                     {
                         string value = ExtractValue(trimmedLine, "Replica Status:");
                         if (currentServer == 1)
-
-                            lblReplicaStatusSa1.Text = value;
+                            lblReplicaStatusDataSa1.Text = value;
                         else if (currentServer == 2)
-
-                            lblReplicaStatusSa2.Text = value;
+                            lblReplicaStatusDataSa2.Text = value;
                         _consoleForm.WriteSuccess($"  -> Set Replica Status for SA{currentServer}: {value}");
                     }
                     else if (trimmedLine.StartsWith("Max CSN:", StringComparison.OrdinalIgnoreCase))
@@ -3519,18 +3517,18 @@ namespace SA_ToolBelt
                     {
                         string value = ExtractValue(trimmedLine, "Replication Status:");
                         if (currentServer == 1)
-                            txbLastUpdateStatusDataSa1.Text = value;
+                            lblReplicationStatusDataSa1.Text = value;
                         else if (currentServer == 2)
-                            txbLastUpdateStatusDataSa2.Text = value;
+                            lblReplicationStatusDataSa2.Text = value;
                         _consoleForm.WriteSuccess($"  -> Set Replication Status for SA{currentServer}: {value}");
                     }
                     else if (trimmedLine.StartsWith("Replication Lag Time:", StringComparison.OrdinalIgnoreCase))
                     {
                         string value = ExtractValue(trimmedLine, "Replication Lag Time:");
                         if (currentServer == 1)
-                            lblReplicationStatusDataSa1.Text = value;
+                            lblReplicationLagTimeDataSa1.Text = value;
                         else if (currentServer == 2)
-                            lblReplicationStatusDataSa2.Text = value;
+                            lblReplicationLagTimeDataSa2.Text = value;
                         _consoleForm.WriteSuccess($"  -> Set Replication Lag Time for SA{currentServer}: {value}");
                     }
                     else if (trimmedLine.StartsWith("Status For Agreement:", StringComparison.OrdinalIgnoreCase))

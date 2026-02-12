@@ -486,8 +486,8 @@ namespace SA_ToolBelt
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
-                // Skip unwanted entries
-                if (line.Contains("Filesystem") || line.Contains("/dev/") || line.Contains("tmpfs"))
+                // Skip unwanted entries (keep /dev/ mounts as those are real filesystems like /, /boot, /var, /opt)
+                if (line.Contains("Filesystem") || line.Contains("tmpfs"))
                     continue;
 
                 try
