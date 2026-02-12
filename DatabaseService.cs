@@ -157,7 +157,8 @@ namespace SA_ToolBelt
                     Sql_Path TEXT NOT NULL DEFAULT '',
                     Excluded_OU TEXT NOT NULL DEFAULT '',
                     Disabled_Users_Ou TEXT NOT NULL DEFAULT '',
-                    HomeDirectory TEXT NOT NULL DEFAULT ''
+                    HomeDirectory TEXT NOT NULL DEFAULT '',
+                    Linux_Ds TEXT NOT NULL DEFAULT ''
                 )",
                 @"CREATE TABLE IF NOT EXISTS ComputerList (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -196,7 +197,33 @@ namespace SA_ToolBelt
                 }
             }
 
+            // Migration: Add Linux_Ds column to existing Toolbelt_Config tables
+            MigrateToolbeltConfigLinuxDs(connection);
+
             _consoleForm?.WriteInfo("All database tables verified/created.");
+        }
+
+        /// <summary>
+        /// Adds the Linux_Ds column to Toolbelt_Config if it doesn't already exist.
+        /// Handles migration for databases created before this column was added.
+        /// </summary>
+        private void MigrateToolbeltConfigLinuxDs(SqliteConnection connection)
+        {
+            try
+            {
+                using (var cmd = new SqliteCommand("SELECT Linux_Ds FROM Toolbelt_Config LIMIT 1", connection))
+                {
+                    cmd.ExecuteScalar();
+                }
+            }
+            catch (SqliteException)
+            {
+                using (var cmd = new SqliteCommand("ALTER TABLE Toolbelt_Config ADD COLUMN Linux_Ds TEXT NOT NULL DEFAULT ''", connection))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+                _consoleForm?.WriteInfo("Migrated Toolbelt_Config: added Linux_Ds column.");
+            }
         }
 
         #endregion
@@ -675,7 +702,7 @@ namespace SA_ToolBelt
         /// Saves or updates the toolbelt configuration (single-row table).
         /// </summary>
         public void SaveToolbeltConfig(string vCenterServer, string powerCliLocation, string sqlPath,
-            string excludedOu, string disabledUsersOu, string homeDirectory)
+            string excludedOu, string disabledUsersOu, string homeDirectory, string linuxDs)
         {
             try
             {
@@ -697,7 +724,8 @@ namespace SA_ToolBelt
                                 Sql_Path = @sqlPath,
                                 Excluded_OU = @excludedOu,
                                 Disabled_Users_Ou = @disabledUsers,
-                                HomeDirectory = @homeDir
+                                HomeDirectory = @homeDir,
+                                Linux_Ds = @linuxDs
                                 WHERE Id = (SELECT MIN(Id) FROM Toolbelt_Config)";
 
                             using (var cmd = new SqliteCommand(updateSql, connection))
@@ -708,6 +736,7 @@ namespace SA_ToolBelt
                                 cmd.Parameters.AddWithValue("@excludedOu", excludedOu ?? "");
                                 cmd.Parameters.AddWithValue("@disabledUsers", disabledUsersOu ?? "");
                                 cmd.Parameters.AddWithValue("@homeDir", homeDirectory ?? "");
+                                cmd.Parameters.AddWithValue("@linuxDs", linuxDs ?? "");
                                 cmd.ExecuteNonQuery();
                             }
                         }
@@ -715,8 +744,8 @@ namespace SA_ToolBelt
                         {
                             // Insert new row
                             string insertSql = @"INSERT INTO Toolbelt_Config
-                                (VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory)
-                                VALUES (@vCenter, @powerCli, @sqlPath, @excludedOu, @disabledUsers, @homeDir)";
+                                (VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds)
+                                VALUES (@vCenter, @powerCli, @sqlPath, @excludedOu, @disabledUsers, @homeDir, @linuxDs)";
 
                             using (var cmd = new SqliteCommand(insertSql, connection))
                             {
@@ -726,6 +755,7 @@ namespace SA_ToolBelt
                                 cmd.Parameters.AddWithValue("@excludedOu", excludedOu ?? "");
                                 cmd.Parameters.AddWithValue("@disabledUsers", disabledUsersOu ?? "");
                                 cmd.Parameters.AddWithValue("@homeDir", homeDirectory ?? "");
+                                cmd.Parameters.AddWithValue("@linuxDs", linuxDs ?? "");
                                 cmd.ExecuteNonQuery();
                             }
                         }
@@ -754,7 +784,7 @@ namespace SA_ToolBelt
 
                 using (var connection = GetConnection())
                 {
-                    string sql = "SELECT VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory FROM Toolbelt_Config LIMIT 1";
+                    string sql = "SELECT VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds FROM Toolbelt_Config LIMIT 1";
 
                     using (var cmd = new SqliteCommand(sql, connection))
                     using (var reader = cmd.ExecuteReader())
@@ -768,7 +798,8 @@ namespace SA_ToolBelt
                                 SqlPath = reader.GetString(2),
                                 ExcludedOU = reader.GetString(3),
                                 DisabledUsersOu = reader.GetString(4),
-                                HomeDirectory = reader.GetString(5)
+                                HomeDirectory = reader.GetString(5),
+                                LinuxDs = reader.IsDBNull(6) ? string.Empty : reader.GetString(6)
                             };
                         }
                     }
@@ -1234,6 +1265,7 @@ namespace SA_ToolBelt
         public string ExcludedOU { get; set; } = string.Empty;
         public string DisabledUsersOu { get; set; } = string.Empty;
         public string HomeDirectory { get; set; } = string.Empty;
+        public string LinuxDs { get; set; } = string.Empty;
     }
 
     public class ComputerListEntry

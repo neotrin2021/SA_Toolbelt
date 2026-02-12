@@ -2054,6 +2054,7 @@ namespace SA_ToolBelt
             cbxDefaultSecurityGroups.MultiColumn = true;
             cbxDefaultSecurityGroups.Name = "cbxDefaultSecurityGroups";
             cbxDefaultSecurityGroups.Size = new Size(449, 382);
+            cbxDefaultSecurityGroups.CheckOnClick = true;
             cbxDefaultSecurityGroups.TabIndex = 23;
             cbxDefaultSecurityGroups.ItemCheck += (this.cbxDefaultSecurityGroups_ItemCheck);
             // 
@@ -4609,6 +4610,7 @@ namespace SA_ToolBelt
             btnRemoveSelectedOus.TabIndex = 101;
             btnRemoveSelectedOus.Text = "Remove Selected OU's";
             btnRemoveSelectedOus.UseVisualStyleBackColor = true;
+            btnRemoveSelectedOus.Click += btnRemoveSelectedOus_Click;
             // 
             // lblWorkstationOu
             // 
