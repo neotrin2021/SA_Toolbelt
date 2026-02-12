@@ -837,16 +837,16 @@ namespace SA_ToolBelt
                 _consoleForm?.WriteError($"CAUSE: Permission denied");
                 _consoleForm?.WriteError($"Possible reasons:");
                 _consoleForm?.WriteError($"  1. User '{username}' lacks sudo privileges for mkdir/chmod/chown");
-                _consoleForm?.WriteError($"  2. The parent directory '/net/cce-data/home' doesn't exist");
-                _consoleForm?.WriteError($"  3. The parent directory '/net/cce-data/home' has restricted permissions");
+                _consoleForm?.WriteError($"  2. The parent directory '{_homeDirectoryBasePath}' doesn't exist");
+                _consoleForm?.WriteError($"  3. The parent directory '{_homeDirectoryBasePath}' has restricted permissions");
                 _consoleForm?.WriteError($"  4. The filesystem is mounted read-only");
                 _consoleForm?.WriteError($"  5. SELinux or AppArmor is blocking the operation");
             }
             else if (errorMessage.Contains("No such file or directory"))
             {
                 _consoleForm?.WriteError($"CAUSE: Directory path does not exist");
-                _consoleForm?.WriteError($"The parent directory '/net/cce-data/home' may not exist on {hostname}");
-                _consoleForm?.WriteError($"Action: Manually verify the path exists: ls -ld /net/cce-data/home");
+                _consoleForm?.WriteError($"The parent directory '{_homeDirectoryBasePath}' may not exist on {hostname}");
+                _consoleForm?.WriteError($"Action: Manually verify the path exists: ls -ld {_homeDirectoryBasePath}");
             }
             else if (errorMessage.Contains("Unknown user") || errorMessage.Contains("invalid user"))
             {
@@ -863,7 +863,7 @@ namespace SA_ToolBelt
             else if (errorMessage.Contains("Read-only file system"))
             {
                 _consoleForm?.WriteError($"CAUSE: Filesystem is mounted read-only");
-                _consoleForm?.WriteError($"The directory '/net/cce-data/home' is on a read-only filesystem");
+                _consoleForm?.WriteError($"The directory '{_homeDirectoryBasePath}' is on a read-only filesystem");
                 _consoleForm?.WriteError($"Action: Remount the filesystem as read-write");
             }
             else if (errorMessage.Contains("Disk quota exceeded") || errorMessage.Contains("No space left"))
@@ -898,7 +898,7 @@ namespace SA_ToolBelt
         {
             try
             {
-                string directoryPath = $"/net/cce-data/home/{ntUserId}";
+                string directoryPath = $"{_homeDirectoryBasePath}/{ntUserId}";
 
                 _consoleForm?.WriteInfo($"Verifying home directory: {directoryPath}");
 
