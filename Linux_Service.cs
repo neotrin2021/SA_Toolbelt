@@ -12,7 +12,7 @@ namespace SA_ToolBelt
     public class Linux_Service
     {
         private readonly ConsoleForm _consoleForm;
-        private string _homeDirectoryBasePath = "/net/cce-data/home";
+        private string _homeDirectoryBasePath = string.Empty;
 
         // Windows API for setting windows focus
         [DllImport("user32.dll")]
