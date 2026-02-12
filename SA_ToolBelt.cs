@@ -32,6 +32,7 @@ namespace SA_ToolBelt
         private VMwareManager _vmwareManager;
         private PreCheck _preCheck;
         private DatabaseService _databaseService;
+        // WMI_Service is declared in SA_ToolBelt.WindowsTools.cs (partial class)
 
         // Startup Shutdown Variables
         public string VMMode = "NormalRun";
@@ -65,6 +66,7 @@ namespace SA_ToolBelt
             _adService = new AD_Service(_consoleForm);
             _linuxService = new Linux_Service(_consoleForm);
             _rhdsService = new RHDS_Service(_consoleForm);
+            _wmiService = new WMI_Service(_consoleForm);
             _preCheck = new PreCheck(_consoleForm);
             _databaseService = new DatabaseService(_consoleForm);
 
@@ -76,6 +78,7 @@ namespace SA_ToolBelt
             SetupRadioButtonExclusivity();
             SetupSecretSequenceHandlers();
             SetupMandatorySettingsHandlers();
+            SetupWindowsToolsTab();
 
             // Hide all controls until successful login
             HideControlsAtStartUp();
