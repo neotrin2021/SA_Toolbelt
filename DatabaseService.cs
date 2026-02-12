@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using Microsoft.Data.Sqlite;
 using Microsoft.Win32;
 
@@ -10,7 +12,7 @@ namespace SA_ToolBelt
     /// Manages all SQLite database operations for the SA Toolbelt.
     /// Handles creation, reading, writing, and migration of the configuration database.
     /// </summary>
-    public class DatabaseService
+    public class DatabaseService : IDisposable
     {
         private readonly ConsoleForm _consoleForm;
         private string _databasePath;
@@ -19,12 +21,26 @@ namespace SA_ToolBelt
         private const string REGISTRY_KEY_PATH = @"SOFTWARE\SA_Toolbelt";
         private const string REGISTRY_VALUE_NAME = "SqlPath";
 
+        // Application-level lock file constants
+        private const string LOCK_FILE_EXTENSION = ".applock";
+        private const int HEARTBEAT_INTERVAL_MS = 60_000;       // Update heartbeat every 60 seconds
+        private const int STALE_LOCK_THRESHOLD_MS = 180_000;    // 3 minutes without heartbeat = stale
+
+        // Lock state
+        private string _lockFilePath;
+        private Timer _heartbeatTimer;
+        private bool _lockAcquired;
+        private DateTime _lockAcquiredTimeUtc;
+        private bool _disposed;
+
         public string DatabasePath => _databasePath;
+        public bool IsLockHeld => _lockAcquired;
 
         public DatabaseService(ConsoleForm consoleForm)
         {
             _consoleForm = consoleForm;
             _databasePath = ResolveDatabasePath();
+            _lockFilePath = _databasePath + LOCK_FILE_EXTENSION;
         }
 
         #region Database Path Resolution
@@ -112,6 +128,13 @@ namespace SA_ToolBelt
                 }
 
                 _consoleForm?.WriteSuccess($"Database initialized at: {_databasePath}");
+
+                // Acquire the lock now that the database exists
+                _lockFilePath = _databasePath + LOCK_FILE_EXTENSION;
+                if (!AcquireLock())
+                {
+                    _consoleForm?.WriteWarning("Database initialized but could not acquire lock. Another process may be accessing it.");
+                }
             }
             catch (Exception ex)
             {
@@ -192,9 +215,9 @@ namespace SA_ToolBelt
                 walCmd.ExecuteNonQuery();
             }
 
-            // Wait up to 5 seconds if the DB is locked by another operation
+            // Wait up to 10 seconds if the DB is locked by another operation
             // instead of immediately throwing an error
-            using (var timeoutCmd = new SqliteCommand("PRAGMA busy_timeout=5000;", connection))
+            using (var timeoutCmd = new SqliteCommand("PRAGMA busy_timeout=10000;", connection))
             {
                 timeoutCmd.ExecuteNonQuery();
             }
@@ -207,8 +230,253 @@ namespace SA_ToolBelt
         #region Database Lock Detection & Recovery
 
         /// <summary>
-        /// Checks if the database is currently locked by attempting a quick write test.
-        /// Returns true if the database is locked, false if it's accessible.
+        /// Internal representation of the .applock file contents.
+        /// </summary>
+        private class LockFileInfo
+        {
+            public string MachineName { get; set; } = string.Empty;
+            public string UserName { get; set; } = string.Empty;
+            public int ProcessId { get; set; }
+            public DateTime AcquiredUtc { get; set; }
+            public DateTime HeartbeatUtc { get; set; }
+        }
+
+        /// <summary>
+        /// Reads and parses the .applock file. Returns null if it doesn't exist or can't be read.
+        /// Uses FileShare.ReadWrite so it can read even while the heartbeat timer is writing.
+        /// </summary>
+        private LockFileInfo ReadLockFile()
+        {
+            if (string.IsNullOrEmpty(_lockFilePath) || !File.Exists(_lockFilePath))
+                return null;
+
+            try
+            {
+                string content;
+                using (var fs = new FileStream(_lockFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var reader = new StreamReader(fs))
+                {
+                    content = reader.ReadToEnd();
+                }
+
+                var info = new LockFileInfo();
+                foreach (var line in content.Split('\n'))
+                {
+                    var trimmed = line.Trim();
+                    var eqIndex = trimmed.IndexOf('=');
+                    if (eqIndex < 0) continue;
+
+                    var key = trimmed.Substring(0, eqIndex);
+                    var value = trimmed.Substring(eqIndex + 1);
+
+                    switch (key)
+                    {
+                        case "MACHINE": info.MachineName = value; break;
+                        case "USER": info.UserName = value; break;
+                        case "PID": int.TryParse(value, out int pid); info.ProcessId = pid; break;
+                        case "ACQUIRED": DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime acq); info.AcquiredUtc = acq; break;
+                        case "HEARTBEAT": DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime hb); info.HeartbeatUtc = hb; break;
+                    }
+                }
+                return info;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Writes the .applock file with current process info.
+        /// When createNew is true, uses FileMode.CreateNew for atomic creation (fails if file exists).
+        /// When false, overwrites the existing file (for heartbeat updates).
+        /// </summary>
+        private void WriteLockFile(bool createNew)
+        {
+            var now = DateTime.UtcNow;
+            if (createNew)
+                _lockAcquiredTimeUtc = now;
+
+            var content = $"MACHINE={Environment.MachineName}\n" +
+                          $"USER={Environment.UserName}\n" +
+                          $"PID={Environment.ProcessId}\n" +
+                          $"ACQUIRED={_lockAcquiredTimeUtc:O}\n" +
+                          $"HEARTBEAT={now:O}";
+
+            var mode = createNew ? FileMode.CreateNew : FileMode.Create;
+            using (var fs = new FileStream(_lockFilePath, mode, FileAccess.Write, FileShare.None))
+            using (var writer = new StreamWriter(fs))
+            {
+                writer.Write(content);
+            }
+        }
+
+        /// <summary>
+        /// Determines if a lock is stale (owner is no longer running).
+        /// Same machine: checks if the owning PID still exists.
+        /// Different machine: checks if the heartbeat is older than the stale threshold (3 minutes).
+        /// </summary>
+        private bool IsLockStale(LockFileInfo lockInfo)
+        {
+            if (lockInfo == null) return true;
+
+            // Same machine — we can directly check if the process is still alive
+            if (string.Equals(lockInfo.MachineName, Environment.MachineName, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    Process.GetProcessById(lockInfo.ProcessId);
+                    return false; // Process exists — lock is active
+                }
+                catch (ArgumentException)
+                {
+                    return true; // Process not found — lock is stale
+                }
+            }
+
+            // Different machine — fall back to heartbeat age
+            var heartbeatAge = DateTime.UtcNow - lockInfo.HeartbeatUtc;
+            return heartbeatAge.TotalMilliseconds > STALE_LOCK_THRESHOLD_MS;
+        }
+
+        /// <summary>
+        /// Called by the heartbeat timer every 60 seconds.
+        /// Updates the heartbeat timestamp in the lock file so other instances know we're still alive.
+        /// If the lock file was deleted (e.g., by a force-unlock), marks our lock as lost.
+        /// </summary>
+        private void RefreshHeartbeat(object state)
+        {
+            if (!_lockAcquired || string.IsNullOrEmpty(_lockFilePath)) return;
+
+            try
+            {
+                if (!File.Exists(_lockFilePath))
+                {
+                    _lockAcquired = false;
+                    _consoleForm?.WriteError("Lock file was removed by another process. Database write access has been lost.");
+                    return;
+                }
+
+                WriteLockFile(createNew: false);
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteWarning($"Failed to refresh lock heartbeat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Acquires the application-level lock on the database.
+        /// Creates a .applock file alongside the database with our process info and starts a heartbeat timer.
+        /// Returns true if the lock was acquired, false if another active process holds it.
+        /// </summary>
+        public bool AcquireLock()
+        {
+            _lockFilePath = _databasePath + LOCK_FILE_EXTENSION;
+
+            // If we already hold the lock, just refresh it
+            if (_lockAcquired)
+            {
+                try { WriteLockFile(createNew: false); } catch { }
+                return true;
+            }
+
+            // Check for an existing lock file
+            var existingLock = ReadLockFile();
+            if (existingLock != null)
+            {
+                if (!IsLockStale(existingLock))
+                {
+                    _consoleForm?.WriteWarning(
+                        $"Database is locked by {existingLock.UserName} on {existingLock.MachineName} " +
+                        $"(PID: {existingLock.ProcessId}, since {existingLock.AcquiredUtc:g} UTC).");
+                    return false;
+                }
+
+                // Stale lock — clean it up
+                _consoleForm?.WriteWarning(
+                    $"Cleaning up stale lock from {existingLock.UserName} on {existingLock.MachineName} " +
+                    $"(last heartbeat: {existingLock.HeartbeatUtc:g} UTC).");
+                try { File.Delete(_lockFilePath); }
+                catch (Exception ex)
+                {
+                    _consoleForm?.WriteError($"Could not remove stale lock file: {ex.Message}");
+                    return false;
+                }
+            }
+
+            // Create the lock file atomically
+            try
+            {
+                WriteLockFile(createNew: true);
+                _lockAcquired = true;
+
+                // Start heartbeat timer — updates the lock file every 60 seconds
+                _heartbeatTimer = new Timer(
+                    RefreshHeartbeat,
+                    null,
+                    HEARTBEAT_INTERVAL_MS,
+                    HEARTBEAT_INTERVAL_MS);
+
+                _consoleForm?.WriteSuccess(
+                    $"Database lock acquired by {Environment.UserName} on {Environment.MachineName} (PID: {Environment.ProcessId}).");
+                return true;
+            }
+            catch (IOException)
+            {
+                // Another process created the file between our check and our create — race condition handled
+                _consoleForm?.WriteWarning("Could not acquire database lock — another process grabbed it first.");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Releases the application-level lock. Stops the heartbeat timer and deletes the .applock file.
+        /// </summary>
+        public void ReleaseLock()
+        {
+            _heartbeatTimer?.Dispose();
+            _heartbeatTimer = null;
+
+            if (_lockAcquired && !string.IsNullOrEmpty(_lockFilePath))
+            {
+                try
+                {
+                    if (File.Exists(_lockFilePath))
+                    {
+                        File.Delete(_lockFilePath);
+                        _consoleForm?.WriteInfo("Database lock released.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _consoleForm?.WriteWarning($"Could not release database lock file: {ex.Message}");
+                }
+            }
+            _lockAcquired = false;
+        }
+
+        /// <summary>
+        /// Throws InvalidOperationException if the lock is not currently held.
+        /// Called before every write operation to prevent concurrent database modifications.
+        /// </summary>
+        private void EnsureLockHeld()
+        {
+            if (!_lockAcquired)
+            {
+                var existingLock = ReadLockFile();
+                string owner = existingLock != null
+                    ? $"{existingLock.UserName} on {existingLock.MachineName} (PID: {existingLock.ProcessId})"
+                    : "unknown";
+                throw new InvalidOperationException(
+                    $"Cannot write to database: lock not held. Current lock owner: {owner}. " +
+                    "Another SA may have the toolbelt open, or the lock was lost.");
+            }
+        }
+
+        /// <summary>
+        /// Checks if the database is currently locked by another process using the .applock file.
+        /// Returns true if the database is locked by someone else, false if it's available.
         /// </summary>
         public bool IsDatabaseLocked()
         {
@@ -217,78 +485,81 @@ namespace SA_ToolBelt
                 if (!File.Exists(_databasePath))
                     return false;
 
-                using (var connection = new SqliteConnection($"Data Source={_databasePath}"))
+                // If we hold the lock, the DB is not "locked" from our perspective
+                if (_lockAcquired)
+                    return false;
+
+                var lockInfo = ReadLockFile();
+                if (lockInfo == null)
+                    return false; // No lock file — database is available
+
+                if (IsLockStale(lockInfo))
                 {
-                    connection.Open();
-
-                    // Set a very short timeout - we just want to know if it's locked, not wait
-                    using (var timeoutCmd = new SqliteCommand("PRAGMA busy_timeout=100;", connection))
-                    {
-                        timeoutCmd.ExecuteNonQuery();
-                    }
-
-                    // Try to start and immediately rollback a write transaction
-                    using (var cmd = new SqliteCommand("BEGIN IMMEDIATE;", connection))
-                    {
-                        cmd.ExecuteNonQuery();
-                    }
-                    using (var cmd = new SqliteCommand("ROLLBACK;", connection))
-                    {
-                        cmd.ExecuteNonQuery();
-                    }
+                    _consoleForm?.WriteWarning(
+                        $"Found stale lock from {lockInfo.UserName} on {lockInfo.MachineName}. " +
+                        "It will be cleaned up automatically.");
+                    return false; // Stale lock doesn't count
                 }
 
-                return false; // No lock - write was possible
-            }
-            catch (SqliteException ex) when (ex.SqliteErrorCode == 5) // SQLITE_BUSY
-            {
-                _consoleForm?.WriteWarning("Database is currently locked by another process.");
+                _consoleForm?.WriteWarning(
+                    $"Database is locked by {lockInfo.UserName} on {lockInfo.MachineName} " +
+                    $"(PID: {lockInfo.ProcessId}, since {lockInfo.AcquiredUtc:g} UTC).");
                 return true;
             }
             catch (Exception ex)
             {
                 _consoleForm?.WriteError($"Error checking database lock status: {ex.Message}");
-                return false; // Can't determine - assume not locked
+                return false;
             }
         }
 
         /// <summary>
-        /// Force-unlocks the database by deleting the WAL and SHM journal files.
-        /// WARNING: Any uncommitted data from the locking process will be lost.
-        /// Returns true if the unlock was successful.
+        /// Force-unlocks the database by removing the .applock file and cleaning up SQLite journal files.
+        /// Also verifies database integrity after cleanup.
+        /// WARNING: The other SA's toolbelt session will lose write access.
         /// </summary>
         public bool ForceUnlockDatabase()
         {
             try
             {
+                // Remove the application lock file
+                if (File.Exists(_lockFilePath))
+                {
+                    var lockInfo = ReadLockFile();
+                    File.Delete(_lockFilePath);
+                    if (lockInfo != null)
+                    {
+                        _consoleForm?.WriteWarning(
+                            $"Removed lock held by {lockInfo.UserName} on {lockInfo.MachineName} (PID: {lockInfo.ProcessId}).");
+                    }
+                    else
+                    {
+                        _consoleForm?.WriteInfo("Removed lock file.");
+                    }
+                }
+
+                // Also clean up SQLite journal files in case they're stale
                 string walFile = _databasePath + "-wal";
                 string shmFile = _databasePath + "-shm";
                 string journalFile = _databasePath + "-journal";
 
-                _consoleForm?.WriteWarning("Attempting to force-unlock database. Uncommitted data from the locking process will be lost.");
-
-                // Delete the WAL file if it exists
                 if (File.Exists(walFile))
                 {
                     File.Delete(walFile);
                     _consoleForm?.WriteInfo($"Deleted WAL file: {walFile}");
                 }
-
-                // Delete the SHM file if it exists
                 if (File.Exists(shmFile))
                 {
                     File.Delete(shmFile);
                     _consoleForm?.WriteInfo($"Deleted SHM file: {shmFile}");
                 }
-
-                // Delete the journal file if it exists (rollback journal mode)
                 if (File.Exists(journalFile))
                 {
                     File.Delete(journalFile);
                     _consoleForm?.WriteInfo($"Deleted journal file: {journalFile}");
                 }
 
-                // Verify the database is now accessible by running an integrity check
+                // Verify the database is now accessible
                 using (var connection = new SqliteConnection($"Data Source={_databasePath}"))
                 {
                     connection.Open();
@@ -300,12 +571,10 @@ namespace SA_ToolBelt
                         {
                             _consoleForm?.WriteSuccess("Database force-unlocked successfully. Integrity check passed.");
 
-                            // Re-enable WAL mode since we just deleted the WAL file
                             using (var walCmd = new SqliteCommand("PRAGMA journal_mode=WAL;", connection))
                             {
                                 walCmd.ExecuteNonQuery();
                             }
-
                             return true;
                         }
                         else
@@ -324,22 +593,34 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Checks if the database is locked and prompts the user to force-unlock if needed.
-        /// Returns true if the database is accessible (either wasn't locked, or was unlocked).
-        /// Returns false if the database is still locked (user declined or unlock failed).
+        /// Checks if the database is locked, prompts the user to force-unlock if needed,
+        /// and acquires the lock for this session on success.
+        /// Returns true if the database is accessible and the lock is held.
+        /// Returns false if the database is still locked (user declined or unlock/acquire failed).
         /// </summary>
         public bool CheckAndHandleLock()
         {
-            if (!IsDatabaseLocked())
+            // If we already hold the lock, we're good
+            if (_lockAcquired)
                 return true;
 
-            _consoleForm?.WriteWarning("Database lock detected. Prompting user for action.");
+            // Try to acquire the lock directly — handles stale lock cleanup automatically
+            if (AcquireLock())
+                return true;
+
+            // Lock is held by another active process — read the info for the dialog
+            var lockInfo = ReadLockFile();
+            string ownerInfo = lockInfo != null
+                ? $"{lockInfo.UserName} on {lockInfo.MachineName} (PID: {lockInfo.ProcessId})\nLocked since: {lockInfo.AcquiredUtc.ToLocalTime():g}\nLast heartbeat: {lockInfo.HeartbeatUtc.ToLocalTime():g}"
+                : "Unknown process";
+
+            _consoleForm?.WriteWarning($"Database lock detected. Owner: {ownerInfo}");
 
             var result = System.Windows.Forms.MessageBox.Show(
-                "The database is currently locked by another process.\n\n" +
-                "This can happen if another SA has the toolbelt open, or if a previous session crashed.\n\n" +
+                $"The database is currently locked by another SA:\n\n{ownerInfo}\n\n" +
+                "This means another SA has the toolbelt open and is actively using this database.\n\n" +
                 "Would you like to force-unlock the database?\n\n" +
-                "WARNING: Any data that was being written at the time of the lock will be lost.",
+                "WARNING: The other SA's toolbelt will lose write access and may behave unexpectedly.",
                 "Database Locked",
                 System.Windows.Forms.MessageBoxButtons.YesNo,
                 System.Windows.Forms.MessageBoxIcon.Warning);
@@ -349,18 +630,32 @@ namespace SA_ToolBelt
                 bool unlocked = ForceUnlockDatabase();
                 if (unlocked)
                 {
-                    System.Windows.Forms.MessageBox.Show(
-                        "Database unlocked successfully. Integrity check passed.",
-                        "Unlock Successful",
-                        System.Windows.Forms.MessageBoxButtons.OK,
-                        System.Windows.Forms.MessageBoxIcon.Information);
-                    return true;
+                    // Now try to acquire the lock for ourselves
+                    if (AcquireLock())
+                    {
+                        System.Windows.Forms.MessageBox.Show(
+                            "Database unlocked and lock acquired successfully. Integrity check passed.",
+                            "Unlock Successful",
+                            System.Windows.Forms.MessageBoxButtons.OK,
+                            System.Windows.Forms.MessageBoxIcon.Information);
+                        return true;
+                    }
+                    else
+                    {
+                        System.Windows.Forms.MessageBox.Show(
+                            "Database was unlocked but could not acquire the lock.\n" +
+                            "Another process may have grabbed it. Please try again.",
+                            "Lock Acquisition Failed",
+                            System.Windows.Forms.MessageBoxButtons.OK,
+                            System.Windows.Forms.MessageBoxIcon.Warning);
+                        return false;
+                    }
                 }
                 else
                 {
                     System.Windows.Forms.MessageBox.Show(
                         "Failed to unlock the database. Please check the console for details.\n\n" +
-                        "You may need to close all other instances of the toolbelt and try again.",
+                        "You may need to have the other SA close their toolbelt and try again.",
                         "Unlock Failed",
                         System.Windows.Forms.MessageBoxButtons.OK,
                         System.Windows.Forms.MessageBoxIcon.Error);
@@ -384,6 +679,8 @@ namespace SA_ToolBelt
         {
             try
             {
+                EnsureLockHeld();
+
                 using (var connection = GetConnection())
                 {
                     // Check if a config row already exists
@@ -506,6 +803,8 @@ namespace SA_ToolBelt
         {
             try
             {
+                EnsureLockHeld();
+
                 using (var connection = GetConnection())
                 using (var transaction = connection.BeginTransaction())
                 {
@@ -583,6 +882,8 @@ namespace SA_ToolBelt
         {
             try
             {
+                EnsureLockHeld();
+
                 using (var connection = GetConnection())
                 using (var transaction = connection.BeginTransaction())
                 {
@@ -655,6 +956,8 @@ namespace SA_ToolBelt
         {
             try
             {
+                EnsureLockHeld();
+
                 using (var connection = GetConnection())
                 using (var transaction = connection.BeginTransaction())
                 {
@@ -729,6 +1032,8 @@ namespace SA_ToolBelt
         {
             try
             {
+                EnsureLockHeld();
+
                 using (var connection = GetConnection())
                 using (var transaction = connection.BeginTransaction())
                 {
@@ -837,6 +1142,11 @@ namespace SA_ToolBelt
                     _consoleForm?.WriteInfo($"Created target directory: {newFolderPath}");
                 }
 
+                // Release the lock at the old location before moving
+                string oldLockPath = _lockFilePath;
+                bool hadLock = _lockAcquired;
+                ReleaseLock();
+
                 // Copy the database to the new location
                 File.Copy(_databasePath, newDbPath, overwrite: true);
                 _consoleForm?.WriteInfo($"Database copied to: {newDbPath}");
@@ -845,6 +1155,8 @@ namespace SA_ToolBelt
                 if (!File.Exists(newDbPath))
                 {
                     _consoleForm?.WriteError("Database copy verification failed.");
+                    // Try to reacquire lock at old location
+                    if (hadLock) AcquireLock();
                     return false;
                 }
 
@@ -868,6 +1180,13 @@ namespace SA_ToolBelt
                 // Update registry and internal path
                 SetSqlPathInRegistry(newFolderPath);
                 _databasePath = newDbPath;
+                _lockFilePath = newDbPath + LOCK_FILE_EXTENSION;
+
+                // Reacquire lock at the new location
+                if (hadLock && !AcquireLock())
+                {
+                    _consoleForm?.WriteWarning("Database moved but could not reacquire lock at new location.");
+                }
 
                 _consoleForm?.WriteSuccess($"Database moved to: {newDbPath}");
                 _consoleForm?.WriteSuccess($"Registry updated with new path: {newFolderPath}");
@@ -877,6 +1196,28 @@ namespace SA_ToolBelt
             {
                 _consoleForm?.WriteError($"Failed to move database: {ex.Message}");
                 return false;
+            }
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    ReleaseLock();
+                }
+                _disposed = true;
             }
         }
 

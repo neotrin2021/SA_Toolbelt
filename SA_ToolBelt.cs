@@ -69,6 +69,7 @@ namespace SA_ToolBelt
             _databaseService = new DatabaseService(_consoleForm);
 
             this.KeyPreview = true;
+            this.FormClosing += SAToolBelt_FormClosing;
 
             // Hide all tabs except Login initially
             HideAllTabsExceptLogin();
@@ -93,6 +94,12 @@ namespace SA_ToolBelt
             // Setup for Docking and UnDocking of the Console Window
             InitializeConsoleDocking();
 
+        }
+
+        private void SAToolBelt_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // Release the database lock so other SAs can use the database
+            _databaseService?.Dispose();
         }
 
         #region Console Docking Management
@@ -445,6 +452,7 @@ namespace SA_ToolBelt
 
                 // Update the registry to point here and reload
                 DatabaseService.SetSqlPathInRegistry(path);
+                _databaseService?.Dispose();
                 _databaseService = new DatabaseService(_consoleForm);
 
                 // Check for lock before trying to read
