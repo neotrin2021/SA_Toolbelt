@@ -2825,6 +2825,11 @@ namespace SA_ToolBelt
 
         #region LDAP Tab Button Event Handlers
 
+        private async void btnRefreshDefaultSecGroup_Click(object sender, EventArgs e)
+        {
+            await PopulateDefaultSecurityGroupsAsync();
+        }
+
         private void cbxDefaultSecurityGroups_ItemCheck(object sender, ItemCheckEventArgs e)
         {
             try
