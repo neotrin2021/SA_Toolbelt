@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using Timer = System.Threading.Timer;
 using Microsoft.Data.Sqlite;
 using Microsoft.Win32;
 
