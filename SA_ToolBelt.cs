@@ -375,6 +375,7 @@ namespace SA_ToolBelt
                 txbPowerCliModuleLocation.Text = config.PowerCLILocation;
                 txbDisabledUsersLocation.Text = config.DisabledUsersOu;
                 txbHomeDirectoryLocation.Text = config.HomeDirectory;
+                txbLinuxDs.Text = config.LinuxDs;
 
                 // Populate excluded OUs combobox
                 if (!string.IsNullOrEmpty(config.ExcludedOU))
@@ -509,6 +510,7 @@ namespace SA_ToolBelt
                 string excludedOu = cbxExcludeOu.Text.Trim();
                 string disabledUsersOu = txbDisabledUsersLocation.Text.Trim();
                 string homeDirectory = txbHomeDirectoryLocation.Text.Trim();
+                string linuxDs = txbLinuxDs.Text.Trim();
 
                 // Validate vCenter server
                 bool vCenterValid = _preCheck.ValidateVCenterServer(vCenterServer);
@@ -562,7 +564,8 @@ namespace SA_ToolBelt
                     sqlPath,
                     excludedOuCombined,
                     disabledUsersOu,
-                    homeDirectory
+                    homeDirectory,
+                    linuxDs
                 );
 
                 // Move database to the user-specified SQL path
