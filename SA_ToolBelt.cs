@@ -337,6 +337,39 @@ namespace SA_ToolBelt
             _homeDirectoryPath = config.HomeDirectory;
             _excludedOUs = config.ExcludedOU;
 
+            // Debug: trace the PowerCLI path derivation
+            _consoleForm.WriteInfo($"[Config Debug] config.PowerCLILocation from DB = \"{config.PowerCLILocation}\"");
+            _consoleForm.WriteInfo($"[Config Debug] Path.Combine result (POWERCLI_MODULE_PATH) = \"{POWERCLI_MODULE_PATH}\"");
+            if (!string.IsNullOrEmpty(POWERCLI_MODULE_PATH))
+            {
+                bool pathExists = Directory.Exists(POWERCLI_MODULE_PATH);
+                _consoleForm.WriteInfo($"[Config Debug] Directory.Exists(\"{POWERCLI_MODULE_PATH}\") = {pathExists}");
+                if (!pathExists)
+                {
+                    // Check if the parent at least exists
+                    bool parentExists = !string.IsNullOrEmpty(config.PowerCLILocation) && Directory.Exists(config.PowerCLILocation);
+                    _consoleForm.WriteWarning($"[Config Debug] Parent directory exists (\"{config.PowerCLILocation}\") = {parentExists}");
+                    if (parentExists)
+                    {
+                        try
+                        {
+                            var subdirs = Directory.GetDirectories(config.PowerCLILocation);
+                            _consoleForm.WriteInfo($"[Config Debug] Subdirectories in parent ({subdirs.Length} found):");
+                            foreach (var dir in subdirs)
+                                _consoleForm.WriteInfo($"[Config Debug]   {Path.GetFileName(dir)}");
+                        }
+                        catch (Exception dirEx)
+                        {
+                            _consoleForm.WriteWarning($"[Config Debug] Could not list subdirectories: {dirEx.Message}");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _consoleForm.WriteWarning("[Config Debug] POWERCLI_MODULE_PATH is empty — PowerCLI will not load.");
+            }
+
             // Update the excluded OUs in the AD Service
             if (!string.IsNullOrEmpty(_excludedOUs))
             {
