@@ -464,10 +464,6 @@ namespace SA_ToolBelt
             lblLdapServerInstance2 = new Label();
             txbLdapServerInstace1 = new TextBox();
             lblLdapServerInstance1 = new Label();
-            lblPowerCLIPathLocation = new Label();
-            lblPowerCLIPathLabel = new Label();
-            lblFilePathLocation = new Label();
-            lblConfigFileLocationLabel = new Label();
             gbxImportantVariables = new GroupBox();
             btnSubmitVars = new Button();
             txbSecurityGroupKW = new TextBox();
@@ -512,6 +508,7 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
+            btnRefreshDefaultSecGroup = new Button();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -565,7 +562,7 @@ namespace SA_ToolBelt
             gbxImportantVariables.SuspendLayout();
             gbxComputerList.SuspendLayout();
             gbxImportantOUs.SuspendLayout();
-            SuspendLayout();
+            this.SuspendLayout();
             // 
             // tabControlMain
             // 
@@ -624,9 +621,9 @@ namespace SA_ToolBelt
             btnShowPassword.TabIndex = 5;
             btnShowPassword.Text = "Show Password";
             btnShowPassword.UseVisualStyleBackColor = true;
-            btnShowPassword.MouseDown += ShowPassword_MouseDown;
-            btnShowPassword.MouseLeave += HidePassword_MouseLeave;
-            btnShowPassword.MouseUp += HidePassword_MouseUp;
+            btnShowPassword.MouseDown += (this.ShowPassword_MouseDown);
+            btnShowPassword.MouseLeave += (this.HidePassword_MouseLeave);
+            btnShowPassword.MouseUp += (this.HidePassword_MouseUp);
             // 
             // btnLogin
             // 
@@ -636,7 +633,7 @@ namespace SA_ToolBelt
             btnLogin.TabIndex = 4;
             btnLogin.Text = "Login";
             btnLogin.UseVisualStyleBackColor = true;
-            btnLogin.Click += btnLogin_Click;
+            btnLogin.Click += (this.btnLogin_Click);
             // 
             // txtPassword
             // 
@@ -729,7 +726,7 @@ namespace SA_ToolBelt
             btnLoadSelectedUser.TabIndex = 93;
             btnLoadSelectedUser.Text = "Load Selected User";
             btnLoadSelectedUser.UseVisualStyleBackColor = true;
-            btnLoadSelectedUser.Click += btnLoadSelectedUser_Click;
+            btnLoadSelectedUser.Click += (this.btnLoadSelectedUser_Click);
             // 
             // cbxShowConsole
             // 
@@ -820,7 +817,7 @@ namespace SA_ToolBelt
             btnDisable.TabIndex = 17;
             btnDisable.Text = "Disable";
             btnDisable.UseVisualStyleBackColor = true;
-            btnDisable.Click += btnDisable_Click;
+            btnDisable.Click += (this.btnDisable_Click);
             // 
             // dtpDisabledDate
             // 
@@ -864,7 +861,7 @@ namespace SA_ToolBelt
             btnDeleteAccount.TabIndex = 17;
             btnDeleteAccount.Text = "Update";
             btnDeleteAccount.UseVisualStyleBackColor = false;
-            btnDeleteAccount.Click += btnDeleteAccount_Click;
+            btnDeleteAccount.Click += (this.btnDeleteAccount_Click);
             // 
             // lblUnlockAccount
             // 
@@ -898,7 +895,7 @@ namespace SA_ToolBelt
             btnUnlockAccount.TabIndex = 17;
             btnUnlockAccount.Text = "Update";
             btnUnlockAccount.UseVisualStyleBackColor = true;
-            btnUnlockAccount.Click += btnUnlockAccount_Click;
+            btnUnlockAccount.Click += (this.btnUnlockAccount_Click);
             // 
             // btnAdClear
             // 
@@ -909,7 +906,7 @@ namespace SA_ToolBelt
             btnAdClear.TabIndex = 12;
             btnAdClear.Text = "Clear";
             btnAdClear.UseVisualStyleBackColor = true;
-            btnAdClear.Click += btnAdClear_Click;
+            btnAdClear.Click += (this.btnAdClear_Click);
             // 
             // gbxSingleUserSearch
             // 
@@ -932,7 +929,7 @@ namespace SA_ToolBelt
             txbUserName.Name = "txbUserName";
             txbUserName.Size = new Size(174, 23);
             txbUserName.TabIndex = 13;
-            txbUserName.KeyPress += SingleUserSearchTextbox_KeyPress;
+            txbUserName.KeyPress += (this.SingleUserSearchTextbox_KeyPress);
             // 
             // txbFirstName
             // 
@@ -940,7 +937,7 @@ namespace SA_ToolBelt
             txbFirstName.Name = "txbFirstName";
             txbFirstName.Size = new Size(174, 23);
             txbFirstName.TabIndex = 14;
-            txbFirstName.KeyPress += SingleUserSearchTextbox_KeyPress;
+            txbFirstName.KeyPress += (this.SingleUserSearchTextbox_KeyPress);
             // 
             // txbLastName
             // 
@@ -948,7 +945,7 @@ namespace SA_ToolBelt
             txbLastName.Name = "txbLastName";
             txbLastName.Size = new Size(174, 23);
             txbLastName.TabIndex = 12;
-            txbLastName.KeyPress += SingleUserSearchTextbox_KeyPress;
+            txbLastName.KeyPress += (this.SingleUserSearchTextbox_KeyPress);
             // 
             // lblUsersName
             // 
@@ -1489,7 +1486,7 @@ namespace SA_ToolBelt
             btnEditUsersGroups.TabIndex = 5;
             btnEditUsersGroups.Text = "Edit Users Groups";
             btnEditUsersGroups.UseVisualStyleBackColor = true;
-            btnEditUsersGroups.Click += btnEditUsersGroups_Click;
+            btnEditUsersGroups.Click += (this.btnEditUsersGroups_Click);
             // 
             // lblLoadedUser
             // 
@@ -1518,7 +1515,7 @@ namespace SA_ToolBelt
             btnAdLoadAccounts.TabIndex = 4;
             btnAdLoadAccounts.Text = "Load →";
             btnAdLoadAccounts.UseVisualStyleBackColor = true;
-            btnAdLoadAccounts.Click += btnAdLoadAccounts_Click;
+            btnAdLoadAccounts.Click += (this.btnAdLoadAccounts_Click);
             // 
             // gbxLockedAccounts
             // 
@@ -1787,7 +1784,7 @@ namespace SA_ToolBelt
             btnClearPasswords.TabIndex = 69;
             btnClearPasswords.Text = "Clear";
             btnClearPasswords.UseVisualStyleBackColor = true;
-            btnClearPasswords.Click += btnClearPasswords_Click;
+            btnClearPasswords.Click += (this.btnClearPasswords_Click);
             // 
             // btnSubmit
             // 
@@ -1798,7 +1795,7 @@ namespace SA_ToolBelt
             btnSubmit.TabIndex = 68;
             btnSubmit.Text = "Submit";
             btnSubmit.UseVisualStyleBackColor = true;
-            btnSubmit.Click += btnSubmit_Click;
+            btnSubmit.Click += (this.btnSubmit_Click);
             // 
             // btnPwChngShowPassword
             // 
@@ -1809,9 +1806,9 @@ namespace SA_ToolBelt
             btnPwChngShowPassword.TabIndex = 67;
             btnPwChngShowPassword.Text = "Show Password";
             btnPwChngShowPassword.UseVisualStyleBackColor = true;
-            btnPwChngShowPassword.MouseDown += ShowPassword_MouseDown;
-            btnPwChngShowPassword.MouseLeave += HidePassword_MouseLeave;
-            btnPwChngShowPassword.MouseUp += HidePassword_MouseUp;
+            btnPwChngShowPassword.MouseDown += (this.ShowPassword_MouseDown);
+            btnPwChngShowPassword.MouseLeave += (this.HidePassword_MouseLeave);
+            btnPwChngShowPassword.MouseUp += (this.HidePassword_MouseUp);
             // 
             // txbConfirmNewPassword
             // 
@@ -1821,7 +1818,7 @@ namespace SA_ToolBelt
             txbConfirmNewPassword.PasswordChar = '*';
             txbConfirmNewPassword.Size = new Size(157, 23);
             txbConfirmNewPassword.TabIndex = 66;
-            txbConfirmNewPassword.TextChanged += txbNewPassword_TextChanged;
+            txbConfirmNewPassword.TextChanged += (this.txbNewPassword_TextChanged);
             // 
             // lblConfirmNewPassword
             // 
@@ -1841,12 +1838,12 @@ namespace SA_ToolBelt
             txbNewPassword.PasswordChar = '*';
             txbNewPassword.Size = new Size(157, 23);
             txbNewPassword.TabIndex = 64;
-            txbNewPassword.TextChanged += txbNewPassword_TextChanged;
+            txbNewPassword.TextChanged += (this.txbNewPassword_TextChanged);
             // 
             // lblPwdRequirements
             // 
             lblPwdRequirements.AutoSize = true;
-            lblPwdRequirements.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Underline, GraphicsUnit.Point, 0);
+            lblPwdRequirements.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Underline, GraphicsUnit.Point, (byte)0);
             lblPwdRequirements.Location = new Point(96, 22);
             lblPwdRequirements.Margin = new Padding(4, 0, 4, 0);
             lblPwdRequirements.Name = "lblPwdRequirements";
@@ -1867,7 +1864,7 @@ namespace SA_ToolBelt
             // lblOneSpecial
             // 
             lblOneSpecial.AutoSize = true;
-            lblOneSpecial.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lblOneSpecial.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
             lblOneSpecial.ForeColor = Color.Red;
             lblOneSpecial.Location = new Point(217, 80);
             lblOneSpecial.Margin = new Padding(4, 0, 4, 0);
@@ -1879,7 +1876,7 @@ namespace SA_ToolBelt
             // lblOneNumber
             // 
             lblOneNumber.AutoSize = true;
-            lblOneNumber.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lblOneNumber.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
             lblOneNumber.ForeColor = Color.Red;
             lblOneNumber.Location = new Point(119, 80);
             lblOneNumber.Margin = new Padding(4, 0, 4, 0);
@@ -1891,7 +1888,7 @@ namespace SA_ToolBelt
             // lblOneLowercase
             // 
             lblOneLowercase.AutoSize = true;
-            lblOneLowercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lblOneLowercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
             lblOneLowercase.ForeColor = Color.Red;
             lblOneLowercase.Location = new Point(280, 46);
             lblOneLowercase.Margin = new Padding(4, 0, 4, 0);
@@ -1903,7 +1900,7 @@ namespace SA_ToolBelt
             // lblOneUppercase
             // 
             lblOneUppercase.AutoSize = true;
-            lblOneUppercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lblOneUppercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
             lblOneUppercase.ForeColor = Color.Red;
             lblOneUppercase.Location = new Point(162, 47);
             lblOneUppercase.Margin = new Padding(4, 0, 4, 0);
@@ -1915,7 +1912,7 @@ namespace SA_ToolBelt
             // lblFourteenChrs
             // 
             lblFourteenChrs.AutoSize = true;
-            lblFourteenChrs.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lblFourteenChrs.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
             lblFourteenChrs.ForeColor = Color.Red;
             lblFourteenChrs.Location = new Point(21, 47);
             lblFourteenChrs.Margin = new Padding(4, 0, 4, 0);
@@ -1958,7 +1955,7 @@ namespace SA_ToolBelt
             btnTestPassword.TabIndex = 17;
             btnTestPassword.Text = "Test";
             btnTestPassword.UseVisualStyleBackColor = true;
-            btnTestPassword.Click += btnTestPassword_Click;
+            btnTestPassword.Click += (this.btnTestPassword_Click);
             // 
             // txbTestPassword
             // 
@@ -1977,9 +1974,9 @@ namespace SA_ToolBelt
             btnShowTestPassword.Size = new Size(52, 40);
             btnShowTestPassword.TabIndex = 72;
             btnShowTestPassword.UseVisualStyleBackColor = true;
-            btnShowTestPassword.MouseDown += ShowPassword_MouseDown;
-            btnShowTestPassword.MouseLeave += HidePassword_MouseLeave;
-            btnShowTestPassword.MouseUp += HidePassword_MouseUp;
+            btnShowTestPassword.MouseDown += (this.ShowPassword_MouseDown);
+            btnShowTestPassword.MouseLeave += (this.HidePassword_MouseLeave);
+            btnShowTestPassword.MouseUp += (this.HidePassword_MouseUp);
             // 
             // lblActExpDate
             // 
@@ -2014,7 +2011,7 @@ namespace SA_ToolBelt
             btnAcntExeDateUpdate.TabIndex = 17;
             btnAcntExeDateUpdate.Text = "Update";
             btnAcntExeDateUpdate.UseVisualStyleBackColor = true;
-            btnAcntExeDateUpdate.Click += btnAcntExeDateUpdate_Click;
+            btnAcntExeDateUpdate.Click += (this.btnAcntExeDateUpdate_Click);
             // 
             // pkrAcntExpDateTimePicker
             // 
@@ -2039,6 +2036,7 @@ namespace SA_ToolBelt
             // 
             // gbxUserAccountCreation
             // 
+            gbxUserAccountCreation.Controls.Add(btnRefreshDefaultSecGroup);
             gbxUserAccountCreation.Controls.Add(rbnSecurityGroupOther);
             gbxUserAccountCreation.Controls.Add(txbSecurityGroupOther);
             gbxUserAccountCreation.Controls.Add(txbSecurityGroupId);
@@ -2099,9 +2097,9 @@ namespace SA_ToolBelt
             lblDefaultSecurityGroupId.AutoSize = true;
             lblDefaultSecurityGroupId.Location = new Point(95, 183);
             lblDefaultSecurityGroupId.Name = "lblDefaultSecurityGroupId";
-            lblDefaultSecurityGroupId.Size = new Size(136, 15);
+            lblDefaultSecurityGroupId.Size = new Size(143, 15);
             lblDefaultSecurityGroupId.TabIndex = 25;
-            lblDefaultSecurityGroupId.Text = "Deault Security Group ID";
+            lblDefaultSecurityGroupId.Text = "Default Security Group ID:";
             // 
             // cbxDefaultSecurityGroups
             // 
@@ -2113,7 +2111,7 @@ namespace SA_ToolBelt
             cbxDefaultSecurityGroups.Size = new Size(449, 382);
             cbxDefaultSecurityGroups.CheckOnClick = true;
             cbxDefaultSecurityGroups.TabIndex = 23;
-            cbxDefaultSecurityGroups.ItemCheck += cbxDefaultSecurityGroups_ItemCheck;
+            cbxDefaultSecurityGroups.ItemCheck += (this.cbxDefaultSecurityGroups_ItemCheck);
             // 
             // lblDefaultSecurityGroup
             // 
@@ -2166,7 +2164,7 @@ namespace SA_ToolBelt
             btnClearAccountCreationForm.TabIndex = 10;
             btnClearAccountCreationForm.Text = "Clear Form";
             btnClearAccountCreationForm.UseVisualStyleBackColor = true;
-            btnClearAccountCreationForm.Click += btnClearAccountCreationForm_Click;
+            btnClearAccountCreationForm.Click += (this.btnClearAccountCreationForm_Click);
             // 
             // btnLdapGetUid
             // 
@@ -2176,7 +2174,7 @@ namespace SA_ToolBelt
             btnLdapGetUid.TabIndex = 5;
             btnLdapGetUid.Text = "Get UID";
             btnLdapGetUid.UseVisualStyleBackColor = true;
-            btnLdapGetUid.Click += btnLdapGetUid_Click;
+            btnLdapGetUid.Click += (this.btnLdapGetUid_Click);
             // 
             // lblLdapLinuxUid
             // 
@@ -2202,7 +2200,7 @@ namespace SA_ToolBelt
             btnLdapCreateAccount.TabIndex = 9;
             btnLdapCreateAccount.Text = "Create Account";
             btnLdapCreateAccount.UseVisualStyleBackColor = true;
-            btnLdapCreateAccount.Click += btnLdapCreateAccount_Click;
+            btnLdapCreateAccount.Click += (this.btnLdapCreateAccount_Click);
             // 
             // txbLdapEmail
             // 
@@ -2260,7 +2258,7 @@ namespace SA_ToolBelt
             btnLdapGenerate.TabIndex = 3;
             btnLdapGenerate.Text = "Generate";
             btnLdapGenerate.UseVisualStyleBackColor = true;
-            btnLdapGenerate.Click += btnLdapGenerate_Click;
+            btnLdapGenerate.Click += (this.btnLdapGenerate_Click);
             // 
             // lblLdapNtUserId
             // 
@@ -3037,7 +3035,7 @@ namespace SA_ToolBelt
             btnExportLogs.TabIndex = 19;
             btnExportLogs.Text = "Export Logs";
             btnExportLogs.UseVisualStyleBackColor = true;
-            btnExportLogs.Click += btnExportLogs_Click;
+            btnExportLogs.Click += (this.btnExportLogs_Click);
             // 
             // dtpLogEndDate
             // 
@@ -3054,7 +3052,7 @@ namespace SA_ToolBelt
             btnClearLogs.TabIndex = 18;
             btnClearLogs.Text = "Clear Logs";
             btnClearLogs.UseVisualStyleBackColor = true;
-            btnClearLogs.Click += btnClearLogs_Click;
+            btnClearLogs.Click += (this.btnClearLogs_Click);
             // 
             // lblLogStartDate
             // 
@@ -3074,7 +3072,7 @@ namespace SA_ToolBelt
             btnFetchLogs.TabIndex = 17;
             btnFetchLogs.Text = "Fetch Logs";
             btnFetchLogs.UseVisualStyleBackColor = true;
-            btnFetchLogs.Click += btnFetchLogs_Click;
+            btnFetchLogs.Click += (this.btnFetchLogs_Click);
             // 
             // lblLogEndDate
             // 
@@ -3106,7 +3104,7 @@ namespace SA_ToolBelt
             chkLastHourOnly.TabIndex = 4;
             chkLastHourOnly.Text = "Last Hour Only";
             chkLastHourOnly.UseVisualStyleBackColor = true;
-            chkLastHourOnly.CheckedChanged += chkLastHourOnly_CheckedChanged;
+            chkLastHourOnly.CheckedChanged += (this.chkLastHourOnly_CheckedChanged);
             // 
             // lblLogStatusResults
             // 
@@ -3297,7 +3295,7 @@ namespace SA_ToolBelt
             btnOnOffline.TabIndex = 53;
             btnOnOffline.Text = "ReCheck Online/Offline Status";
             btnOnOffline.UseVisualStyleBackColor = true;
-            btnOnOffline.Click += btnOnOffline_Click;
+            btnOnOffline.Click += (this.btnOnOffline_Click);
             // 
             // lbxOfficeExempt
             // 
@@ -3475,7 +3473,7 @@ namespace SA_ToolBelt
             btnPerformHealthChk.TabIndex = 6;
             btnPerformHealthChk.Text = "Perform Health Check";
             btnPerformHealthChk.UseVisualStyleBackColor = true;
-            btnPerformHealthChk.Click += btnPerformHealthChk_Click;
+            btnPerformHealthChk.Click += (this.btnPerformHealthChk_Click);
             // 
             // btnCheckFileSystem
             // 
@@ -3486,7 +3484,7 @@ namespace SA_ToolBelt
             btnCheckFileSystem.TabIndex = 5;
             btnCheckFileSystem.Text = "Check Filesystem";
             btnCheckFileSystem.UseVisualStyleBackColor = true;
-            btnCheckFileSystem.Click += btnCheckFileSystem_Click;
+            btnCheckFileSystem.Click += (this.btnCheckFileSystem_Click);
             // 
             // gbxLDAPReplicationChk
             // 
@@ -4244,7 +4242,7 @@ namespace SA_ToolBelt
             btnCheckRepHealth.TabIndex = 14;
             btnCheckRepHealth.Text = "Check Replication Health";
             btnCheckRepHealth.UseVisualStyleBackColor = true;
-            btnCheckRepHealth.Click += btnCheckRepHealth_Click;
+            btnCheckRepHealth.Click += (this.btnCheckRepHealth_Click);
             // 
             // lblTargetCceSa2
             // 
@@ -4697,10 +4695,6 @@ namespace SA_ToolBelt
             // 
             tabConfiguration.Controls.Add(gbxManditorySettings);
             tabConfiguration.Controls.Add(gbxServerInstances);
-            tabConfiguration.Controls.Add(lblPowerCLIPathLocation);
-            tabConfiguration.Controls.Add(lblPowerCLIPathLabel);
-            tabConfiguration.Controls.Add(lblFilePathLocation);
-            tabConfiguration.Controls.Add(lblConfigFileLocationLabel);
             tabConfiguration.Controls.Add(gbxImportantVariables);
             tabConfiguration.Controls.Add(gbxComputerList);
             tabConfiguration.Controls.Add(gbxImportantOUs);
@@ -4737,7 +4731,7 @@ namespace SA_ToolBelt
             gbxManditorySettings.Controls.Add(txbVCenterServer);
             gbxManditorySettings.Location = new Point(908, 353);
             gbxManditorySettings.Name = "gbxManditorySettings";
-            gbxManditorySettings.Size = new Size(503, 520);
+            gbxManditorySettings.Size = new Size(503, 457);
             gbxManditorySettings.TabIndex = 133;
             gbxManditorySettings.TabStop = false;
             gbxManditorySettings.Text = "Manditory Settings";
@@ -4750,7 +4744,6 @@ namespace SA_ToolBelt
             btnDisabledUsersLocation.TabIndex = 21;
             btnDisabledUsersLocation.Text = "Browse";
             btnDisabledUsersLocation.UseVisualStyleBackColor = true;
-            btnDisabledUsersLocation.Click += btnDisabledUsersLocation_Click;
             // 
             // txbHomeDirectoryLocation
             // 
@@ -4758,41 +4751,40 @@ namespace SA_ToolBelt
             txbHomeDirectoryLocation.Name = "txbHomeDirectoryLocation";
             txbHomeDirectoryLocation.Size = new Size(324, 23);
             txbHomeDirectoryLocation.TabIndex = 20;
-            //
+            // 
             // lblHomeDirectoryLocation
-            //
+            // 
             lblHomeDirectoryLocation.AutoSize = true;
             lblHomeDirectoryLocation.Location = new Point(8, 316);
             lblHomeDirectoryLocation.Name = "lblHomeDirectoryLocation";
             lblHomeDirectoryLocation.Size = new Size(177, 15);
             lblHomeDirectoryLocation.TabIndex = 19;
             lblHomeDirectoryLocation.Text = "User Home Directories Location:";
-            //
+            // 
             // txbLinuxDs
-            //
+            // 
             txbLinuxDs.Location = new Point(8, 394);
             txbLinuxDs.Name = "txbLinuxDs";
             txbLinuxDs.Size = new Size(324, 23);
             txbLinuxDs.TabIndex = 23;
-            //
+            // 
             // lblLinuxDs
-            //
+            // 
             lblLinuxDs.AutoSize = true;
             lblLinuxDs.Location = new Point(8, 376);
             lblLinuxDs.Name = "lblLinuxDs";
-            lblLinuxDs.Size = new Size(130, 15);
+            lblLinuxDs.Size = new Size(91, 15);
             lblLinuxDs.TabIndex = 22;
             lblLinuxDs.Text = "Linux DS Server:";
-            //
+            // 
             // btnLinuxDs
-            //
+            // 
             btnLinuxDs.Location = new Point(350, 394);
             btnLinuxDs.Name = "btnLinuxDs";
             btnLinuxDs.Size = new Size(123, 23);
             btnLinuxDs.TabIndex = 24;
             btnLinuxDs.Text = "Browse";
             btnLinuxDs.UseVisualStyleBackColor = true;
-            btnLinuxDs.Click += btnLinuxDs_Click;
             // 
             // txbDisabledUsersLocation
             // 
@@ -4818,7 +4810,7 @@ namespace SA_ToolBelt
             btnSelectAddExcludeOu.TabIndex = 14;
             btnSelectAddExcludeOu.Text = "Select and Add OU to Exclude";
             btnSelectAddExcludeOu.UseVisualStyleBackColor = true;
-            btnSelectAddExcludeOu.Click += btnAddExcludeOu_Click;
+            btnSelectAddExcludeOu.Click += (this.btnAddExcludeOu_Click);
             // 
             // cbxExcludeOu
             // 
@@ -4857,7 +4849,7 @@ namespace SA_ToolBelt
             lblSqlPath.AutoSize = true;
             lblSqlPath.Location = new Point(55, 141);
             lblSqlPath.Name = "lblSqlPath";
-            lblSqlPath.Size = new Size(61, 15);
+            lblSqlPath.Size = new Size(58, 15);
             lblSqlPath.TabIndex = 9;
             lblSqlPath.Text = "SQL Path:";
             // 
@@ -4881,13 +4873,13 @@ namespace SA_ToolBelt
             // 
             // btnSetAll
             // 
-            btnSetAll.Location = new Point(210, 440);
+            btnSetAll.Location = new Point(210, 423);
             btnSetAll.Name = "btnSetAll";
             btnSetAll.Size = new Size(75, 23);
             btnSetAll.TabIndex = 6;
             btnSetAll.Text = "Set All";
             btnSetAll.UseVisualStyleBackColor = true;
-            btnSetAll.Click += btnSetAll_Click;
+            btnSetAll.Click += (this.btnSetAll_Click);
             // 
             // btnBrowseSqlPath
             // 
@@ -4897,7 +4889,6 @@ namespace SA_ToolBelt
             btnBrowseSqlPath.TabIndex = 5;
             btnBrowseSqlPath.Text = "Browse";
             btnBrowseSqlPath.UseVisualStyleBackColor = true;
-            btnBrowseSqlPath.Click += btnBrowseSqlPath_Click;
             // 
             // btnBrowsePowerCLIModuleLocation
             // 
@@ -4907,7 +4898,7 @@ namespace SA_ToolBelt
             btnBrowsePowerCLIModuleLocation.TabIndex = 4;
             btnBrowsePowerCLIModuleLocation.Text = "Browse";
             btnBrowsePowerCLIModuleLocation.UseVisualStyleBackColor = true;
-            btnBrowsePowerCLIModuleLocation.Click += btnBrowsePowerCLIModuleLocation_Click;
+            btnBrowsePowerCLIModuleLocation.Click += (this.btnBrowsePowerCLIModuleLocation_Click);
             // 
             // btnVerifyVCenterServer
             // 
@@ -4917,7 +4908,7 @@ namespace SA_ToolBelt
             btnVerifyVCenterServer.TabIndex = 3;
             btnVerifyVCenterServer.Text = "Verify";
             btnVerifyVCenterServer.UseVisualStyleBackColor = true;
-            btnVerifyVCenterServer.Click += btnVerifyVCenterServer_Click;
+            btnVerifyVCenterServer.Click += (this.btnVerifyVCenterServer_Click);
             // 
             // txbVCenterServer
             // 
@@ -4948,7 +4939,7 @@ namespace SA_ToolBelt
             btnSubmitServerInstance.TabIndex = 3;
             btnSubmitServerInstance.Text = "Submit Variables";
             btnSubmitServerInstance.UseVisualStyleBackColor = true;
-            btnSubmitServerInstance.Click += btnSubmitServerInstance_Click;
+            btnSubmitServerInstance.Click += (this.btnSubmitServerInstance_Click);
             // 
             // txbLdapServerInstace2
             // 
@@ -4982,44 +4973,6 @@ namespace SA_ToolBelt
             lblLdapServerInstance1.TabIndex = 0;
             lblLdapServerInstance1.Text = "LDAP Server Instance 1";
             // 
-            // lblPowerCLIPathLocation
-            // 
-            lblPowerCLIPathLocation.AutoSize = true;
-            lblPowerCLIPathLocation.Location = new Point(492, 827);
-            lblPowerCLIPathLocation.Name = "lblPowerCLIPathLocation";
-            lblPowerCLIPathLocation.Size = new Size(64, 15);
-            lblPowerCLIPathLocation.TabIndex = 131;
-            lblPowerCLIPathLocation.Text = "Not Found";
-            // 
-            // lblPowerCLIPathLabel
-            // 
-            lblPowerCLIPathLabel.AutoSize = true;
-            lblPowerCLIPathLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblPowerCLIPathLabel.Location = new Point(328, 827);
-            lblPowerCLIPathLabel.Name = "lblPowerCLIPathLabel";
-            lblPowerCLIPathLabel.Size = new Size(136, 15);
-            lblPowerCLIPathLabel.TabIndex = 130;
-            lblPowerCLIPathLabel.Text = "PowerCLI Module Path:";
-            // 
-            // lblFilePathLocation
-            // 
-            lblFilePathLocation.AutoSize = true;
-            lblFilePathLocation.Location = new Point(1006, 827);
-            lblFilePathLocation.Name = "lblFilePathLocation";
-            lblFilePathLocation.Size = new Size(64, 15);
-            lblFilePathLocation.TabIndex = 129;
-            lblFilePathLocation.Text = "Not Found";
-            // 
-            // lblConfigFileLocationLabel
-            // 
-            lblConfigFileLocationLabel.AutoSize = true;
-            lblConfigFileLocationLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblConfigFileLocationLabel.Location = new Point(842, 827);
-            lblConfigFileLocationLabel.Name = "lblConfigFileLocationLabel";
-            lblConfigFileLocationLabel.Size = new Size(158, 15);
-            lblConfigFileLocationLabel.TabIndex = 128;
-            lblConfigFileLocationLabel.Text = "Configuration File Location:";
-            // 
             // gbxImportantVariables
             // 
             gbxImportantVariables.Controls.Add(btnSubmitVars);
@@ -5040,7 +4993,7 @@ namespace SA_ToolBelt
             btnSubmitVars.TabIndex = 2;
             btnSubmitVars.Text = "Submit Variables";
             btnSubmitVars.UseVisualStyleBackColor = true;
-            btnSubmitVars.Click += btnSubmitVars_Click;
+            btnSubmitVars.Click += (this.btnSubmitVars_Click);
             // 
             // txbSecurityGroupKW
             // 
@@ -5309,7 +5262,7 @@ namespace SA_ToolBelt
             btnAddSecurityGroupsOU.TabIndex = 108;
             btnAddSecurityGroupsOU.Text = "Add Security Groups OU";
             btnAddSecurityGroupsOU.UseVisualStyleBackColor = true;
-            btnAddSecurityGroupsOU.Click += btnAddSecurityGroupsOU_Click;
+            btnAddSecurityGroupsOU.Click += (this.btnAddSecurityGroupsOU_Click);
             // 
             // cbxListSecurityGroupsOu
             // 
@@ -5337,7 +5290,7 @@ namespace SA_ToolBelt
             btnAddWindowsServersOu.TabIndex = 104;
             btnAddWindowsServersOu.Text = "Add Windows Servers OU";
             btnAddWindowsServersOu.UseVisualStyleBackColor = true;
-            btnAddWindowsServersOu.Click += btnAddWindowsServersOu_Click;
+            btnAddWindowsServersOu.Click += (this.btnAddWindowsServersOu_Click);
             // 
             // btnAddPatriotParkOu
             // 
@@ -5347,7 +5300,7 @@ namespace SA_ToolBelt
             btnAddPatriotParkOu.TabIndex = 103;
             btnAddPatriotParkOu.Text = "Add Patriot Park OU";
             btnAddPatriotParkOu.UseVisualStyleBackColor = true;
-            btnAddPatriotParkOu.Click += btnAddPatriotParkOu_Click;
+            btnAddPatriotParkOu.Click += (this.btnAddPatriotParkOu_Click);
             // 
             // btnAddWorkstationOu
             // 
@@ -5357,7 +5310,7 @@ namespace SA_ToolBelt
             btnAddWorkstationOu.TabIndex = 102;
             btnAddWorkstationOu.Text = "Add Workstation OU";
             btnAddWorkstationOu.UseVisualStyleBackColor = true;
-            btnAddWorkstationOu.Click += btnAddWorkStationOu_Click;
+            btnAddWorkstationOu.Click += (this.btnAddWorkStationOu_Click);
             // 
             // cbxListWorkStationOu
             // 
@@ -5441,7 +5394,7 @@ namespace SA_ToolBelt
             btnUndockConsole.TabIndex = 0;
             btnUndockConsole.Text = "Undock Console";
             btnUndockConsole.UseVisualStyleBackColor = true;
-            btnUndockConsole.Click += btnUndockConsole_Click;
+            btnUndockConsole.Click += (this.btnUndockConsole_Click);
             // 
             // btnLogout
             // 
@@ -5451,19 +5404,30 @@ namespace SA_ToolBelt
             btnLogout.TabIndex = 1;
             btnLogout.Text = "Log Out";
             btnLogout.UseVisualStyleBackColor = true;
-            btnLogout.Click += btnLogout_Click;
+            btnLogout.Click += (this.btnLogout_Click);
+            // 
+            // btnRefreshDefaultSecGroup
+            // 
+            btnRefreshDefaultSecGroup.BackColor = SystemColors.MenuHighlight;
+            btnRefreshDefaultSecGroup.Location = new Point(367, 630);
+            btnRefreshDefaultSecGroup.Name = "btnRefreshDefaultSecGroup";
+            btnRefreshDefaultSecGroup.Size = new Size(75, 23);
+            btnRefreshDefaultSecGroup.TabIndex = 29;
+            btnRefreshDefaultSecGroup.Text = "Refresh";
+            btnRefreshDefaultSecGroup.UseVisualStyleBackColor = false;
+            btnRefreshDefaultSecGroup.Click += (this.btnRefreshDefaultSecGroup_Click);
             // 
             // SAToolBelt
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1659, 976);
-            Controls.Add(btnLogout);
-            Controls.Add(tabControlMain);
-            Controls.Add(btnUndockConsole);
-            Name = "SAToolBelt";
-            Text = "Lockheed Martin - SPICE - SA Toolbelt";
-            KeyDown += SAToolBelt_KeyDown;
+            this.AutoScaleDimensions = new SizeF(7F, 15F);
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(1659, 976);
+            this.Controls.Add(btnLogout);
+            this.Controls.Add(tabControlMain);
+            this.Controls.Add(btnUndockConsole);
+            this.Name = "SAToolBelt";
+            this.Text = "Lockheed Martin - SPICE - SA Toolbelt";
+            this.KeyDown += (this.SAToolBelt_KeyDown);
             tabControlMain.ResumeLayout(false);
             tabLogin.ResumeLayout(false);
             panelLogin.ResumeLayout(false);
@@ -5530,7 +5494,6 @@ namespace SA_ToolBelt
             tabCcesa2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvCcesa2).EndInit();
             tabConfiguration.ResumeLayout(false);
-            tabConfiguration.PerformLayout();
             gbxManditorySettings.ResumeLayout(false);
             gbxManditorySettings.PerformLayout();
             gbxServerInstances.ResumeLayout(false);
@@ -5541,7 +5504,7 @@ namespace SA_ToolBelt
             gbxComputerList.PerformLayout();
             gbxImportantOUs.ResumeLayout(false);
             gbxImportantOUs.PerformLayout();
-            ResumeLayout(false);
+            this.ResumeLayout(false);
         }
 
         #endregion
@@ -5769,7 +5732,7 @@ namespace SA_ToolBelt
         private TabPage tabConfiguration;
         private GroupBox gbxImportantOUs;
         private CheckedListBox cbxListWorkStationOu;
-         private Label lblWorkstationOu;
+        private Label lblWorkstationOu;
         private CheckedListBox cbxListWindowsServersOu;
         private Label lblPatriotParkOu;
         private Label lblWindowsServersOu;
@@ -5972,10 +5935,6 @@ namespace SA_ToolBelt
         private Label lblReplicaStatusSa2;
         private Label lblReplicaStatusDataSa2;
         private Label lblReplicaRootDataSa2;
-        private Label lblConfigFileLocationLabel;
-        private Label lblFilePathLocation;
-        private Label lblPowerCLIPathLabel;
-        private Label lblPowerCLIPathLocation;
         private DateTimePicker dtpLogStartDate;
         private Label lblLogEndDate;
         private Label lblLogStartDate;
@@ -6027,5 +5986,6 @@ namespace SA_ToolBelt
         private TextBox txbLinuxDs;
         private Label lblLinuxDs;
         private Button btnLinuxDs;
+        private Button btnRefreshDefaultSecGroup;
     }
 }

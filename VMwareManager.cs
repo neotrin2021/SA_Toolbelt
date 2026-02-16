@@ -454,7 +454,7 @@ namespace SA_ToolBelt
                         Name = result.Properties["Name"].Value.ToString(),
                         PowerState = result.Properties["PowerState"].Value.ToString(),
                         ESXiHostname = result.Properties["ESXiHostname"].Value.ToString(),
-                        ESXiIP = result.Properties["ESXiIP"].Value.ToString()
+                        ESXiIP = result.Properties["ESXiHostIP"].Value.ToString()
                     });
                 }
 
@@ -521,7 +521,7 @@ namespace SA_ToolBelt
                                 HostCPU = ConvertToMHz(result, "HostCPU"),
                                 HostMemory = ConvertToGB(result, "HostMemory"),
                                 ESXiHostname = result.Properties["ESXiHostname"].Value?.ToString() ?? "N/A",
-                                ESXiIP = result.Properties["ESXiIP"].Value?.ToString() ?? "N/A"
+                                ESXiIP = result.Properties["ESXiHostIP"].Value?.ToString() ?? "N/A"
                             });
                         }
                         catch (Exception ex)
@@ -680,4 +680,5 @@ namespace SA_ToolBelt
     }
 
     #endregion
+
 }

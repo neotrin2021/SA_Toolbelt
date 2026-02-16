@@ -2925,6 +2925,13 @@ namespace SA_ToolBelt
                 _consoleForm?.WriteError($"Error in ItemCheck event: {ex.Message}");
             }
         }
+         /// <summary>
+         /// Refreshes Security Groups.
+         /// </summary>
+         private void btnRefreshDefaultSecGroup_Click(object sender, EventArgs e)
+         {
+        
+         }
         /// <summary>
         /// Event handler for Generate button - creates NT User ID from first and last name
         /// </summary>
