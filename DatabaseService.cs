@@ -780,18 +780,35 @@ namespace SA_ToolBelt
         {
             try
             {
+                _consoleForm?.WriteInfo($"[Config Debug] Reading database \"{DB_FILENAME}\" located at \"{_databasePath}\"");
+
                 if (!File.Exists(_databasePath))
+                {
+                    _consoleForm?.WriteError($"[Config Debug] Database file does NOT exist at: {_databasePath}");
                     return null;
+                }
+
+                _consoleForm?.WriteInfo($"[Config Debug] Database file exists. Opening connection...");
 
                 using (var connection = GetConnection())
                 {
                     string sql = "SELECT VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds FROM Toolbelt_Config LIMIT 1";
+
+                    _consoleForm?.WriteInfo($"[Config Debug] Querying table \"Toolbelt_Config\" — columns: VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds");
 
                     using (var cmd = new SqliteCommand(sql, connection))
                     using (var reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
                         {
+                            // Log every column raw value before mapping
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                string colName = reader.GetName(i);
+                                string colValue = reader.IsDBNull(i) ? "(NULL)" : $"\"{reader.GetString(i)}\"";
+                                _consoleForm?.WriteInfo($"[Config Debug]   Column \"{colName}\" = {colValue}");
+                            }
+
                             return new ToolbeltConfig
                             {
                                 VCenterServer = reader.GetString(0),
@@ -802,6 +819,10 @@ namespace SA_ToolBelt
                                 HomeDirectory = reader.GetString(5),
                                 LinuxDs = reader.IsDBNull(6) ? string.Empty : reader.GetString(6)
                             };
+                        }
+                        else
+                        {
+                            _consoleForm?.WriteWarning("[Config Debug] Query returned no rows — Toolbelt_Config table is empty.");
                         }
                     }
                 }

@@ -32,6 +32,7 @@ namespace SA_ToolBelt
         private VMwareManager _vmwareManager;
         private PreCheck _preCheck;
         private DatabaseService _databaseService;
+        private Windows_Tools _windowsTools;
 
         // Startup Shutdown Variables
         public string VMMode = "NormalRun";
@@ -65,6 +66,7 @@ namespace SA_ToolBelt
             _adService = new AD_Service(_consoleForm);
             _linuxService = new Linux_Service(_consoleForm);
             _rhdsService = new RHDS_Service(_consoleForm);
+            _windowsTools = new Windows_Tools(_consoleForm);
             _preCheck = new PreCheck(_consoleForm);
             _databaseService = new DatabaseService(_consoleForm);
 
@@ -334,6 +336,39 @@ namespace SA_ToolBelt
             _disabledUsersOu = config.DisabledUsersOu;
             _homeDirectoryPath = config.HomeDirectory;
             _excludedOUs = config.ExcludedOU;
+
+            // Debug: trace the PowerCLI path derivation
+            _consoleForm.WriteInfo($"[Config Debug] config.PowerCLILocation from DB = \"{config.PowerCLILocation}\"");
+            _consoleForm.WriteInfo($"[Config Debug] Path.Combine result (POWERCLI_MODULE_PATH) = \"{POWERCLI_MODULE_PATH}\"");
+            if (!string.IsNullOrEmpty(POWERCLI_MODULE_PATH))
+            {
+                bool pathExists = Directory.Exists(POWERCLI_MODULE_PATH);
+                _consoleForm.WriteInfo($"[Config Debug] Directory.Exists(\"{POWERCLI_MODULE_PATH}\") = {pathExists}");
+                if (!pathExists)
+                {
+                    // Check if the parent at least exists
+                    bool parentExists = !string.IsNullOrEmpty(config.PowerCLILocation) && Directory.Exists(config.PowerCLILocation);
+                    _consoleForm.WriteWarning($"[Config Debug] Parent directory exists (\"{config.PowerCLILocation}\") = {parentExists}");
+                    if (parentExists)
+                    {
+                        try
+                        {
+                            var subdirs = Directory.GetDirectories(config.PowerCLILocation);
+                            _consoleForm.WriteInfo($"[Config Debug] Subdirectories in parent ({subdirs.Length} found):");
+                            foreach (var dir in subdirs)
+                                _consoleForm.WriteInfo($"[Config Debug]   {Path.GetFileName(dir)}");
+                        }
+                        catch (Exception dirEx)
+                        {
+                            _consoleForm.WriteWarning($"[Config Debug] Could not list subdirectories: {dirEx.Message}");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _consoleForm.WriteWarning("[Config Debug] POWERCLI_MODULE_PATH is empty — PowerCLI will not load.");
+            }
 
             // Update the excluded OUs in the AD Service
             if (!string.IsNullOrEmpty(_excludedOUs))
@@ -3758,6 +3793,14 @@ namespace SA_ToolBelt
         {
             try
             {
+                // Guard: skip if no PowerCLI module path is configured
+                if (string.IsNullOrEmpty(POWERCLI_MODULE_PATH))
+                {
+                    _consoleForm.WriteWarning("PowerCLI module path is not configured. Skipping PowerCLI background loading.");
+                    _consoleForm.WriteWarning("Set the PowerCLI Module Location in the Configuration tab to enable VMware features.");
+                    return;
+                }
+
                 // Initialize VMware Manager if not already done
                 if (_vmwareManager == null)
                 {
@@ -4051,6 +4094,13 @@ namespace SA_ToolBelt
                 if (!CredentialManager.IsAuthenticated)
                 {
                     _consoleForm.WriteError("Not authenticated. Please log in first.");
+                    return;
+                }
+
+                // Guard: ensure PowerCLI path is configured
+                if (string.IsNullOrEmpty(POWERCLI_MODULE_PATH))
+                {
+                    _consoleForm.WriteError("PowerCLI module path is not configured. Set it in the Configuration tab.");
                     return;
                 }
 
@@ -5881,10 +5931,379 @@ namespace SA_ToolBelt
         }
 
         #endregion
+
+        #region Windows Tools Tab Event Handlers
+
+        // Theme colour constants for Windows Tools tab
+        private static readonly Color WtAccentBlue = Color.FromArgb(74, 127, 181);
+        private static readonly Color WtGoodGreen = Color.FromArgb(40, 167, 69);
+        private static readonly Color WtWarnRed = Color.FromArgb(220, 53, 69);
+        private static readonly Color WtWarnAmber = Color.FromArgb(255, 193, 7);
+        private static readonly Color WtTextDark = Color.FromArgb(33, 37, 41);
+        private static readonly Color WtTextMuted = Color.FromArgb(108, 117, 125);
+
+        // Cached query result for filtering
+        private Windows_Tools.BiosQueryResult _lastBiosResult;
+
+        private void txbBiosComputerName_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                btnQueryBios.PerformClick();
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        private async void btnQueryBios_Click(object sender, EventArgs e)
+        {
+            string computerName = txbBiosComputerName.Text.Trim();
+            if (string.IsNullOrEmpty(computerName))
+            {
+                _consoleForm?.WriteWarning("Please enter a computer name or IP address.");
+                lblBiosQueryStatusValue.Text = "Enter a computer name";
+                lblBiosQueryStatusValue.ForeColor = WtWarnAmber;
+                return;
+            }
+
+            if (!CredentialManager.IsAuthenticated)
+            {
+                _consoleForm?.WriteError("Please log in first before querying remote BIOS.");
+                lblBiosQueryStatusValue.Text = "Not authenticated";
+                lblBiosQueryStatusValue.ForeColor = WtWarnRed;
+                return;
+            }
+
+            try
+            {
+                SetBiosQueryBusy(true, "Querying...");
+
+                string username = CredentialManager.GetUsername();
+                string password = CredentialManager.GetPassword();
+                string domain = CredentialManager.GetDomain();
+
+                var result = await _windowsTools.QueryRemoteBiosAsync(computerName, username, password, domain);
+
+                if (result.Success)
+                {
+                    _lastBiosResult = result;
+                    PopulateBiosResults(result);
+                    SetBiosQueryBusy(false, "Query complete");
+                    lblBiosQueryStatusValue.ForeColor = WtGoodGreen;
+                }
+                else
+                {
+                    SetBiosQueryBusy(false, result.ErrorMessage);
+                    lblBiosQueryStatusValue.ForeColor = WtWarnRed;
+                    _consoleForm?.WriteError($"BIOS query failed: {result.ErrorMessage}");
+                }
+            }
+            catch (Exception ex)
+            {
+                SetBiosQueryBusy(false, "Error - see console");
+                lblBiosQueryStatusValue.ForeColor = WtWarnRed;
+                _consoleForm?.WriteError($"BIOS query exception: {ex.Message}");
+            }
+        }
+
+        private async void btnTestWmiConnection_Click(object sender, EventArgs e)
+        {
+            string computerName = txbBiosComputerName.Text.Trim();
+            if (string.IsNullOrEmpty(computerName))
+            {
+                _consoleForm?.WriteWarning("Please enter a computer name or IP address.");
+                return;
+            }
+
+            if (!CredentialManager.IsAuthenticated)
+            {
+                _consoleForm?.WriteError("Please log in first.");
+                return;
+            }
+
+            try
+            {
+                btnTestWmiConnection.Enabled = false;
+                btnTestWmiConnection.Text = "Testing...";
+                lblBiosQueryStatusValue.Text = "Testing WMI connectivity...";
+                lblBiosQueryStatusValue.ForeColor = WtAccentBlue;
+
+                string username = CredentialManager.GetUsername();
+                string password = CredentialManager.GetPassword();
+                string domain = CredentialManager.GetDomain();
+
+                bool connected = await _windowsTools.TestWmiConnectivity(computerName, username, password, domain);
+
+                if (connected)
+                {
+                    lblBiosQueryStatusValue.Text = "Connection successful";
+                    lblBiosQueryStatusValue.ForeColor = WtGoodGreen;
+                    _consoleForm?.WriteSuccess($"WMI connection to {computerName} successful.");
+                }
+                else
+                {
+                    lblBiosQueryStatusValue.Text = "Connection failed";
+                    lblBiosQueryStatusValue.ForeColor = WtWarnRed;
+                    _consoleForm?.WriteError($"WMI connection to {computerName} failed. Check firewall/WinRM settings.");
+                }
+            }
+            catch (Exception ex)
+            {
+                lblBiosQueryStatusValue.Text = "Connection error";
+                lblBiosQueryStatusValue.ForeColor = WtWarnRed;
+                _consoleForm?.WriteError($"Connection test error: {ex.Message}");
+            }
+            finally
+            {
+                btnTestWmiConnection.Enabled = true;
+                btnTestWmiConnection.Text = "Test Connection";
+            }
+        }
+
+        private void btnClearBiosResults_Click(object sender, EventArgs e)
+        {
+            _lastBiosResult = null;
+            ClearBiosResults();
+            lblBiosQueryStatusValue.Text = "Ready";
+            lblBiosQueryStatusValue.ForeColor = WtAccentBlue;
+            txbBiosSettingsFilter.Clear();
+            _consoleForm?.WriteInfo("BIOS results cleared.");
+        }
+
+        private void btnExportBiosResults_Click(object sender, EventArgs e)
+        {
+            if (_lastBiosResult == null || !_lastBiosResult.Success)
+            {
+                _consoleForm?.WriteWarning("No BIOS results to export. Run a query first.");
+                return;
+            }
+
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "Text Files (*.txt)|*.txt|CSV Files (*.csv)|*.csv",
+                Title = "Export BIOS Results",
+                FileName = $"BIOS_{_lastBiosResult.ComputerName}_{DateTime.Now:yyyyMMdd_HHmmss}"
+            };
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    var lines = new List<string>();
+
+                    if (dialog.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                    {
+                        lines.Add("Section,Property,Value");
+                        lines.Add($"System,Computer Name,{_lastBiosResult.ComputerName}");
+                        lines.Add($"System,Manufacturer,{_lastBiosResult.Manufacturer}");
+                        lines.Add($"System,Model,{_lastBiosResult.Model}");
+                        lines.Add($"System,Serial Number,{_lastBiosResult.SerialNumber}");
+                        lines.Add($"System,BIOS Version,{_lastBiosResult.BiosVersion}");
+                        lines.Add($"System,BIOS Date,{_lastBiosResult.BiosDate}");
+                        lines.Add($"System,OS,{_lastBiosResult.OSName}");
+                        lines.Add($"System,OS Version,{_lastBiosResult.OSVersion}");
+                        lines.Add($"System,Architecture,{_lastBiosResult.OSArchitecture}");
+                        lines.Add($"Security,TPM Present,{_lastBiosResult.TpmPresent}");
+                        lines.Add($"Security,TPM Version,{_lastBiosResult.TpmVersion}");
+                        lines.Add($"Security,TPM Enabled,{_lastBiosResult.TpmEnabled}");
+                        lines.Add($"Security,TPM Activated,{_lastBiosResult.TpmActivated}");
+                        lines.Add($"Security,Secure Boot,{_lastBiosResult.SecureBootEnabled}");
+
+                        foreach (var setting in _lastBiosResult.HpBiosSettings)
+                        {
+                            string val = setting.CurrentValue.Contains(',')
+                                ? $"\"{setting.CurrentValue}\""
+                                : setting.CurrentValue;
+                            lines.Add($"{setting.Category},{setting.Name},{val}");
+                        }
+                    }
+                    else
+                    {
+                        lines.Add($"═══════════════════════════════════════════════════════════");
+                        lines.Add($"  BIOS Report: {_lastBiosResult.ComputerName}");
+                        lines.Add($"  Generated:   {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                        lines.Add($"═══════════════════════════════════════════════════════════");
+                        lines.Add("");
+                        lines.Add("── SYSTEM INFORMATION ──────────────────────────────────────");
+                        lines.Add($"  Manufacturer:    {_lastBiosResult.Manufacturer}");
+                        lines.Add($"  Model:           {_lastBiosResult.Model}");
+                        lines.Add($"  Serial Number:   {_lastBiosResult.SerialNumber}");
+                        lines.Add($"  BIOS Version:    {_lastBiosResult.BiosVersion}");
+                        lines.Add($"  BIOS Date:       {_lastBiosResult.BiosDate}");
+                        lines.Add($"  OS:              {_lastBiosResult.OSName}");
+                        lines.Add($"  OS Version:      {_lastBiosResult.OSVersion}");
+                        lines.Add($"  Architecture:    {_lastBiosResult.OSArchitecture}");
+                        lines.Add("");
+                        lines.Add("── SECURITY STATUS ─────────────────────────────────────────");
+                        lines.Add($"  TPM Present:     {_lastBiosResult.TpmPresent}");
+                        lines.Add($"  TPM Version:     {_lastBiosResult.TpmVersion}");
+                        lines.Add($"  TPM Enabled:     {_lastBiosResult.TpmEnabled}");
+                        lines.Add($"  TPM Activated:   {_lastBiosResult.TpmActivated}");
+                        lines.Add($"  Secure Boot:     {_lastBiosResult.SecureBootEnabled}");
+
+                        if (_lastBiosResult.HpBiosSettings.Count > 0)
+                        {
+                            lines.Add("");
+                            lines.Add("── HP BIOS SETTINGS ────────────────────────────────────────");
+
+                            var grouped = _lastBiosResult.HpBiosSettings
+                                .OrderBy(s => s.Category)
+                                .ThenBy(s => s.Name)
+                                .GroupBy(s => s.Category);
+
+                            foreach (var group in grouped)
+                            {
+                                lines.Add($"");
+                                lines.Add($"  [{group.Key}]");
+                                foreach (var setting in group)
+                                {
+                                    lines.Add($"    {setting.Name,-40} {setting.CurrentValue}");
+                                }
+                            }
+                        }
+
+                        lines.Add("");
+                        lines.Add("═══════════════════════════════════════════════════════════");
+                    }
+
+                    System.IO.File.WriteAllLines(dialog.FileName, lines);
+                    _consoleForm?.WriteSuccess($"BIOS results exported to: {dialog.FileName}");
+                }
+                catch (Exception ex)
+                {
+                    _consoleForm?.WriteError($"Export failed: {ex.Message}");
+                }
+            }
+        }
+
+        private void txbBiosSettingsFilter_TextChanged(object sender, EventArgs e)
+        {
+            if (_lastBiosResult == null) return;
+            PopulateHpBiosGrid(_lastBiosResult.HpBiosSettings, txbBiosSettingsFilter.Text.Trim());
+        }
+
+        private void PopulateBiosResults(Windows_Tools.BiosQueryResult result)
+        {
+            // System info
+            lblManufacturerValue.Text = result.Manufacturer ?? "\u2014";
+            lblModelValue.Text = result.Model ?? "\u2014";
+            lblSerialValue.Text = result.SerialNumber ?? "\u2014";
+            lblBiosVersionValue.Text = result.BiosVersion ?? "\u2014";
+            lblBiosDateValue.Text = result.BiosDate ?? "\u2014";
+            lblOsNameValue.Text = result.OSName ?? "\u2014";
+            lblOsVersionValue.Text = result.OSVersion ?? "\u2014";
+            lblOsArchValue.Text = result.OSArchitecture ?? "\u2014";
+
+            // Security - with color indicators
+            SetSecurityValue(lblTpmPresentValue, result.TpmPresent, "Yes");
+            lblTpmVersionValue.Text = result.TpmVersion ?? "\u2014";
+            SetSecurityValue(lblTpmEnabledValue, result.TpmEnabled, "True");
+            SetSecurityValue(lblTpmActivatedValue, result.TpmActivated, "True");
+            SetSecurityValue(lblSecureBootValue, result.SecureBootEnabled, "Enabled");
+
+            // HP BIOS settings grid
+            if (result.IsHpMachine && result.HpBiosSettings.Count > 0)
+            {
+                PopulateHpBiosGrid(result.HpBiosSettings, "");
+                lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
+            }
+            else if (result.IsHpMachine)
+            {
+                dgvHpBiosSettings.Rows.Clear();
+                lblBiosSettingsCount.Text = "HP machine detected but no BIOS settings retrieved";
+                lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
+            }
+            else
+            {
+                dgvHpBiosSettings.Rows.Clear();
+                lblBiosSettingsCount.Text = $"Non-HP machine ({result.Manufacturer}) \u2014 HP BIOS namespace not available";
+                lblHpBiosHeader.Text = "  BIOS SETTINGS (HP namespace not available)";
+            }
+        }
+
+        private void PopulateHpBiosGrid(List<Windows_Tools.BiosSetting> settings, string filter)
+        {
+            dgvHpBiosSettings.Rows.Clear();
+
+            var filtered = string.IsNullOrEmpty(filter)
+                ? settings
+                : settings.Where(s =>
+                    s.Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    s.CurrentValue.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    s.Category.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0
+                ).ToList();
+
+            foreach (var setting in filtered.OrderBy(s => s.Category).ThenBy(s => s.Name))
+            {
+                dgvHpBiosSettings.Rows.Add(setting.Category, setting.Name, setting.CurrentValue);
+            }
+
+            lblBiosSettingsCount.Text = string.IsNullOrEmpty(filter)
+                ? $"{settings.Count} settings"
+                : $"{filtered.Count} of {settings.Count} settings";
+        }
+
+        private void SetSecurityValue(Label label, string value, string goodValue)
+        {
+            if (string.IsNullOrEmpty(value) || value == "\u2014")
+            {
+                label.Text = "\u2014";
+                label.ForeColor = WtTextMuted;
+                return;
+            }
+
+            label.Text = value;
+
+            if (value.IndexOf(goodValue, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                label.ForeColor = WtGoodGreen;
+                label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            }
+            else if (value.Equals("No", StringComparison.OrdinalIgnoreCase) ||
+                     value.Equals("False", StringComparison.OrdinalIgnoreCase) ||
+                     value.Equals("Disabled", StringComparison.OrdinalIgnoreCase))
+            {
+                label.ForeColor = WtWarnRed;
+                label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            }
+            else
+            {
+                label.ForeColor = WtWarnAmber;
+                label.Font = new Font("Segoe UI", 9.5F);
+            }
+        }
+
+        private void ClearBiosResults()
+        {
+            lblManufacturerValue.Text = "\u2014";
+            lblModelValue.Text = "\u2014";
+            lblSerialValue.Text = "\u2014";
+            lblBiosVersionValue.Text = "\u2014";
+            lblBiosDateValue.Text = "\u2014";
+            lblOsNameValue.Text = "\u2014";
+            lblOsVersionValue.Text = "\u2014";
+            lblOsArchValue.Text = "\u2014";
+
+            foreach (var lbl in new[] { lblTpmPresentValue, lblTpmVersionValue, lblTpmEnabledValue,
+                                        lblTpmActivatedValue, lblSecureBootValue })
+            {
+                lbl.Text = "\u2014";
+                lbl.ForeColor = WtTextDark;
+                lbl.Font = new Font("Segoe UI", 9.5F);
+            }
+
+            dgvHpBiosSettings.Rows.Clear();
+            lblBiosSettingsCount.Text = "";
+        }
+
+        private void SetBiosQueryBusy(bool busy, string statusText)
+        {
+            btnQueryBios.Enabled = !busy;
+            btnQueryBios.Text = busy ? "Querying..." : "Query BIOS";
+            pgbBiosQuery.Visible = busy;
+            lblBiosQueryStatusValue.Text = statusText;
+            lblBiosQueryStatusValue.ForeColor = busy ? WtAccentBlue : WtTextDark;
+        }
+
+        #endregion
     }
 }
-
-
-
-
-
