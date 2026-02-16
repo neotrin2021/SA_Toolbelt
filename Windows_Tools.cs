@@ -5,11 +5,11 @@ using System.Threading.Tasks;
 
 namespace SA_ToolBelt
 {
-    public class WMI_Service
+    public class Windows_Tools
     {
         private readonly ConsoleForm _consoleForm;
 
-        public WMI_Service(ConsoleForm consoleForm = null)
+        public Windows_Tools(ConsoleForm consoleForm = null)
         {
             _consoleForm = consoleForm;
         }
