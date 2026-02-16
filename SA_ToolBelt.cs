@@ -3753,6 +3753,14 @@ namespace SA_ToolBelt
         {
             try
             {
+                // Guard: skip if no PowerCLI module path is configured
+                if (string.IsNullOrEmpty(POWERCLI_MODULE_PATH))
+                {
+                    _consoleForm.WriteWarning("PowerCLI module path is not configured. Skipping PowerCLI background loading.");
+                    _consoleForm.WriteWarning("Set the PowerCLI Module Location in the Configuration tab to enable VMware features.");
+                    return;
+                }
+
                 // Initialize VMware Manager if not already done
                 if (_vmwareManager == null)
                 {
@@ -4046,6 +4054,13 @@ namespace SA_ToolBelt
                 if (!CredentialManager.IsAuthenticated)
                 {
                     _consoleForm.WriteError("Not authenticated. Please log in first.");
+                    return;
+                }
+
+                // Guard: ensure PowerCLI path is configured
+                if (string.IsNullOrEmpty(POWERCLI_MODULE_PATH))
+                {
+                    _consoleForm.WriteError("PowerCLI module path is not configured. Set it in the Configuration tab.");
                     return;
                 }
 
