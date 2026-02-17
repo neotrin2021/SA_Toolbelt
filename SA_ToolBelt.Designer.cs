@@ -28,9 +28,9 @@ namespace SA_ToolBelt
         /// </summary>
         private void InitializeComponent()
         {
-            DataGridViewCellStyle dgvBiosDefaultStyle = new DataGridViewCellStyle();
-            DataGridViewCellStyle dgvBiosAltRowStyle = new DataGridViewCellStyle();
-            DataGridViewCellStyle dgvBiosHeaderStyle = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
             tabControlMain = new TabControl();
             tabLogin = new TabPage();
             panelLogin = new Panel();
@@ -164,6 +164,7 @@ namespace SA_ToolBelt
             pkrAcntExpDateTimePicker = new DateTimePicker();
             tabLDAP = new TabPage();
             gbxUserAccountCreation = new GroupBox();
+            btnRefreshDefaultSecGroup = new Button();
             rbnSecurityGroupOther = new RadioButton();
             txbSecurityGroupOther = new TextBox();
             txbSecurityGroupId = new TextBox();
@@ -239,11 +240,11 @@ namespace SA_ToolBelt
             lblHpBiosHeader = new Label();
             lblBiosFilterTag = new Label();
             txbBiosSettingsFilter = new TextBox();
+            lblBiosSettingsCount = new Label();
             dgvHpBiosSettings = new DataGridView();
             colBiosCategory = new DataGridViewTextBoxColumn();
             colBiosSettingName = new DataGridViewTextBoxColumn();
             colBiosSettingValue = new DataGridViewTextBoxColumn();
-            lblBiosSettingsCount = new Label();
             tabLinuxTools = new TabPage();
             gbxLinuxLogs = new GroupBox();
             dtpLogStartDate = new DateTimePicker();
@@ -437,12 +438,11 @@ namespace SA_ToolBelt
             tabStartupShutdownPt2 = new TabPage();
             tabConfiguration = new TabPage();
             gbxManditorySettings = new GroupBox();
-            btnDisabledUsersLocation = new Button();
+            btnBrowseDisabledUsersLocation = new Button();
             txbHomeDirectoryLocation = new TextBox();
             lblHomeDirectoryLocation = new Label();
             txbLinuxDs = new TextBox();
             lblLinuxDs = new Label();
-            btnLinuxDs = new Button();
             txbDisabledUsersLocation = new TextBox();
             lblDisabledUsersLocation = new Label();
             btnSelectAddExcludeOu = new Button();
@@ -508,7 +508,14 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
-            btnRefreshDefaultSecGroup = new Button();
+            btnSetSqlPath = new Button();
+            btnSetPowerCLIModuleLocation = new Button();
+            btnSetVCenterServer = new Button();
+            btnSetDisabledUsersLocation = new Button();
+            btnSetLinuxDs = new Button();
+            btnSetAddExcludeOu = new Button();
+            btnBrowseHomeDirLocation = new Button();
+            btnSetHomeDirLocation = new Button();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -533,6 +540,13 @@ namespace SA_ToolBelt
             gbxAcntExpDate.SuspendLayout();
             tabLDAP.SuspendLayout();
             gbxUserAccountCreation.SuspendLayout();
+            tabWindowsTools.SuspendLayout();
+            pnlWinToolsHeader.SuspendLayout();
+            gbxBiosQuery.SuspendLayout();
+            pnlSystemInfo.SuspendLayout();
+            pnlSecurityStatus.SuspendLayout();
+            pnlHpBiosSettings.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).BeginInit();
             tabLinuxTools.SuspendLayout();
             gbxLinuxLogs.SuspendLayout();
             tabOnlineOffline.SuspendLayout();
@@ -562,7 +576,7 @@ namespace SA_ToolBelt
             gbxImportantVariables.SuspendLayout();
             gbxComputerList.SuspendLayout();
             gbxImportantOUs.SuspendLayout();
-            this.SuspendLayout();
+            SuspendLayout();
             // 
             // tabControlMain
             // 
@@ -621,9 +635,9 @@ namespace SA_ToolBelt
             btnShowPassword.TabIndex = 5;
             btnShowPassword.Text = "Show Password";
             btnShowPassword.UseVisualStyleBackColor = true;
-            btnShowPassword.MouseDown += (this.ShowPassword_MouseDown);
-            btnShowPassword.MouseLeave += (this.HidePassword_MouseLeave);
-            btnShowPassword.MouseUp += (this.HidePassword_MouseUp);
+            btnShowPassword.MouseDown += ShowPassword_MouseDown;
+            btnShowPassword.MouseLeave += HidePassword_MouseLeave;
+            btnShowPassword.MouseUp += HidePassword_MouseUp;
             // 
             // btnLogin
             // 
@@ -633,7 +647,7 @@ namespace SA_ToolBelt
             btnLogin.TabIndex = 4;
             btnLogin.Text = "Login";
             btnLogin.UseVisualStyleBackColor = true;
-            btnLogin.Click += (this.btnLogin_Click);
+            btnLogin.Click += btnLogin_Click;
             // 
             // txtPassword
             // 
@@ -726,7 +740,7 @@ namespace SA_ToolBelt
             btnLoadSelectedUser.TabIndex = 93;
             btnLoadSelectedUser.Text = "Load Selected User";
             btnLoadSelectedUser.UseVisualStyleBackColor = true;
-            btnLoadSelectedUser.Click += (this.btnLoadSelectedUser_Click);
+            btnLoadSelectedUser.Click += btnLoadSelectedUser_Click;
             // 
             // cbxShowConsole
             // 
@@ -817,7 +831,7 @@ namespace SA_ToolBelt
             btnDisable.TabIndex = 17;
             btnDisable.Text = "Disable";
             btnDisable.UseVisualStyleBackColor = true;
-            btnDisable.Click += (this.btnDisable_Click);
+            btnDisable.Click += btnDisable_Click;
             // 
             // dtpDisabledDate
             // 
@@ -861,7 +875,7 @@ namespace SA_ToolBelt
             btnDeleteAccount.TabIndex = 17;
             btnDeleteAccount.Text = "Update";
             btnDeleteAccount.UseVisualStyleBackColor = false;
-            btnDeleteAccount.Click += (this.btnDeleteAccount_Click);
+            btnDeleteAccount.Click += btnDeleteAccount_Click;
             // 
             // lblUnlockAccount
             // 
@@ -895,7 +909,7 @@ namespace SA_ToolBelt
             btnUnlockAccount.TabIndex = 17;
             btnUnlockAccount.Text = "Update";
             btnUnlockAccount.UseVisualStyleBackColor = true;
-            btnUnlockAccount.Click += (this.btnUnlockAccount_Click);
+            btnUnlockAccount.Click += btnUnlockAccount_Click;
             // 
             // btnAdClear
             // 
@@ -906,7 +920,7 @@ namespace SA_ToolBelt
             btnAdClear.TabIndex = 12;
             btnAdClear.Text = "Clear";
             btnAdClear.UseVisualStyleBackColor = true;
-            btnAdClear.Click += (this.btnAdClear_Click);
+            btnAdClear.Click += btnAdClear_Click;
             // 
             // gbxSingleUserSearch
             // 
@@ -929,7 +943,7 @@ namespace SA_ToolBelt
             txbUserName.Name = "txbUserName";
             txbUserName.Size = new Size(174, 23);
             txbUserName.TabIndex = 13;
-            txbUserName.KeyPress += (this.SingleUserSearchTextbox_KeyPress);
+            txbUserName.KeyPress += SingleUserSearchTextbox_KeyPress;
             // 
             // txbFirstName
             // 
@@ -937,7 +951,7 @@ namespace SA_ToolBelt
             txbFirstName.Name = "txbFirstName";
             txbFirstName.Size = new Size(174, 23);
             txbFirstName.TabIndex = 14;
-            txbFirstName.KeyPress += (this.SingleUserSearchTextbox_KeyPress);
+            txbFirstName.KeyPress += SingleUserSearchTextbox_KeyPress;
             // 
             // txbLastName
             // 
@@ -945,7 +959,7 @@ namespace SA_ToolBelt
             txbLastName.Name = "txbLastName";
             txbLastName.Size = new Size(174, 23);
             txbLastName.TabIndex = 12;
-            txbLastName.KeyPress += (this.SingleUserSearchTextbox_KeyPress);
+            txbLastName.KeyPress += SingleUserSearchTextbox_KeyPress;
             // 
             // lblUsersName
             // 
@@ -1486,7 +1500,7 @@ namespace SA_ToolBelt
             btnEditUsersGroups.TabIndex = 5;
             btnEditUsersGroups.Text = "Edit Users Groups";
             btnEditUsersGroups.UseVisualStyleBackColor = true;
-            btnEditUsersGroups.Click += (this.btnEditUsersGroups_Click);
+            btnEditUsersGroups.Click += btnEditUsersGroups_Click;
             // 
             // lblLoadedUser
             // 
@@ -1515,7 +1529,7 @@ namespace SA_ToolBelt
             btnAdLoadAccounts.TabIndex = 4;
             btnAdLoadAccounts.Text = "Load →";
             btnAdLoadAccounts.UseVisualStyleBackColor = true;
-            btnAdLoadAccounts.Click += (this.btnAdLoadAccounts_Click);
+            btnAdLoadAccounts.Click += btnAdLoadAccounts_Click;
             // 
             // gbxLockedAccounts
             // 
@@ -1784,7 +1798,7 @@ namespace SA_ToolBelt
             btnClearPasswords.TabIndex = 69;
             btnClearPasswords.Text = "Clear";
             btnClearPasswords.UseVisualStyleBackColor = true;
-            btnClearPasswords.Click += (this.btnClearPasswords_Click);
+            btnClearPasswords.Click += btnClearPasswords_Click;
             // 
             // btnSubmit
             // 
@@ -1795,7 +1809,7 @@ namespace SA_ToolBelt
             btnSubmit.TabIndex = 68;
             btnSubmit.Text = "Submit";
             btnSubmit.UseVisualStyleBackColor = true;
-            btnSubmit.Click += (this.btnSubmit_Click);
+            btnSubmit.Click += btnSubmit_Click;
             // 
             // btnPwChngShowPassword
             // 
@@ -1806,9 +1820,9 @@ namespace SA_ToolBelt
             btnPwChngShowPassword.TabIndex = 67;
             btnPwChngShowPassword.Text = "Show Password";
             btnPwChngShowPassword.UseVisualStyleBackColor = true;
-            btnPwChngShowPassword.MouseDown += (this.ShowPassword_MouseDown);
-            btnPwChngShowPassword.MouseLeave += (this.HidePassword_MouseLeave);
-            btnPwChngShowPassword.MouseUp += (this.HidePassword_MouseUp);
+            btnPwChngShowPassword.MouseDown += ShowPassword_MouseDown;
+            btnPwChngShowPassword.MouseLeave += HidePassword_MouseLeave;
+            btnPwChngShowPassword.MouseUp += HidePassword_MouseUp;
             // 
             // txbConfirmNewPassword
             // 
@@ -1818,7 +1832,7 @@ namespace SA_ToolBelt
             txbConfirmNewPassword.PasswordChar = '*';
             txbConfirmNewPassword.Size = new Size(157, 23);
             txbConfirmNewPassword.TabIndex = 66;
-            txbConfirmNewPassword.TextChanged += (this.txbNewPassword_TextChanged);
+            txbConfirmNewPassword.TextChanged += txbNewPassword_TextChanged;
             // 
             // lblConfirmNewPassword
             // 
@@ -1838,12 +1852,12 @@ namespace SA_ToolBelt
             txbNewPassword.PasswordChar = '*';
             txbNewPassword.Size = new Size(157, 23);
             txbNewPassword.TabIndex = 64;
-            txbNewPassword.TextChanged += (this.txbNewPassword_TextChanged);
+            txbNewPassword.TextChanged += txbNewPassword_TextChanged;
             // 
             // lblPwdRequirements
             // 
             lblPwdRequirements.AutoSize = true;
-            lblPwdRequirements.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Underline, GraphicsUnit.Point, (byte)0);
+            lblPwdRequirements.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Underline, GraphicsUnit.Point, 0);
             lblPwdRequirements.Location = new Point(96, 22);
             lblPwdRequirements.Margin = new Padding(4, 0, 4, 0);
             lblPwdRequirements.Name = "lblPwdRequirements";
@@ -1864,7 +1878,7 @@ namespace SA_ToolBelt
             // lblOneSpecial
             // 
             lblOneSpecial.AutoSize = true;
-            lblOneSpecial.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
+            lblOneSpecial.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneSpecial.ForeColor = Color.Red;
             lblOneSpecial.Location = new Point(217, 80);
             lblOneSpecial.Margin = new Padding(4, 0, 4, 0);
@@ -1876,7 +1890,7 @@ namespace SA_ToolBelt
             // lblOneNumber
             // 
             lblOneNumber.AutoSize = true;
-            lblOneNumber.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
+            lblOneNumber.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneNumber.ForeColor = Color.Red;
             lblOneNumber.Location = new Point(119, 80);
             lblOneNumber.Margin = new Padding(4, 0, 4, 0);
@@ -1888,7 +1902,7 @@ namespace SA_ToolBelt
             // lblOneLowercase
             // 
             lblOneLowercase.AutoSize = true;
-            lblOneLowercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
+            lblOneLowercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneLowercase.ForeColor = Color.Red;
             lblOneLowercase.Location = new Point(280, 46);
             lblOneLowercase.Margin = new Padding(4, 0, 4, 0);
@@ -1900,7 +1914,7 @@ namespace SA_ToolBelt
             // lblOneUppercase
             // 
             lblOneUppercase.AutoSize = true;
-            lblOneUppercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
+            lblOneUppercase.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblOneUppercase.ForeColor = Color.Red;
             lblOneUppercase.Location = new Point(162, 47);
             lblOneUppercase.Margin = new Padding(4, 0, 4, 0);
@@ -1912,7 +1926,7 @@ namespace SA_ToolBelt
             // lblFourteenChrs
             // 
             lblFourteenChrs.AutoSize = true;
-            lblFourteenChrs.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
+            lblFourteenChrs.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lblFourteenChrs.ForeColor = Color.Red;
             lblFourteenChrs.Location = new Point(21, 47);
             lblFourteenChrs.Margin = new Padding(4, 0, 4, 0);
@@ -1955,7 +1969,7 @@ namespace SA_ToolBelt
             btnTestPassword.TabIndex = 17;
             btnTestPassword.Text = "Test";
             btnTestPassword.UseVisualStyleBackColor = true;
-            btnTestPassword.Click += (this.btnTestPassword_Click);
+            btnTestPassword.Click += btnTestPassword_Click;
             // 
             // txbTestPassword
             // 
@@ -1974,9 +1988,9 @@ namespace SA_ToolBelt
             btnShowTestPassword.Size = new Size(52, 40);
             btnShowTestPassword.TabIndex = 72;
             btnShowTestPassword.UseVisualStyleBackColor = true;
-            btnShowTestPassword.MouseDown += (this.ShowPassword_MouseDown);
-            btnShowTestPassword.MouseLeave += (this.HidePassword_MouseLeave);
-            btnShowTestPassword.MouseUp += (this.HidePassword_MouseUp);
+            btnShowTestPassword.MouseDown += ShowPassword_MouseDown;
+            btnShowTestPassword.MouseLeave += HidePassword_MouseLeave;
+            btnShowTestPassword.MouseUp += HidePassword_MouseUp;
             // 
             // lblActExpDate
             // 
@@ -2011,7 +2025,7 @@ namespace SA_ToolBelt
             btnAcntExeDateUpdate.TabIndex = 17;
             btnAcntExeDateUpdate.Text = "Update";
             btnAcntExeDateUpdate.UseVisualStyleBackColor = true;
-            btnAcntExeDateUpdate.Click += (this.btnAcntExeDateUpdate_Click);
+            btnAcntExeDateUpdate.Click += btnAcntExeDateUpdate_Click;
             // 
             // pkrAcntExpDateTimePicker
             // 
@@ -2067,6 +2081,17 @@ namespace SA_ToolBelt
             gbxUserAccountCreation.TabIndex = 18;
             gbxUserAccountCreation.TabStop = false;
             // 
+            // btnRefreshDefaultSecGroup
+            // 
+            btnRefreshDefaultSecGroup.BackColor = SystemColors.MenuHighlight;
+            btnRefreshDefaultSecGroup.Location = new Point(367, 630);
+            btnRefreshDefaultSecGroup.Name = "btnRefreshDefaultSecGroup";
+            btnRefreshDefaultSecGroup.Size = new Size(75, 23);
+            btnRefreshDefaultSecGroup.TabIndex = 29;
+            btnRefreshDefaultSecGroup.Text = "Refresh";
+            btnRefreshDefaultSecGroup.UseVisualStyleBackColor = false;
+            btnRefreshDefaultSecGroup.Click += btnRefreshDefaultSecGroup_Click;
+            // 
             // rbnSecurityGroupOther
             // 
             rbnSecurityGroupOther.AutoSize = true;
@@ -2103,15 +2128,15 @@ namespace SA_ToolBelt
             // 
             // cbxDefaultSecurityGroups
             // 
+            cbxDefaultSecurityGroups.CheckOnClick = true;
             cbxDefaultSecurityGroups.ColumnWidth = 210;
             cbxDefaultSecurityGroups.FormattingEnabled = true;
             cbxDefaultSecurityGroups.Location = new Point(6, 237);
             cbxDefaultSecurityGroups.MultiColumn = true;
             cbxDefaultSecurityGroups.Name = "cbxDefaultSecurityGroups";
             cbxDefaultSecurityGroups.Size = new Size(449, 382);
-            cbxDefaultSecurityGroups.CheckOnClick = true;
             cbxDefaultSecurityGroups.TabIndex = 23;
-            cbxDefaultSecurityGroups.ItemCheck += (this.cbxDefaultSecurityGroups_ItemCheck);
+            cbxDefaultSecurityGroups.ItemCheck += cbxDefaultSecurityGroups_ItemCheck;
             // 
             // lblDefaultSecurityGroup
             // 
@@ -2164,7 +2189,7 @@ namespace SA_ToolBelt
             btnClearAccountCreationForm.TabIndex = 10;
             btnClearAccountCreationForm.Text = "Clear Form";
             btnClearAccountCreationForm.UseVisualStyleBackColor = true;
-            btnClearAccountCreationForm.Click += (this.btnClearAccountCreationForm_Click);
+            btnClearAccountCreationForm.Click += btnClearAccountCreationForm_Click;
             // 
             // btnLdapGetUid
             // 
@@ -2174,7 +2199,7 @@ namespace SA_ToolBelt
             btnLdapGetUid.TabIndex = 5;
             btnLdapGetUid.Text = "Get UID";
             btnLdapGetUid.UseVisualStyleBackColor = true;
-            btnLdapGetUid.Click += (this.btnLdapGetUid_Click);
+            btnLdapGetUid.Click += btnLdapGetUid_Click;
             // 
             // lblLdapLinuxUid
             // 
@@ -2200,7 +2225,7 @@ namespace SA_ToolBelt
             btnLdapCreateAccount.TabIndex = 9;
             btnLdapCreateAccount.Text = "Create Account";
             btnLdapCreateAccount.UseVisualStyleBackColor = true;
-            btnLdapCreateAccount.Click += (this.btnLdapCreateAccount_Click);
+            btnLdapCreateAccount.Click += btnLdapCreateAccount_Click;
             // 
             // txbLdapEmail
             // 
@@ -2258,7 +2283,7 @@ namespace SA_ToolBelt
             btnLdapGenerate.TabIndex = 3;
             btnLdapGenerate.Text = "Generate";
             btnLdapGenerate.UseVisualStyleBackColor = true;
-            btnLdapGenerate.Click += (this.btnLdapGenerate_Click);
+            btnLdapGenerate.Click += btnLdapGenerate_Click;
             // 
             // lblLdapNtUserId
             // 
@@ -2305,59 +2330,59 @@ namespace SA_ToolBelt
             tabRemoteTools.TabIndex = 3;
             tabRemoteTools.Text = "Remote Tools";
             tabRemoteTools.UseVisualStyleBackColor = true;
-            //
+            // 
             // tabWindowsTools
-            //
+            // 
+            tabWindowsTools.BackColor = Color.FromArgb(245, 247, 250);
             tabWindowsTools.Controls.Add(pnlWinToolsHeader);
             tabWindowsTools.Controls.Add(gbxBiosQuery);
             tabWindowsTools.Controls.Add(pnlSystemInfo);
             tabWindowsTools.Controls.Add(pnlSecurityStatus);
             tabWindowsTools.Controls.Add(pnlHpBiosSettings);
-            tabWindowsTools.BackColor = Color.FromArgb(245, 247, 250);
             tabWindowsTools.Location = new Point(4, 24);
             tabWindowsTools.Name = "tabWindowsTools";
-            tabWindowsTools.Padding = new Padding(0);
             tabWindowsTools.Size = new Size(1651, 847);
             tabWindowsTools.TabIndex = 4;
             tabWindowsTools.Text = "Windows Tools";
-            //
+            // 
             // pnlWinToolsHeader
-            //
+            // 
+            pnlWinToolsHeader.BackColor = Color.FromArgb(30, 58, 95);
             pnlWinToolsHeader.Controls.Add(lblWinToolsTitle);
             pnlWinToolsHeader.Controls.Add(lblWinToolsSubtitle);
-            pnlWinToolsHeader.BackColor = Color.FromArgb(30, 58, 95);
             pnlWinToolsHeader.Dock = DockStyle.Top;
             pnlWinToolsHeader.Location = new Point(0, 0);
             pnlWinToolsHeader.Name = "pnlWinToolsHeader";
             pnlWinToolsHeader.Size = new Size(1651, 62);
             pnlWinToolsHeader.TabIndex = 0;
-            //
+            // 
             // lblWinToolsTitle
-            //
+            // 
             lblWinToolsTitle.AutoSize = true;
             lblWinToolsTitle.BackColor = Color.Transparent;
             lblWinToolsTitle.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
             lblWinToolsTitle.ForeColor = Color.White;
             lblWinToolsTitle.Location = new Point(18, 8);
             lblWinToolsTitle.Name = "lblWinToolsTitle";
-            lblWinToolsTitle.Size = new Size(100, 30);
+            lblWinToolsTitle.Size = new Size(401, 30);
             lblWinToolsTitle.TabIndex = 0;
             lblWinToolsTitle.Text = "WINDOWS REMOTE BIOS INSPECTOR";
-            //
+            // 
             // lblWinToolsSubtitle
-            //
+            // 
             lblWinToolsSubtitle.AutoSize = true;
             lblWinToolsSubtitle.BackColor = Color.Transparent;
             lblWinToolsSubtitle.Font = new Font("Segoe UI", 9F);
             lblWinToolsSubtitle.ForeColor = Color.FromArgb(170, 190, 220);
             lblWinToolsSubtitle.Location = new Point(20, 38);
             lblWinToolsSubtitle.Name = "lblWinToolsSubtitle";
-            lblWinToolsSubtitle.Size = new Size(100, 15);
+            lblWinToolsSubtitle.Size = new Size(464, 15);
             lblWinToolsSubtitle.TabIndex = 1;
             lblWinToolsSubtitle.Text = "Query HP BIOS configuration, TPM status & system information from remote computers";
-            //
+            // 
             // gbxBiosQuery
-            //
+            // 
+            gbxBiosQuery.BackColor = Color.White;
             gbxBiosQuery.Controls.Add(lblBiosComputerName);
             gbxBiosQuery.Controls.Add(txbBiosComputerName);
             gbxBiosQuery.Controls.Add(btnQueryBios);
@@ -2367,7 +2392,6 @@ namespace SA_ToolBelt
             gbxBiosQuery.Controls.Add(lblBiosQueryStatus);
             gbxBiosQuery.Controls.Add(lblBiosQueryStatusValue);
             gbxBiosQuery.Controls.Add(pgbBiosQuery);
-            gbxBiosQuery.BackColor = Color.White;
             gbxBiosQuery.FlatStyle = FlatStyle.Flat;
             gbxBiosQuery.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             gbxBiosQuery.ForeColor = Color.FromArgb(30, 58, 95);
@@ -2377,30 +2401,30 @@ namespace SA_ToolBelt
             gbxBiosQuery.TabIndex = 1;
             gbxBiosQuery.TabStop = false;
             gbxBiosQuery.Text = "Query Remote Computer";
-            //
+            // 
             // lblBiosComputerName
-            //
+            // 
             lblBiosComputerName.AutoSize = true;
             lblBiosComputerName.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblBiosComputerName.ForeColor = Color.FromArgb(33, 37, 41);
             lblBiosComputerName.Location = new Point(14, 28);
             lblBiosComputerName.Name = "lblBiosComputerName";
-            lblBiosComputerName.Size = new Size(140, 15);
+            lblBiosComputerName.Size = new Size(131, 15);
             lblBiosComputerName.TabIndex = 0;
             lblBiosComputerName.Text = "Computer Name or IP:";
-            //
+            // 
             // txbBiosComputerName
-            //
+            // 
             txbBiosComputerName.BorderStyle = BorderStyle.FixedSingle;
             txbBiosComputerName.Font = new Font("Segoe UI", 10F);
             txbBiosComputerName.Location = new Point(14, 50);
             txbBiosComputerName.Name = "txbBiosComputerName";
-            txbBiosComputerName.Size = new Size(335, 26);
+            txbBiosComputerName.Size = new Size(335, 25);
             txbBiosComputerName.TabIndex = 1;
             txbBiosComputerName.KeyDown += txbBiosComputerName_KeyDown;
-            //
+            // 
             // btnQueryBios
-            //
+            // 
             btnQueryBios.BackColor = Color.FromArgb(74, 127, 181);
             btnQueryBios.Cursor = Cursors.Hand;
             btnQueryBios.FlatAppearance.BorderSize = 0;
@@ -2415,9 +2439,9 @@ namespace SA_ToolBelt
             btnQueryBios.Text = "Query BIOS";
             btnQueryBios.UseVisualStyleBackColor = false;
             btnQueryBios.Click += btnQueryBios_Click;
-            //
+            // 
             // btnTestWmiConnection
-            //
+            // 
             btnTestWmiConnection.BackColor = Color.FromArgb(52, 58, 64);
             btnTestWmiConnection.Cursor = Cursors.Hand;
             btnTestWmiConnection.FlatAppearance.BorderSize = 0;
@@ -2432,9 +2456,9 @@ namespace SA_ToolBelt
             btnTestWmiConnection.Text = "Test Connection";
             btnTestWmiConnection.UseVisualStyleBackColor = false;
             btnTestWmiConnection.Click += btnTestWmiConnection_Click;
-            //
+            // 
             // btnClearBiosResults
-            //
+            // 
             btnClearBiosResults.BackColor = Color.FromArgb(108, 117, 125);
             btnClearBiosResults.Cursor = Cursors.Hand;
             btnClearBiosResults.FlatAppearance.BorderSize = 0;
@@ -2449,9 +2473,9 @@ namespace SA_ToolBelt
             btnClearBiosResults.Text = "Clear";
             btnClearBiosResults.UseVisualStyleBackColor = false;
             btnClearBiosResults.Click += btnClearBiosResults_Click;
-            //
+            // 
             // btnExportBiosResults
-            //
+            // 
             btnExportBiosResults.BackColor = Color.FromArgb(40, 167, 69);
             btnExportBiosResults.Cursor = Cursors.Hand;
             btnExportBiosResults.FlatAppearance.BorderSize = 0;
@@ -2466,9 +2490,9 @@ namespace SA_ToolBelt
             btnExportBiosResults.Text = "Export";
             btnExportBiosResults.UseVisualStyleBackColor = false;
             btnExportBiosResults.Click += btnExportBiosResults_Click;
-            //
+            // 
             // lblBiosQueryStatus
-            //
+            // 
             lblBiosQueryStatus.AutoSize = true;
             lblBiosQueryStatus.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             lblBiosQueryStatus.ForeColor = Color.FromArgb(108, 117, 125);
@@ -2477,20 +2501,20 @@ namespace SA_ToolBelt
             lblBiosQueryStatus.Size = new Size(45, 15);
             lblBiosQueryStatus.TabIndex = 6;
             lblBiosQueryStatus.Text = "Status:";
-            //
+            // 
             // lblBiosQueryStatusValue
-            //
+            // 
             lblBiosQueryStatusValue.AutoSize = true;
             lblBiosQueryStatusValue.Font = new Font("Segoe UI", 8.5F);
             lblBiosQueryStatusValue.ForeColor = Color.FromArgb(74, 127, 181);
             lblBiosQueryStatusValue.Location = new Point(60, 172);
             lblBiosQueryStatusValue.Name = "lblBiosQueryStatusValue";
-            lblBiosQueryStatusValue.Size = new Size(40, 15);
+            lblBiosQueryStatusValue.Size = new Size(39, 15);
             lblBiosQueryStatusValue.TabIndex = 7;
             lblBiosQueryStatusValue.Text = "Ready";
-            //
+            // 
             // pgbBiosQuery
-            //
+            // 
             pgbBiosQuery.Location = new Point(14, 192);
             pgbBiosQuery.MarqueeAnimationSpeed = 30;
             pgbBiosQuery.Name = "pgbBiosQuery";
@@ -2498,9 +2522,11 @@ namespace SA_ToolBelt
             pgbBiosQuery.Style = ProgressBarStyle.Marquee;
             pgbBiosQuery.TabIndex = 8;
             pgbBiosQuery.Visible = false;
-            //
+            // 
             // pnlSystemInfo
-            //
+            // 
+            pnlSystemInfo.BackColor = Color.White;
+            pnlSystemInfo.BorderStyle = BorderStyle.FixedSingle;
             pnlSystemInfo.Controls.Add(lblSystemInfoHeader);
             pnlSystemInfo.Controls.Add(lblManufacturerTag);
             pnlSystemInfo.Controls.Add(lblManufacturerValue);
@@ -2518,15 +2544,13 @@ namespace SA_ToolBelt
             pnlSystemInfo.Controls.Add(lblOsVersionValue);
             pnlSystemInfo.Controls.Add(lblOsArchTag);
             pnlSystemInfo.Controls.Add(lblOsArchValue);
-            pnlSystemInfo.BackColor = Color.White;
-            pnlSystemInfo.BorderStyle = BorderStyle.FixedSingle;
             pnlSystemInfo.Location = new Point(10, 290);
             pnlSystemInfo.Name = "pnlSystemInfo";
             pnlSystemInfo.Size = new Size(365, 264);
             pnlSystemInfo.TabIndex = 2;
-            //
+            // 
             // lblSystemInfoHeader
-            //
+            // 
             lblSystemInfoHeader.BackColor = Color.FromArgb(44, 62, 80);
             lblSystemInfoHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblSystemInfoHeader.ForeColor = Color.White;
@@ -2536,9 +2560,9 @@ namespace SA_ToolBelt
             lblSystemInfoHeader.TabIndex = 0;
             lblSystemInfoHeader.Text = "  SYSTEM INFORMATION";
             lblSystemInfoHeader.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblManufacturerTag
-            //
+            // 
             lblManufacturerTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblManufacturerTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblManufacturerTag.Location = new Point(14, 40);
@@ -2547,20 +2571,20 @@ namespace SA_ToolBelt
             lblManufacturerTag.TabIndex = 1;
             lblManufacturerTag.Text = "Manufacturer:";
             lblManufacturerTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblManufacturerValue
-            //
+            // 
             lblManufacturerValue.Font = new Font("Segoe UI", 9.5F);
             lblManufacturerValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblManufacturerValue.Location = new Point(158, 40);
             lblManufacturerValue.Name = "lblManufacturerValue";
             lblManufacturerValue.Size = new Size(200, 22);
             lblManufacturerValue.TabIndex = 2;
-            lblManufacturerValue.Text = "\u2014";
+            lblManufacturerValue.Text = "—";
             lblManufacturerValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblModelTag
-            //
+            // 
             lblModelTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblModelTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblModelTag.Location = new Point(14, 66);
@@ -2569,20 +2593,20 @@ namespace SA_ToolBelt
             lblModelTag.TabIndex = 3;
             lblModelTag.Text = "Model:";
             lblModelTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblModelValue
-            //
+            // 
             lblModelValue.Font = new Font("Segoe UI", 9.5F);
             lblModelValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblModelValue.Location = new Point(158, 66);
             lblModelValue.Name = "lblModelValue";
             lblModelValue.Size = new Size(200, 22);
             lblModelValue.TabIndex = 4;
-            lblModelValue.Text = "\u2014";
+            lblModelValue.Text = "—";
             lblModelValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblSerialTag
-            //
+            // 
             lblSerialTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblSerialTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblSerialTag.Location = new Point(14, 92);
@@ -2591,20 +2615,20 @@ namespace SA_ToolBelt
             lblSerialTag.TabIndex = 5;
             lblSerialTag.Text = "Serial Number:";
             lblSerialTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblSerialValue
-            //
+            // 
             lblSerialValue.Font = new Font("Segoe UI", 9.5F);
             lblSerialValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblSerialValue.Location = new Point(158, 92);
             lblSerialValue.Name = "lblSerialValue";
             lblSerialValue.Size = new Size(200, 22);
             lblSerialValue.TabIndex = 6;
-            lblSerialValue.Text = "\u2014";
+            lblSerialValue.Text = "—";
             lblSerialValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblBiosVersionTag
-            //
+            // 
             lblBiosVersionTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblBiosVersionTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblBiosVersionTag.Location = new Point(14, 118);
@@ -2613,20 +2637,20 @@ namespace SA_ToolBelt
             lblBiosVersionTag.TabIndex = 7;
             lblBiosVersionTag.Text = "BIOS Version:";
             lblBiosVersionTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblBiosVersionValue
-            //
+            // 
             lblBiosVersionValue.Font = new Font("Segoe UI", 9.5F);
             lblBiosVersionValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblBiosVersionValue.Location = new Point(158, 118);
             lblBiosVersionValue.Name = "lblBiosVersionValue";
             lblBiosVersionValue.Size = new Size(200, 22);
             lblBiosVersionValue.TabIndex = 8;
-            lblBiosVersionValue.Text = "\u2014";
+            lblBiosVersionValue.Text = "—";
             lblBiosVersionValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblBiosDateTag
-            //
+            // 
             lblBiosDateTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblBiosDateTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblBiosDateTag.Location = new Point(14, 144);
@@ -2635,20 +2659,20 @@ namespace SA_ToolBelt
             lblBiosDateTag.TabIndex = 9;
             lblBiosDateTag.Text = "BIOS Date:";
             lblBiosDateTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblBiosDateValue
-            //
+            // 
             lblBiosDateValue.Font = new Font("Segoe UI", 9.5F);
             lblBiosDateValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblBiosDateValue.Location = new Point(158, 144);
             lblBiosDateValue.Name = "lblBiosDateValue";
             lblBiosDateValue.Size = new Size(200, 22);
             lblBiosDateValue.TabIndex = 10;
-            lblBiosDateValue.Text = "\u2014";
+            lblBiosDateValue.Text = "—";
             lblBiosDateValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblOsNameTag
-            //
+            // 
             lblOsNameTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblOsNameTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblOsNameTag.Location = new Point(14, 170);
@@ -2657,20 +2681,20 @@ namespace SA_ToolBelt
             lblOsNameTag.TabIndex = 11;
             lblOsNameTag.Text = "Operating System:";
             lblOsNameTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblOsNameValue
-            //
+            // 
             lblOsNameValue.Font = new Font("Segoe UI", 9.5F);
             lblOsNameValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblOsNameValue.Location = new Point(158, 170);
             lblOsNameValue.Name = "lblOsNameValue";
             lblOsNameValue.Size = new Size(200, 22);
             lblOsNameValue.TabIndex = 12;
-            lblOsNameValue.Text = "\u2014";
+            lblOsNameValue.Text = "—";
             lblOsNameValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblOsVersionTag
-            //
+            // 
             lblOsVersionTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblOsVersionTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblOsVersionTag.Location = new Point(14, 196);
@@ -2679,20 +2703,20 @@ namespace SA_ToolBelt
             lblOsVersionTag.TabIndex = 13;
             lblOsVersionTag.Text = "OS Version:";
             lblOsVersionTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblOsVersionValue
-            //
+            // 
             lblOsVersionValue.Font = new Font("Segoe UI", 9.5F);
             lblOsVersionValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblOsVersionValue.Location = new Point(158, 196);
             lblOsVersionValue.Name = "lblOsVersionValue";
             lblOsVersionValue.Size = new Size(200, 22);
             lblOsVersionValue.TabIndex = 14;
-            lblOsVersionValue.Text = "\u2014";
+            lblOsVersionValue.Text = "—";
             lblOsVersionValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblOsArchTag
-            //
+            // 
             lblOsArchTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblOsArchTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblOsArchTag.Location = new Point(14, 222);
@@ -2701,20 +2725,22 @@ namespace SA_ToolBelt
             lblOsArchTag.TabIndex = 15;
             lblOsArchTag.Text = "Architecture:";
             lblOsArchTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblOsArchValue
-            //
+            // 
             lblOsArchValue.Font = new Font("Segoe UI", 9.5F);
             lblOsArchValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblOsArchValue.Location = new Point(158, 222);
             lblOsArchValue.Name = "lblOsArchValue";
             lblOsArchValue.Size = new Size(200, 22);
             lblOsArchValue.TabIndex = 16;
-            lblOsArchValue.Text = "\u2014";
+            lblOsArchValue.Text = "—";
             lblOsArchValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // pnlSecurityStatus
-            //
+            // 
+            pnlSecurityStatus.BackColor = Color.White;
+            pnlSecurityStatus.BorderStyle = BorderStyle.FixedSingle;
             pnlSecurityStatus.Controls.Add(lblSecurityHeader);
             pnlSecurityStatus.Controls.Add(lblTpmPresentTag);
             pnlSecurityStatus.Controls.Add(lblTpmPresentValue);
@@ -2726,15 +2752,13 @@ namespace SA_ToolBelt
             pnlSecurityStatus.Controls.Add(lblTpmActivatedValue);
             pnlSecurityStatus.Controls.Add(lblSecureBootTag);
             pnlSecurityStatus.Controls.Add(lblSecureBootValue);
-            pnlSecurityStatus.BackColor = Color.White;
-            pnlSecurityStatus.BorderStyle = BorderStyle.FixedSingle;
             pnlSecurityStatus.Location = new Point(10, 562);
             pnlSecurityStatus.Name = "pnlSecurityStatus";
             pnlSecurityStatus.Size = new Size(365, 194);
             pnlSecurityStatus.TabIndex = 3;
-            //
+            // 
             // lblSecurityHeader
-            //
+            // 
             lblSecurityHeader.BackColor = Color.FromArgb(44, 62, 80);
             lblSecurityHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblSecurityHeader.ForeColor = Color.White;
@@ -2744,9 +2768,9 @@ namespace SA_ToolBelt
             lblSecurityHeader.TabIndex = 0;
             lblSecurityHeader.Text = "  SECURITY STATUS";
             lblSecurityHeader.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmPresentTag
-            //
+            // 
             lblTpmPresentTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblTpmPresentTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblTpmPresentTag.Location = new Point(14, 40);
@@ -2755,20 +2779,20 @@ namespace SA_ToolBelt
             lblTpmPresentTag.TabIndex = 1;
             lblTpmPresentTag.Text = "TPM Present:";
             lblTpmPresentTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmPresentValue
-            //
+            // 
             lblTpmPresentValue.Font = new Font("Segoe UI", 9.5F);
             lblTpmPresentValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblTpmPresentValue.Location = new Point(158, 40);
             lblTpmPresentValue.Name = "lblTpmPresentValue";
             lblTpmPresentValue.Size = new Size(200, 22);
             lblTpmPresentValue.TabIndex = 2;
-            lblTpmPresentValue.Text = "\u2014";
+            lblTpmPresentValue.Text = "—";
             lblTpmPresentValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmVersionTag
-            //
+            // 
             lblTpmVersionTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblTpmVersionTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblTpmVersionTag.Location = new Point(14, 68);
@@ -2777,20 +2801,20 @@ namespace SA_ToolBelt
             lblTpmVersionTag.TabIndex = 3;
             lblTpmVersionTag.Text = "TPM Version:";
             lblTpmVersionTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmVersionValue
-            //
+            // 
             lblTpmVersionValue.Font = new Font("Segoe UI", 9.5F);
             lblTpmVersionValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblTpmVersionValue.Location = new Point(158, 68);
             lblTpmVersionValue.Name = "lblTpmVersionValue";
             lblTpmVersionValue.Size = new Size(200, 22);
             lblTpmVersionValue.TabIndex = 4;
-            lblTpmVersionValue.Text = "\u2014";
+            lblTpmVersionValue.Text = "—";
             lblTpmVersionValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmEnabledTag
-            //
+            // 
             lblTpmEnabledTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblTpmEnabledTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblTpmEnabledTag.Location = new Point(14, 96);
@@ -2799,20 +2823,20 @@ namespace SA_ToolBelt
             lblTpmEnabledTag.TabIndex = 5;
             lblTpmEnabledTag.Text = "TPM Enabled:";
             lblTpmEnabledTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmEnabledValue
-            //
+            // 
             lblTpmEnabledValue.Font = new Font("Segoe UI", 9.5F);
             lblTpmEnabledValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblTpmEnabledValue.Location = new Point(158, 96);
             lblTpmEnabledValue.Name = "lblTpmEnabledValue";
             lblTpmEnabledValue.Size = new Size(200, 22);
             lblTpmEnabledValue.TabIndex = 6;
-            lblTpmEnabledValue.Text = "\u2014";
+            lblTpmEnabledValue.Text = "—";
             lblTpmEnabledValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmActivatedTag
-            //
+            // 
             lblTpmActivatedTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblTpmActivatedTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblTpmActivatedTag.Location = new Point(14, 124);
@@ -2821,20 +2845,20 @@ namespace SA_ToolBelt
             lblTpmActivatedTag.TabIndex = 7;
             lblTpmActivatedTag.Text = "TPM Activated:";
             lblTpmActivatedTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblTpmActivatedValue
-            //
+            // 
             lblTpmActivatedValue.Font = new Font("Segoe UI", 9.5F);
             lblTpmActivatedValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblTpmActivatedValue.Location = new Point(158, 124);
             lblTpmActivatedValue.Name = "lblTpmActivatedValue";
             lblTpmActivatedValue.Size = new Size(200, 22);
             lblTpmActivatedValue.TabIndex = 8;
-            lblTpmActivatedValue.Text = "\u2014";
+            lblTpmActivatedValue.Text = "—";
             lblTpmActivatedValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblSecureBootTag
-            //
+            // 
             lblSecureBootTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblSecureBootTag.ForeColor = Color.FromArgb(108, 117, 125);
             lblSecureBootTag.Location = new Point(14, 152);
@@ -2843,34 +2867,34 @@ namespace SA_ToolBelt
             lblSecureBootTag.TabIndex = 9;
             lblSecureBootTag.Text = "Secure Boot:";
             lblSecureBootTag.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblSecureBootValue
-            //
+            // 
             lblSecureBootValue.Font = new Font("Segoe UI", 9.5F);
             lblSecureBootValue.ForeColor = Color.FromArgb(33, 37, 41);
             lblSecureBootValue.Location = new Point(158, 152);
             lblSecureBootValue.Name = "lblSecureBootValue";
             lblSecureBootValue.Size = new Size(200, 22);
             lblSecureBootValue.TabIndex = 10;
-            lblSecureBootValue.Text = "\u2014";
+            lblSecureBootValue.Text = "—";
             lblSecureBootValue.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // pnlHpBiosSettings
-            //
+            // 
+            pnlHpBiosSettings.BackColor = Color.White;
+            pnlHpBiosSettings.BorderStyle = BorderStyle.FixedSingle;
             pnlHpBiosSettings.Controls.Add(lblHpBiosHeader);
             pnlHpBiosSettings.Controls.Add(lblBiosFilterTag);
             pnlHpBiosSettings.Controls.Add(txbBiosSettingsFilter);
             pnlHpBiosSettings.Controls.Add(lblBiosSettingsCount);
             pnlHpBiosSettings.Controls.Add(dgvHpBiosSettings);
-            pnlHpBiosSettings.BackColor = Color.White;
-            pnlHpBiosSettings.BorderStyle = BorderStyle.FixedSingle;
             pnlHpBiosSettings.Location = new Point(383, 72);
             pnlHpBiosSettings.Name = "pnlHpBiosSettings";
             pnlHpBiosSettings.Size = new Size(1258, 684);
             pnlHpBiosSettings.TabIndex = 4;
-            //
+            // 
             // lblHpBiosHeader
-            //
+            // 
             lblHpBiosHeader.BackColor = Color.FromArgb(44, 62, 80);
             lblHpBiosHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblHpBiosHeader.ForeColor = Color.White;
@@ -2880,68 +2904,70 @@ namespace SA_ToolBelt
             lblHpBiosHeader.TabIndex = 0;
             lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
             lblHpBiosHeader.TextAlign = ContentAlignment.MiddleLeft;
-            //
+            // 
             // lblBiosFilterTag
-            //
+            // 
             lblBiosFilterTag.AutoSize = true;
             lblBiosFilterTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblBiosFilterTag.ForeColor = Color.FromArgb(33, 37, 41);
             lblBiosFilterTag.Location = new Point(14, 42);
             lblBiosFilterTag.Name = "lblBiosFilterTag";
-            lblBiosFilterTag.Size = new Size(40, 15);
+            lblBiosFilterTag.Size = new Size(39, 15);
             lblBiosFilterTag.TabIndex = 1;
             lblBiosFilterTag.Text = "Filter:";
-            //
+            // 
             // txbBiosSettingsFilter
-            //
+            // 
             txbBiosSettingsFilter.BorderStyle = BorderStyle.FixedSingle;
             txbBiosSettingsFilter.Font = new Font("Segoe UI", 9.5F);
             txbBiosSettingsFilter.Location = new Point(60, 39);
             txbBiosSettingsFilter.Name = "txbBiosSettingsFilter";
             txbBiosSettingsFilter.PlaceholderText = "Type to filter settings...";
-            txbBiosSettingsFilter.Size = new Size(280, 25);
+            txbBiosSettingsFilter.Size = new Size(280, 24);
             txbBiosSettingsFilter.TabIndex = 2;
             txbBiosSettingsFilter.TextChanged += txbBiosSettingsFilter_TextChanged;
-            //
+            // 
             // lblBiosSettingsCount
-            //
+            // 
             lblBiosSettingsCount.AutoSize = true;
             lblBiosSettingsCount.Font = new Font("Segoe UI", 8.5F);
             lblBiosSettingsCount.ForeColor = Color.FromArgb(108, 117, 125);
             lblBiosSettingsCount.Location = new Point(350, 42);
             lblBiosSettingsCount.Name = "lblBiosSettingsCount";
-            lblBiosSettingsCount.Size = new Size(10, 15);
+            lblBiosSettingsCount.Size = new Size(0, 15);
             lblBiosSettingsCount.TabIndex = 3;
-            lblBiosSettingsCount.Text = "";
-            //
+            // 
             // dgvHpBiosSettings
-            //
+            // 
             dgvHpBiosSettings.AllowUserToAddRows = false;
             dgvHpBiosSettings.AllowUserToDeleteRows = false;
             dgvHpBiosSettings.AllowUserToResizeRows = false;
-            dgvBiosAltRowStyle.BackColor = Color.FromArgb(248, 250, 252);
-            dgvBiosAltRowStyle.ForeColor = Color.FromArgb(33, 37, 41);
-            dgvBiosAltRowStyle.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dgvBiosAltRowStyle.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dgvBiosAltRowStyle;
+            dataGridViewCellStyle4.BackColor = Color.FromArgb(248, 250, 252);
+            dataGridViewCellStyle4.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle4.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle4.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
             dgvHpBiosSettings.BackgroundColor = Color.White;
             dgvHpBiosSettings.BorderStyle = BorderStyle.None;
             dgvHpBiosSettings.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dgvBiosHeaderStyle.BackColor = Color.FromArgb(44, 62, 80);
-            dgvBiosHeaderStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvBiosHeaderStyle.ForeColor = Color.White;
-            dgvBiosHeaderStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dgvBiosHeaderStyle.Padding = new Padding(8, 4, 6, 4);
-            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dgvBiosHeaderStyle;
+            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = Color.FromArgb(44, 62, 80);
+            dataGridViewCellStyle5.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            dataGridViewCellStyle5.ForeColor = Color.White;
+            dataGridViewCellStyle5.Padding = new Padding(8, 4, 6, 4);
+            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
             dgvHpBiosSettings.ColumnHeadersHeight = 36;
             dgvHpBiosSettings.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colBiosCategory, colBiosSettingName, colBiosSettingValue });
-            dgvBiosDefaultStyle.BackColor = Color.White;
-            dgvBiosDefaultStyle.ForeColor = Color.FromArgb(33, 37, 41);
-            dgvBiosDefaultStyle.Padding = new Padding(6, 2, 6, 2);
-            dgvBiosDefaultStyle.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dgvBiosDefaultStyle.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dgvHpBiosSettings.DefaultCellStyle = dgvBiosDefaultStyle;
+            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = Color.White;
+            dataGridViewCellStyle6.Font = new Font("Segoe UI", 9.5F);
+            dataGridViewCellStyle6.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle6.Padding = new Padding(6, 2, 6, 2);
+            dataGridViewCellStyle6.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle6.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.False;
+            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle6;
             dgvHpBiosSettings.EnableHeadersVisualStyles = false;
             dgvHpBiosSettings.Font = new Font("Segoe UI", 9.5F);
             dgvHpBiosSettings.GridColor = Color.FromArgb(230, 235, 240);
@@ -2954,30 +2980,27 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvHpBiosSettings.Size = new Size(1242, 608);
             dgvHpBiosSettings.TabIndex = 4;
-            //
+            // 
             // colBiosCategory
-            //
+            // 
             colBiosCategory.HeaderText = "Category";
             colBiosCategory.Name = "colBiosCategory";
             colBiosCategory.ReadOnly = true;
-            colBiosCategory.SortMode = DataGridViewColumnSortMode.Automatic;
             colBiosCategory.Width = 200;
-            //
+            // 
             // colBiosSettingName
-            //
+            // 
             colBiosSettingName.HeaderText = "Setting Name";
             colBiosSettingName.Name = "colBiosSettingName";
             colBiosSettingName.ReadOnly = true;
-            colBiosSettingName.SortMode = DataGridViewColumnSortMode.Automatic;
             colBiosSettingName.Width = 450;
-            //
+            // 
             // colBiosSettingValue
-            //
+            // 
             colBiosSettingValue.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             colBiosSettingValue.HeaderText = "Current Value";
             colBiosSettingValue.Name = "colBiosSettingValue";
             colBiosSettingValue.ReadOnly = true;
-            colBiosSettingValue.SortMode = DataGridViewColumnSortMode.Automatic;
             // 
             // tabLinuxTools
             // 
@@ -3035,7 +3058,7 @@ namespace SA_ToolBelt
             btnExportLogs.TabIndex = 19;
             btnExportLogs.Text = "Export Logs";
             btnExportLogs.UseVisualStyleBackColor = true;
-            btnExportLogs.Click += (this.btnExportLogs_Click);
+            btnExportLogs.Click += btnExportLogs_Click;
             // 
             // dtpLogEndDate
             // 
@@ -3052,7 +3075,7 @@ namespace SA_ToolBelt
             btnClearLogs.TabIndex = 18;
             btnClearLogs.Text = "Clear Logs";
             btnClearLogs.UseVisualStyleBackColor = true;
-            btnClearLogs.Click += (this.btnClearLogs_Click);
+            btnClearLogs.Click += btnClearLogs_Click;
             // 
             // lblLogStartDate
             // 
@@ -3072,7 +3095,7 @@ namespace SA_ToolBelt
             btnFetchLogs.TabIndex = 17;
             btnFetchLogs.Text = "Fetch Logs";
             btnFetchLogs.UseVisualStyleBackColor = true;
-            btnFetchLogs.Click += (this.btnFetchLogs_Click);
+            btnFetchLogs.Click += btnFetchLogs_Click;
             // 
             // lblLogEndDate
             // 
@@ -3104,7 +3127,7 @@ namespace SA_ToolBelt
             chkLastHourOnly.TabIndex = 4;
             chkLastHourOnly.Text = "Last Hour Only";
             chkLastHourOnly.UseVisualStyleBackColor = true;
-            chkLastHourOnly.CheckedChanged += (this.chkLastHourOnly_CheckedChanged);
+            chkLastHourOnly.CheckedChanged += chkLastHourOnly_CheckedChanged;
             // 
             // lblLogStatusResults
             // 
@@ -3295,7 +3318,7 @@ namespace SA_ToolBelt
             btnOnOffline.TabIndex = 53;
             btnOnOffline.Text = "ReCheck Online/Offline Status";
             btnOnOffline.UseVisualStyleBackColor = true;
-            btnOnOffline.Click += (this.btnOnOffline_Click);
+            btnOnOffline.Click += btnOnOffline_Click;
             // 
             // lbxOfficeExempt
             // 
@@ -3473,7 +3496,7 @@ namespace SA_ToolBelt
             btnPerformHealthChk.TabIndex = 6;
             btnPerformHealthChk.Text = "Perform Health Check";
             btnPerformHealthChk.UseVisualStyleBackColor = true;
-            btnPerformHealthChk.Click += (this.btnPerformHealthChk_Click);
+            btnPerformHealthChk.Click += btnPerformHealthChk_Click;
             // 
             // btnCheckFileSystem
             // 
@@ -3484,7 +3507,7 @@ namespace SA_ToolBelt
             btnCheckFileSystem.TabIndex = 5;
             btnCheckFileSystem.Text = "Check Filesystem";
             btnCheckFileSystem.UseVisualStyleBackColor = true;
-            btnCheckFileSystem.Click += (this.btnCheckFileSystem_Click);
+            btnCheckFileSystem.Click += btnCheckFileSystem_Click;
             // 
             // gbxLDAPReplicationChk
             // 
@@ -4242,7 +4265,7 @@ namespace SA_ToolBelt
             btnCheckRepHealth.TabIndex = 14;
             btnCheckRepHealth.Text = "Check Replication Health";
             btnCheckRepHealth.UseVisualStyleBackColor = true;
-            btnCheckRepHealth.Click += (this.btnCheckRepHealth_Click);
+            btnCheckRepHealth.Click += btnCheckRepHealth_Click;
             // 
             // lblTargetCceSa2
             // 
@@ -4693,6 +4716,7 @@ namespace SA_ToolBelt
             // 
             // tabConfiguration
             // 
+            tabConfiguration.Controls.Add(btnSetDisabledUsersLocation);
             tabConfiguration.Controls.Add(gbxManditorySettings);
             tabConfiguration.Controls.Add(gbxServerInstances);
             tabConfiguration.Controls.Add(gbxImportantVariables);
@@ -4708,12 +4732,18 @@ namespace SA_ToolBelt
             // 
             // gbxManditorySettings
             // 
-            gbxManditorySettings.Controls.Add(btnDisabledUsersLocation);
+            gbxManditorySettings.Controls.Add(btnSetHomeDirLocation);
+            gbxManditorySettings.Controls.Add(btnBrowseHomeDirLocation);
+            gbxManditorySettings.Controls.Add(btnSetSqlPath);
+            gbxManditorySettings.Controls.Add(btnSetPowerCLIModuleLocation);
+            gbxManditorySettings.Controls.Add(btnSetAddExcludeOu);
+            gbxManditorySettings.Controls.Add(btnSetLinuxDs);
+            gbxManditorySettings.Controls.Add(btnSetVCenterServer);
+            gbxManditorySettings.Controls.Add(btnBrowseDisabledUsersLocation);
             gbxManditorySettings.Controls.Add(txbHomeDirectoryLocation);
             gbxManditorySettings.Controls.Add(lblHomeDirectoryLocation);
             gbxManditorySettings.Controls.Add(txbLinuxDs);
             gbxManditorySettings.Controls.Add(lblLinuxDs);
-            gbxManditorySettings.Controls.Add(btnLinuxDs);
             gbxManditorySettings.Controls.Add(txbDisabledUsersLocation);
             gbxManditorySettings.Controls.Add(lblDisabledUsersLocation);
             gbxManditorySettings.Controls.Add(btnSelectAddExcludeOu);
@@ -4731,19 +4761,19 @@ namespace SA_ToolBelt
             gbxManditorySettings.Controls.Add(txbVCenterServer);
             gbxManditorySettings.Location = new Point(908, 353);
             gbxManditorySettings.Name = "gbxManditorySettings";
-            gbxManditorySettings.Size = new Size(503, 457);
+            gbxManditorySettings.Size = new Size(630, 457);
             gbxManditorySettings.TabIndex = 133;
             gbxManditorySettings.TabStop = false;
             gbxManditorySettings.Text = "Manditory Settings";
             // 
-            // btnDisabledUsersLocation
+            // btnBrowseDisabledUsersLocation
             // 
-            btnDisabledUsersLocation.Location = new Point(350, 278);
-            btnDisabledUsersLocation.Name = "btnDisabledUsersLocation";
-            btnDisabledUsersLocation.Size = new Size(123, 23);
-            btnDisabledUsersLocation.TabIndex = 21;
-            btnDisabledUsersLocation.Text = "Browse";
-            btnDisabledUsersLocation.UseVisualStyleBackColor = true;
+            btnBrowseDisabledUsersLocation.Location = new Point(350, 278);
+            btnBrowseDisabledUsersLocation.Name = "btnBrowseDisabledUsersLocation";
+            btnBrowseDisabledUsersLocation.Size = new Size(123, 23);
+            btnBrowseDisabledUsersLocation.TabIndex = 21;
+            btnBrowseDisabledUsersLocation.Text = "Browse";
+            btnBrowseDisabledUsersLocation.UseVisualStyleBackColor = true;
             // 
             // txbHomeDirectoryLocation
             // 
@@ -4777,15 +4807,6 @@ namespace SA_ToolBelt
             lblLinuxDs.TabIndex = 22;
             lblLinuxDs.Text = "Linux DS Server:";
             // 
-            // btnLinuxDs
-            // 
-            btnLinuxDs.Location = new Point(350, 394);
-            btnLinuxDs.Name = "btnLinuxDs";
-            btnLinuxDs.Size = new Size(123, 23);
-            btnLinuxDs.TabIndex = 24;
-            btnLinuxDs.Text = "Browse";
-            btnLinuxDs.UseVisualStyleBackColor = true;
-            // 
             // txbDisabledUsersLocation
             // 
             txbDisabledUsersLocation.Location = new Point(6, 278);
@@ -4804,13 +4825,13 @@ namespace SA_ToolBelt
             // 
             // btnSelectAddExcludeOu
             // 
-            btnSelectAddExcludeOu.Location = new Point(350, 215);
+            btnSelectAddExcludeOu.Location = new Point(350, 225);
             btnSelectAddExcludeOu.Name = "btnSelectAddExcludeOu";
-            btnSelectAddExcludeOu.Size = new Size(123, 42);
+            btnSelectAddExcludeOu.Size = new Size(175, 23);
             btnSelectAddExcludeOu.TabIndex = 14;
             btnSelectAddExcludeOu.Text = "Select and Add OU to Exclude";
             btnSelectAddExcludeOu.UseVisualStyleBackColor = true;
-            btnSelectAddExcludeOu.Click += (this.btnAddExcludeOu_Click);
+            btnSelectAddExcludeOu.Click += btnAddExcludeOu_Click;
             // 
             // cbxExcludeOu
             // 
@@ -4832,14 +4853,14 @@ namespace SA_ToolBelt
             // 
             // txbPowerCliModuleLocation
             // 
-            txbPowerCliModuleLocation.Location = new Point(122, 83);
+            txbPowerCliModuleLocation.Location = new Point(161, 86);
             txbPowerCliModuleLocation.Name = "txbPowerCliModuleLocation";
             txbPowerCliModuleLocation.Size = new Size(210, 23);
             txbPowerCliModuleLocation.TabIndex = 11;
             // 
             // txbSqlPath
             // 
-            txbSqlPath.Location = new Point(122, 133);
+            txbSqlPath.Location = new Point(161, 136);
             txbSqlPath.Name = "txbSqlPath";
             txbSqlPath.Size = new Size(210, 23);
             txbSqlPath.TabIndex = 10;
@@ -4847,7 +4868,7 @@ namespace SA_ToolBelt
             // lblSqlPath
             // 
             lblSqlPath.AutoSize = true;
-            lblSqlPath.Location = new Point(55, 141);
+            lblSqlPath.Location = new Point(94, 144);
             lblSqlPath.Name = "lblSqlPath";
             lblSqlPath.Size = new Size(58, 15);
             lblSqlPath.TabIndex = 9;
@@ -4856,7 +4877,7 @@ namespace SA_ToolBelt
             // lblPowerCLIModuleLocation
             // 
             lblPowerCLIModuleLocation.AutoSize = true;
-            lblPowerCLIModuleLocation.Location = new Point(7, 91);
+            lblPowerCLIModuleLocation.Location = new Point(46, 94);
             lblPowerCLIModuleLocation.Name = "lblPowerCLIModuleLocation";
             lblPowerCLIModuleLocation.Size = new Size(109, 15);
             lblPowerCLIModuleLocation.TabIndex = 8;
@@ -4865,7 +4886,7 @@ namespace SA_ToolBelt
             // lblVCenterServer
             // 
             lblVCenterServer.AutoSize = true;
-            lblVCenterServer.Location = new Point(29, 45);
+            lblVCenterServer.Location = new Point(68, 48);
             lblVCenterServer.Name = "lblVCenterServer";
             lblVCenterServer.Size = new Size(87, 15);
             lblVCenterServer.TabIndex = 7;
@@ -4879,11 +4900,11 @@ namespace SA_ToolBelt
             btnSetAll.TabIndex = 6;
             btnSetAll.Text = "Set All";
             btnSetAll.UseVisualStyleBackColor = true;
-            btnSetAll.Click += (this.btnSetAll_Click);
+            btnSetAll.Click += btnSetAll_Click;
             // 
             // btnBrowseSqlPath
             // 
-            btnBrowseSqlPath.Location = new Point(350, 132);
+            btnBrowseSqlPath.Location = new Point(389, 135);
             btnBrowseSqlPath.Name = "btnBrowseSqlPath";
             btnBrowseSqlPath.Size = new Size(75, 23);
             btnBrowseSqlPath.TabIndex = 5;
@@ -4892,27 +4913,27 @@ namespace SA_ToolBelt
             // 
             // btnBrowsePowerCLIModuleLocation
             // 
-            btnBrowsePowerCLIModuleLocation.Location = new Point(350, 83);
+            btnBrowsePowerCLIModuleLocation.Location = new Point(389, 86);
             btnBrowsePowerCLIModuleLocation.Name = "btnBrowsePowerCLIModuleLocation";
             btnBrowsePowerCLIModuleLocation.Size = new Size(75, 23);
             btnBrowsePowerCLIModuleLocation.TabIndex = 4;
             btnBrowsePowerCLIModuleLocation.Text = "Browse";
             btnBrowsePowerCLIModuleLocation.UseVisualStyleBackColor = true;
-            btnBrowsePowerCLIModuleLocation.Click += (this.btnBrowsePowerCLIModuleLocation_Click);
+            btnBrowsePowerCLIModuleLocation.Click += btnBrowsePowerCLIModuleLocation_Click;
             // 
             // btnVerifyVCenterServer
             // 
-            btnVerifyVCenterServer.Location = new Point(350, 42);
+            btnVerifyVCenterServer.Location = new Point(389, 45);
             btnVerifyVCenterServer.Name = "btnVerifyVCenterServer";
             btnVerifyVCenterServer.Size = new Size(75, 23);
             btnVerifyVCenterServer.TabIndex = 3;
             btnVerifyVCenterServer.Text = "Verify";
             btnVerifyVCenterServer.UseVisualStyleBackColor = true;
-            btnVerifyVCenterServer.Click += (this.btnVerifyVCenterServer_Click);
+            btnVerifyVCenterServer.Click += btnVerifyVCenterServer_Click;
             // 
             // txbVCenterServer
             // 
-            txbVCenterServer.Location = new Point(122, 42);
+            txbVCenterServer.Location = new Point(161, 45);
             txbVCenterServer.Name = "txbVCenterServer";
             txbVCenterServer.Size = new Size(210, 23);
             txbVCenterServer.TabIndex = 0;
@@ -4926,24 +4947,24 @@ namespace SA_ToolBelt
             gbxServerInstances.Controls.Add(lblLdapServerInstance1);
             gbxServerInstances.Location = new Point(908, 187);
             gbxServerInstances.Name = "gbxServerInstances";
-            gbxServerInstances.Size = new Size(503, 155);
+            gbxServerInstances.Size = new Size(630, 155);
             gbxServerInstances.TabIndex = 132;
             gbxServerInstances.TabStop = false;
             gbxServerInstances.Text = "LDAP Server Instances";
             // 
             // btnSubmitServerInstance
             // 
-            btnSubmitServerInstance.Location = new Point(192, 107);
+            btnSubmitServerInstance.Location = new Point(228, 109);
             btnSubmitServerInstance.Name = "btnSubmitServerInstance";
             btnSubmitServerInstance.Size = new Size(114, 33);
             btnSubmitServerInstance.TabIndex = 3;
             btnSubmitServerInstance.Text = "Submit Variables";
             btnSubmitServerInstance.UseVisualStyleBackColor = true;
-            btnSubmitServerInstance.Click += (this.btnSubmitServerInstance_Click);
+            btnSubmitServerInstance.Click += btnSubmitServerInstance_Click;
             // 
             // txbLdapServerInstace2
             // 
-            txbLdapServerInstace2.Location = new Point(135, 72);
+            txbLdapServerInstace2.Location = new Point(171, 74);
             txbLdapServerInstace2.Name = "txbLdapServerInstace2";
             txbLdapServerInstace2.Size = new Size(310, 23);
             txbLdapServerInstace2.TabIndex = 3;
@@ -4951,7 +4972,7 @@ namespace SA_ToolBelt
             // lblLdapServerInstance2
             // 
             lblLdapServerInstance2.AutoSize = true;
-            lblLdapServerInstance2.Location = new Point(2, 75);
+            lblLdapServerInstance2.Location = new Point(38, 77);
             lblLdapServerInstance2.Name = "lblLdapServerInstance2";
             lblLdapServerInstance2.Size = new Size(127, 15);
             lblLdapServerInstance2.TabIndex = 2;
@@ -4959,7 +4980,7 @@ namespace SA_ToolBelt
             // 
             // txbLdapServerInstace1
             // 
-            txbLdapServerInstace1.Location = new Point(135, 34);
+            txbLdapServerInstace1.Location = new Point(171, 36);
             txbLdapServerInstace1.Name = "txbLdapServerInstace1";
             txbLdapServerInstace1.Size = new Size(310, 23);
             txbLdapServerInstace1.TabIndex = 1;
@@ -4967,7 +4988,7 @@ namespace SA_ToolBelt
             // lblLdapServerInstance1
             // 
             lblLdapServerInstance1.AutoSize = true;
-            lblLdapServerInstance1.Location = new Point(2, 37);
+            lblLdapServerInstance1.Location = new Point(38, 39);
             lblLdapServerInstance1.Name = "lblLdapServerInstance1";
             lblLdapServerInstance1.Size = new Size(127, 15);
             lblLdapServerInstance1.TabIndex = 0;
@@ -4980,24 +5001,24 @@ namespace SA_ToolBelt
             gbxImportantVariables.Controls.Add(lblSecurityGroupKW);
             gbxImportantVariables.Location = new Point(908, 20);
             gbxImportantVariables.Name = "gbxImportantVariables";
-            gbxImportantVariables.Size = new Size(503, 147);
+            gbxImportantVariables.Size = new Size(630, 147);
             gbxImportantVariables.TabIndex = 127;
             gbxImportantVariables.TabStop = false;
             gbxImportantVariables.Text = "Important Variables";
             // 
             // btnSubmitVars
             // 
-            btnSubmitVars.Location = new Point(171, 97);
+            btnSubmitVars.Location = new Point(233, 103);
             btnSubmitVars.Name = "btnSubmitVars";
             btnSubmitVars.Size = new Size(114, 33);
             btnSubmitVars.TabIndex = 2;
             btnSubmitVars.Text = "Submit Variables";
             btnSubmitVars.UseVisualStyleBackColor = true;
-            btnSubmitVars.Click += (this.btnSubmitVars_Click);
+            btnSubmitVars.Click += btnSubmitVars_Click;
             // 
             // txbSecurityGroupKW
             // 
-            txbSecurityGroupKW.Location = new Point(84, 68);
+            txbSecurityGroupKW.Location = new Point(146, 74);
             txbSecurityGroupKW.Name = "txbSecurityGroupKW";
             txbSecurityGroupKW.Size = new Size(287, 23);
             txbSecurityGroupKW.TabIndex = 1;
@@ -5005,7 +5026,7 @@ namespace SA_ToolBelt
             // lblSecurityGroupKW
             // 
             lblSecurityGroupKW.AllowDrop = true;
-            lblSecurityGroupKW.Location = new Point(6, 27);
+            lblSecurityGroupKW.Location = new Point(68, 33);
             lblSecurityGroupKW.Name = "lblSecurityGroupKW";
             lblSecurityGroupKW.Size = new Size(491, 38);
             lblSecurityGroupKW.TabIndex = 0;
@@ -5262,7 +5283,7 @@ namespace SA_ToolBelt
             btnAddSecurityGroupsOU.TabIndex = 108;
             btnAddSecurityGroupsOU.Text = "Add Security Groups OU";
             btnAddSecurityGroupsOU.UseVisualStyleBackColor = true;
-            btnAddSecurityGroupsOU.Click += (this.btnAddSecurityGroupsOU_Click);
+            btnAddSecurityGroupsOU.Click += btnAddSecurityGroupsOU_Click;
             // 
             // cbxListSecurityGroupsOu
             // 
@@ -5290,7 +5311,7 @@ namespace SA_ToolBelt
             btnAddWindowsServersOu.TabIndex = 104;
             btnAddWindowsServersOu.Text = "Add Windows Servers OU";
             btnAddWindowsServersOu.UseVisualStyleBackColor = true;
-            btnAddWindowsServersOu.Click += (this.btnAddWindowsServersOu_Click);
+            btnAddWindowsServersOu.Click += btnAddWindowsServersOu_Click;
             // 
             // btnAddPatriotParkOu
             // 
@@ -5300,7 +5321,7 @@ namespace SA_ToolBelt
             btnAddPatriotParkOu.TabIndex = 103;
             btnAddPatriotParkOu.Text = "Add Patriot Park OU";
             btnAddPatriotParkOu.UseVisualStyleBackColor = true;
-            btnAddPatriotParkOu.Click += (this.btnAddPatriotParkOu_Click);
+            btnAddPatriotParkOu.Click += btnAddPatriotParkOu_Click;
             // 
             // btnAddWorkstationOu
             // 
@@ -5310,7 +5331,7 @@ namespace SA_ToolBelt
             btnAddWorkstationOu.TabIndex = 102;
             btnAddWorkstationOu.Text = "Add Workstation OU";
             btnAddWorkstationOu.UseVisualStyleBackColor = true;
-            btnAddWorkstationOu.Click += (this.btnAddWorkStationOu_Click);
+            btnAddWorkstationOu.Click += btnAddWorkStationOu_Click;
             // 
             // cbxListWorkStationOu
             // 
@@ -5394,7 +5415,7 @@ namespace SA_ToolBelt
             btnUndockConsole.TabIndex = 0;
             btnUndockConsole.Text = "Undock Console";
             btnUndockConsole.UseVisualStyleBackColor = true;
-            btnUndockConsole.Click += (this.btnUndockConsole_Click);
+            btnUndockConsole.Click += btnUndockConsole_Click;
             // 
             // btnLogout
             // 
@@ -5404,30 +5425,91 @@ namespace SA_ToolBelt
             btnLogout.TabIndex = 1;
             btnLogout.Text = "Log Out";
             btnLogout.UseVisualStyleBackColor = true;
-            btnLogout.Click += (this.btnLogout_Click);
+            btnLogout.Click += btnLogout_Click;
             // 
-            // btnRefreshDefaultSecGroup
+            // btnSetSqlPath
             // 
-            btnRefreshDefaultSecGroup.BackColor = SystemColors.MenuHighlight;
-            btnRefreshDefaultSecGroup.Location = new Point(367, 630);
-            btnRefreshDefaultSecGroup.Name = "btnRefreshDefaultSecGroup";
-            btnRefreshDefaultSecGroup.Size = new Size(75, 23);
-            btnRefreshDefaultSecGroup.TabIndex = 29;
-            btnRefreshDefaultSecGroup.Text = "Refresh";
-            btnRefreshDefaultSecGroup.UseVisualStyleBackColor = false;
-            btnRefreshDefaultSecGroup.Click += (this.btnRefreshDefaultSecGroup_Click);
+            btnSetSqlPath.Location = new Point(467, 135);
+            btnSetSqlPath.Name = "btnSetSqlPath";
+            btnSetSqlPath.Size = new Size(75, 23);
+            btnSetSqlPath.TabIndex = 27;
+            btnSetSqlPath.Text = "Set";
+            btnSetSqlPath.UseVisualStyleBackColor = true;
+            // 
+            // btnSetPowerCLIModuleLocation
+            // 
+            btnSetPowerCLIModuleLocation.Location = new Point(467, 86);
+            btnSetPowerCLIModuleLocation.Name = "btnSetPowerCLIModuleLocation";
+            btnSetPowerCLIModuleLocation.Size = new Size(75, 23);
+            btnSetPowerCLIModuleLocation.TabIndex = 26;
+            btnSetPowerCLIModuleLocation.Text = "Set";
+            btnSetPowerCLIModuleLocation.UseVisualStyleBackColor = true;
+            // 
+            // btnSetVCenterServer
+            // 
+            btnSetVCenterServer.Location = new Point(467, 45);
+            btnSetVCenterServer.Name = "btnSetVCenterServer";
+            btnSetVCenterServer.Size = new Size(75, 23);
+            btnSetVCenterServer.TabIndex = 25;
+            btnSetVCenterServer.Text = "Set";
+            btnSetVCenterServer.UseVisualStyleBackColor = true;
+            // 
+            // btnSetDisabledUsersLocation
+            // 
+            btnSetDisabledUsersLocation.Location = new Point(1396, 631);
+            btnSetDisabledUsersLocation.Name = "btnSetDisabledUsersLocation";
+            btnSetDisabledUsersLocation.Size = new Size(123, 23);
+            btnSetDisabledUsersLocation.TabIndex = 29;
+            btnSetDisabledUsersLocation.Text = "Set";
+            btnSetDisabledUsersLocation.UseVisualStyleBackColor = true;
+            // 
+            // btnSetLinuxDs
+            // 
+            btnSetLinuxDs.Location = new Point(488, 393);
+            btnSetLinuxDs.Name = "btnSetLinuxDs";
+            btnSetLinuxDs.Size = new Size(123, 23);
+            btnSetLinuxDs.TabIndex = 30;
+            btnSetLinuxDs.Text = "Set";
+            btnSetLinuxDs.UseVisualStyleBackColor = true;
+            // 
+            // btnSetAddExcludeOu
+            // 
+            btnSetAddExcludeOu.Location = new Point(536, 225);
+            btnSetAddExcludeOu.Name = "btnSetAddExcludeOu";
+            btnSetAddExcludeOu.Size = new Size(75, 23);
+            btnSetAddExcludeOu.TabIndex = 28;
+            btnSetAddExcludeOu.Text = "Set";
+            btnSetAddExcludeOu.UseVisualStyleBackColor = true;
+            // 
+            // btnBrowseHomeDirLocation
+            // 
+            btnBrowseHomeDirLocation.Location = new Point(350, 334);
+            btnBrowseHomeDirLocation.Name = "btnBrowseHomeDirLocation";
+            btnBrowseHomeDirLocation.Size = new Size(123, 23);
+            btnBrowseHomeDirLocation.TabIndex = 31;
+            btnBrowseHomeDirLocation.Text = "Browse";
+            btnBrowseHomeDirLocation.UseVisualStyleBackColor = true;
+            // 
+            // btnSetHomeDirLocation
+            // 
+            btnSetHomeDirLocation.Location = new Point(488, 334);
+            btnSetHomeDirLocation.Name = "btnSetHomeDirLocation";
+            btnSetHomeDirLocation.Size = new Size(123, 23);
+            btnSetHomeDirLocation.TabIndex = 32;
+            btnSetHomeDirLocation.Text = "Set";
+            btnSetHomeDirLocation.UseVisualStyleBackColor = true;
             // 
             // SAToolBelt
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1659, 976);
-            this.Controls.Add(btnLogout);
-            this.Controls.Add(tabControlMain);
-            this.Controls.Add(btnUndockConsole);
-            this.Name = "SAToolBelt";
-            this.Text = "Lockheed Martin - SPICE - SA Toolbelt";
-            this.KeyDown += (this.SAToolBelt_KeyDown);
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(1659, 976);
+            Controls.Add(btnLogout);
+            Controls.Add(tabControlMain);
+            Controls.Add(btnUndockConsole);
+            Name = "SAToolBelt";
+            Text = "Lockheed Martin - SPICE - SA Toolbelt";
+            KeyDown += SAToolBelt_KeyDown;
             tabControlMain.ResumeLayout(false);
             tabLogin.ResumeLayout(false);
             panelLogin.ResumeLayout(false);
@@ -5466,6 +5548,16 @@ namespace SA_ToolBelt
             tabLDAP.PerformLayout();
             gbxUserAccountCreation.ResumeLayout(false);
             gbxUserAccountCreation.PerformLayout();
+            tabWindowsTools.ResumeLayout(false);
+            pnlWinToolsHeader.ResumeLayout(false);
+            pnlWinToolsHeader.PerformLayout();
+            gbxBiosQuery.ResumeLayout(false);
+            gbxBiosQuery.PerformLayout();
+            pnlSystemInfo.ResumeLayout(false);
+            pnlSecurityStatus.ResumeLayout(false);
+            pnlHpBiosSettings.ResumeLayout(false);
+            pnlHpBiosSettings.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).EndInit();
             tabLinuxTools.ResumeLayout(false);
             gbxLinuxLogs.ResumeLayout(false);
             gbxLinuxLogs.PerformLayout();
@@ -5504,7 +5596,7 @@ namespace SA_ToolBelt
             gbxComputerList.PerformLayout();
             gbxImportantOUs.ResumeLayout(false);
             gbxImportantOUs.PerformLayout();
-            this.ResumeLayout(false);
+            ResumeLayout(false);
         }
 
         #endregion
@@ -5982,10 +6074,18 @@ namespace SA_ToolBelt
         private Label lblDisabledUsersLocation;
         private TextBox txbHomeDirectoryLocation;
         private Label lblHomeDirectoryLocation;
-        private Button btnDisabledUsersLocation;
+        private Button btnBrowseDisabledUsersLocation;
         private TextBox txbLinuxDs;
         private Label lblLinuxDs;
         private Button btnLinuxDs;
         private Button btnRefreshDefaultSecGroup;
+        private Button btnSetDisabledUsersLocation;
+        private Button btnSetSqlPath;
+        private Button btnSetPowerCLIModuleLocation;
+        private Button btnSetAddExcludeOu;
+        private Button btnSetLinuxDs;
+        private Button btnSetVCenterServer;
+        private Button btnSetHomeDirLocation;
+        private Button btnBrowseHomeDirLocation;
     }
 }
