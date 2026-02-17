@@ -16,6 +16,51 @@ namespace SA_ToolBelt
             _consoleForm = consoleForm;
         }
 
+        #region WMI Connection Helpers
+
+        /// <summary>
+        /// Determines if the target computer name refers to the local machine.
+        /// </summary>
+        private bool IsLocalComputer(string computerName)
+        {
+            if (string.IsNullOrWhiteSpace(computerName))
+                return true;
+
+            string name = computerName.Trim();
+            return string.Equals(name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, ".", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Builds WMI ConnectionOptions. For local connections credentials are omitted
+        /// because WMI does not allow explicit user credentials for local connections.
+        /// </summary>
+        private ConnectionOptions BuildConnectionOptions(string computerName, string username, string password, string domain, int timeoutSeconds = 30)
+        {
+            if (IsLocalComputer(computerName))
+            {
+                return new ConnectionOptions
+                {
+                    Impersonation = ImpersonationLevel.Impersonate,
+                    EnablePrivileges = true,
+                    Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+                };
+            }
+
+            return new ConnectionOptions
+            {
+                Username = $"{domain}\\{username}",
+                Password = password,
+                Impersonation = ImpersonationLevel.Impersonate,
+                EnablePrivileges = true,
+                Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+            };
+        }
+
+        #endregion
+
         #region Data Classes
 
         /// <summary>
@@ -313,15 +358,8 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"Connecting to {computerName} via WMI...");
 
-                    // Build connection options
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    // Build connection options (omits credentials for local machine)
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     // --- Standard Hardware Info (Win32_ComputerSystem) ---
                     QueryHardwareInfo(computerName, connOptions, result);
@@ -612,13 +650,7 @@ namespace SA_ToolBelt
             {
                 try
                 {
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        Timeout = TimeSpan.FromSeconds(10)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain, timeoutSeconds: 10);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
@@ -1665,14 +1697,7 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"Retrieving services from {computerName}...");
 
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
@@ -1726,14 +1751,7 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"{action} service '{serviceName}' on {computerName}...");
 
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
@@ -2033,14 +2051,7 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"Retrieving network shares from {computerName}...");
 
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
