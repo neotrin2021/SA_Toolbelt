@@ -371,7 +371,7 @@ namespace SA_ToolBelt
                     QueryOsInfo(computerName, connOptions, result);
 
                     // --- TPM Info (Win32_Tpm) ---
-                    QueryTpmInfo(computerName, connOptions, result);
+                    QueryTpmInfo(computerName, connOptions, result, username, password, domain);
 
                     // --- Secure Boot ---
                     QuerySecureBoot(computerName, connOptions, result);
@@ -492,7 +492,7 @@ namespace SA_ToolBelt
             }
         }
 
-        private void QueryTpmInfo(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
+        private void QueryTpmInfo(string computerName, ConnectionOptions connOptions, BiosQueryResult result, string username = null, string password = null, string domain = null)
         {
             try
             {
@@ -522,16 +522,101 @@ namespace SA_ToolBelt
                     }
                 }
             }
-            catch
+            catch (Exception wmiEx)
             {
-                // TPM WMI namespace may not exist on all machines
-                result.TpmPresent = "Unknown";
-                result.TpmVersion = "Unknown";
-                result.TpmEnabled = "Unknown";
-                result.TpmActivated = "Unknown";
+                // WMI TPM namespace often requires elevated privileges — fall back to PowerShell Get-Tpm
+                _consoleForm?.WriteWarning($"  WMI TPM query failed ({wmiEx.Message}), trying PowerShell fallback...");
+                try
+                {
+                    QueryTpmInfoViaPowerShell(computerName, result, username, password, domain);
+                }
+                catch (Exception psEx)
+                {
+                    _consoleForm?.WriteWarning($"  PowerShell TPM fallback also failed: {psEx.Message}");
+                    result.TpmPresent = "Unknown (requires elevation)";
+                    result.TpmVersion = "Unknown";
+                    result.TpmEnabled = "Unknown";
+                    result.TpmActivated = "Unknown";
+                }
             }
 
             _consoleForm?.WriteInfo($"  TPM: {result.TpmPresent} (Version: {result.TpmVersion})");
+        }
+
+        private void QueryTpmInfoViaPowerShell(string computerName, BiosQueryResult result, string username, string password, string domain)
+        {
+            using (var ps = PowerShell.Create())
+            {
+                string script;
+
+                if (IsLocalComputer(computerName))
+                {
+                    script = @"
+                        $tpm = Get-Tpm -ErrorAction Stop
+                        $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+                        [PSCustomObject]@{
+                            TpmPresent = $tpm.TpmPresent
+                            TpmReady = $tpm.TpmReady
+                            TpmEnabled = $tpm.TpmEnabled
+                            TpmActivated = $tpm.TpmActivated
+                            SpecVersion = if ($tpmDetails) { $tpmDetails.SpecVersion } else { 'Unknown' }
+                        }
+                    ";
+                }
+                else
+                {
+                    script = $@"
+                        $secPass = ConvertTo-SecureString '{password}' -AsPlainText -Force
+                        $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+                        Invoke-Command -ComputerName '{computerName}' -Credential $cred -ScriptBlock {{
+                            $tpm = Get-Tpm -ErrorAction Stop
+                            $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+                            [PSCustomObject]@{{
+                                TpmPresent = $tpm.TpmPresent
+                                TpmReady = $tpm.TpmReady
+                                TpmEnabled = $tpm.TpmEnabled
+                                TpmActivated = $tpm.TpmActivated
+                                SpecVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
+                            }}
+                        }} -ErrorAction Stop
+                    ";
+                }
+
+                ps.AddScript(script);
+                var results = ps.Invoke();
+
+                if (ps.Streams.Error.Count > 0)
+                {
+                    throw new Exception(ps.Streams.Error[0].Exception?.Message ?? "PowerShell Get-Tpm failed");
+                }
+
+                if (results.Count > 0)
+                {
+                    var obj = results[0];
+                    bool tpmPresent = obj.Properties["TpmPresent"]?.Value as bool? ?? false;
+                    result.TpmPresent = tpmPresent ? "Yes" : "No";
+
+                    if (tpmPresent)
+                    {
+                        result.TpmVersion = obj.Properties["SpecVersion"]?.Value?.ToString()?.Trim() ?? "Unknown";
+                        result.TpmEnabled = obj.Properties["TpmEnabled"]?.Value?.ToString() ?? "Unknown";
+                        result.TpmActivated = obj.Properties["TpmActivated"]?.Value?.ToString() ?? "Unknown";
+                    }
+                    else
+                    {
+                        result.TpmVersion = "N/A";
+                        result.TpmEnabled = "N/A";
+                        result.TpmActivated = "N/A";
+                    }
+                }
+                else
+                {
+                    result.TpmPresent = "No";
+                    result.TpmVersion = "N/A";
+                    result.TpmEnabled = "N/A";
+                    result.TpmActivated = "N/A";
+                }
+            }
         }
 
         private void QuerySecureBoot(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
