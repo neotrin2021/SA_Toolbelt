@@ -383,10 +383,6 @@ namespace SA_ToolBelt
                 _linuxService.SetHomeDirectoryBasePath(_homeDirectoryPath);
             }
 
-            // Update the configuration file path labels
-            lblFilePathLocation.Text = _databaseService.DatabasePath;
-            lblPowerCLIPathLocation.Text = POWERCLI_MODULE_PATH;
-
             // Load data from database tables into the UI
             LoadComputerListFromDB();
             LoadOUConfigurationFromDB();
