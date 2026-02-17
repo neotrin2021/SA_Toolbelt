@@ -6294,5 +6294,35 @@ namespace SA_ToolBelt
         }
 
         #endregion
+        
+        private void btnSetVCenterServer_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnSetPowerCLIModuleLocation_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnSetSqlPath_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnSetDisabledUsersLocation_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnSetHomeDirLocation_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnSetLinuxDs_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
