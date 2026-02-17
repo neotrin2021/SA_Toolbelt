@@ -4774,7 +4774,8 @@ namespace SA_ToolBelt
             btnBrowseDisabledUsersLocation.TabIndex = 21;
             btnBrowseDisabledUsersLocation.Text = "Browse";
             btnBrowseDisabledUsersLocation.UseVisualStyleBackColor = true;
-            // 
+            btnBrowseDisabledUsersLocation.Click += btnBrowseDisabledUsersLocation_Click;
+            //
             // txbHomeDirectoryLocation
             // 
             txbHomeDirectoryLocation.Location = new Point(8, 334);
@@ -5494,7 +5495,8 @@ namespace SA_ToolBelt
             btnBrowseHomeDirLocation.TabIndex = 31;
             btnBrowseHomeDirLocation.Text = "Browse";
             btnBrowseHomeDirLocation.UseVisualStyleBackColor = true;
-            // 
+            btnBrowseHomeDirLocation.Click += btnBrowseHomeDirLocation_Click;
+            //
             // btnSetHomeDirLocation
             // 
             btnSetHomeDirLocation.Location = new Point(488, 334);

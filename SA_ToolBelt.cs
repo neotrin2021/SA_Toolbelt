@@ -530,6 +530,32 @@ namespace SA_ToolBelt
             }
         }
 
+        private void btnBrowseDisabledUsersLocation_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string selectedOU = ShowOUSelectionDialog("Disabled Users Location");
+                if (!string.IsNullOrEmpty(selectedOU))
+                {
+                    txbDisabledUsersLocation.Text = selectedOU;
+                    _consoleForm.WriteSuccess($"Selected Disabled Users location: {selectedOU}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error browsing for Disabled Users OU: {ex.Message}");
+            }
+        }
+
+        private void btnBrowseHomeDirLocation_Click(object sender, EventArgs e)
+        {
+            string path = _preCheck.BrowseForFolder("Select the Home Directory base path");
+            if (!string.IsNullOrEmpty(path))
+            {
+                txbHomeDirectoryLocation.Text = path;
+            }
+        }
+
         private void btnSetAll_Click(object sender, EventArgs e)
         {
             try
@@ -6297,32 +6323,162 @@ namespace SA_ToolBelt
         
         private void btnSetVCenterServer_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbVCenterServer.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("VCenter Server cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                bool valid = _preCheck.ValidateVCenterServer(value);
+                txbVCenterServer.BackColor = valid ? Color.White : Color.LightCoral;
+                if (!valid)
+                {
+                    MessageBox.Show("VCenter Server is invalid or unreachable.", "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _databaseService.UpdateToolbeltConfigField("VCenter_Server", value);
+                _vCenterServer = value;
+                _consoleForm.WriteSuccess($"VCenter Server set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting VCenter Server: {ex.Message}");
+                MessageBox.Show($"Error setting VCenter Server: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetPowerCLIModuleLocation_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbPowerCliModuleLocation.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("PowerCLI Module Location cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                bool valid = Directory.Exists(Path.Combine(value, "VMware.PowerCLI"));
+                txbPowerCliModuleLocation.BackColor = valid ? Color.White : Color.LightCoral;
+                if (!valid)
+                {
+                    MessageBox.Show("VMware.PowerCLI folder not found at the specified path.", "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _databaseService.UpdateToolbeltConfigField("PowerCLI_Location", value);
+                POWERCLI_MODULE_PATH = Path.Combine(value, "VMware.PowerCLI");
+                _consoleForm.WriteSuccess($"PowerCLI Module Location set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting PowerCLI Module Location: {ex.Message}");
+                MessageBox.Show($"Error setting PowerCLI Module Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetSqlPath_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbSqlPath.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("SQL Path cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                if (!Directory.Exists(value))
+                {
+                    try { Directory.CreateDirectory(value); }
+                    catch
+                    {
+                        txbSqlPath.BackColor = Color.LightCoral;
+                        MessageBox.Show("SQL Path is invalid or cannot be created.", "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
+                txbSqlPath.BackColor = Color.White;
+                _databaseService.UpdateToolbeltConfigField("Sql_Path", value);
+                DatabaseService.SetSqlPathInRegistry(value);
+                _consoleForm.WriteSuccess($"SQL Path set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting SQL Path: {ex.Message}");
+                MessageBox.Show($"Error setting SQL Path: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetDisabledUsersLocation_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbDisabledUsersLocation.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("Disabled Users Location cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                _databaseService.UpdateToolbeltConfigField("Disabled_Users_Ou", value);
+                _disabledUsersOu = value;
+                _consoleForm.WriteSuccess($"Disabled Users Location set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting Disabled Users Location: {ex.Message}");
+                MessageBox.Show($"Error setting Disabled Users Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetHomeDirLocation_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbHomeDirectoryLocation.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("Home Directory Location cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                _databaseService.UpdateToolbeltConfigField("HomeDirectory", value);
+                _homeDirectoryPath = value;
+                _linuxService.SetHomeDirectoryBasePath(value);
+                _consoleForm.WriteSuccess($"Home Directory Location set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting Home Directory Location: {ex.Message}");
+                MessageBox.Show($"Error setting Home Directory Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetLinuxDs_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbLinuxDs.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("Linux DS cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                _databaseService.UpdateToolbeltConfigField("Linux_Ds", value);
+                _consoleForm.WriteSuccess($"Linux DS set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting Linux DS: {ex.Message}");
+                MessageBox.Show($"Error setting Linux DS: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
