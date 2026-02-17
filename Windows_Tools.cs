@@ -574,12 +574,14 @@ try {{
     $tpm = Get-Tpm -ErrorAction Stop
     $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
     $specVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
+    try {{ $sb = Confirm-SecureBootUEFI -ErrorAction Stop }} catch {{ $sb = 'Unsupported' }}
     @(
         ""TpmPresent=$($tpm.TpmPresent)"",
         ""TpmReady=$($tpm.TpmReady)"",
         ""TpmEnabled=$($tpm.TpmEnabled)"",
         ""TpmActivated=$($tpm.TpmActivated)"",
-        ""SpecVersion=$specVersion""
+        ""SpecVersion=$specVersion"",
+        ""SecureBoot=$sb""
     ) | Out-File -FilePath '{tempOutput}' -Encoding UTF8
 }} catch {{
     ""ERROR=$($_.Exception.Message)"" | Out-File -FilePath '{tempOutput}' -Encoding UTF8
@@ -641,12 +643,14 @@ try {{
         $tpm = Get-Tpm -ErrorAction Stop
         $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
         $specVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
+        try {{ $sb = Confirm-SecureBootUEFI -ErrorAction Stop }} catch {{ $sb = 'Unsupported' }}
         [PSCustomObject]@{{
             TpmPresent = $tpm.TpmPresent
             TpmReady = $tpm.TpmReady
             TpmEnabled = $tpm.TpmEnabled
             TpmActivated = $tpm.TpmActivated
             SpecVersion = $specVersion
+            SecureBoot = $sb
         }}
     }} -ErrorAction Stop
     Write-Output ""TpmPresent=$($tpmData.TpmPresent)""
@@ -654,6 +658,7 @@ try {{
     Write-Output ""TpmEnabled=$($tpmData.TpmEnabled)""
     Write-Output ""TpmActivated=$($tpmData.TpmActivated)""
     Write-Output ""SpecVersion=$($tpmData.SpecVersion)""
+    Write-Output ""SecureBoot=$($tpmData.SecureBoot)""
 }} catch {{
     Write-Output ""ERROR=$($_.Exception.Message)""
 }}";
@@ -736,39 +741,73 @@ try {{
                 result.TpmEnabled = "N/A";
                 result.TpmActivated = "N/A";
             }
+
+            // Secure Boot (bundled into the same elevated PS process to avoid a second UAC prompt)
+            if (data.TryGetValue("SecureBoot", out string sb))
+            {
+                if (string.Equals(sb, "True", StringComparison.OrdinalIgnoreCase))
+                    result.SecureBootEnabled = "Enabled";
+                else if (string.Equals(sb, "False", StringComparison.OrdinalIgnoreCase))
+                    result.SecureBootEnabled = "Disabled";
+                else
+                    result.SecureBootEnabled = sb;
+            }
         }
 
         private void QuerySecureBoot(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
         {
+            // If the elevated PowerShell TPM fallback already determined Secure Boot status, use that.
+            if (!string.IsNullOrEmpty(result.SecureBootEnabled))
+            {
+                _consoleForm?.WriteInfo($"  Secure Boot: {result.SecureBootEnabled} (from elevated PowerShell)");
+                return;
+            }
+
+            // Otherwise try Confirm-SecureBootUEFI via an external powershell.exe process.
             try
             {
-                // Secure Boot is exposed via MSFT_SecureBootUEFI in root\Microsoft\Windows\SecureBoot\UEFI
-                // but requires specific permissions. Fallback: check via registry or HP BIOS settings.
-                var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
-                scope.Connect();
-
-                // Use the registry provider as a fallback approach
-                using (var searcher = new ManagementObjectSearcher(scope,
-                    new ObjectQuery("SELECT * FROM Win32_OptionalFeature WHERE Name='SecureBoot'")))
-                {
-                    // This query may not return results on all systems
-                    var collection = searcher.Get();
-                    bool found = false;
-                    foreach (ManagementObject obj in collection)
-                    {
-                        result.SecureBootEnabled = obj["InstallState"]?.ToString() == "1" ? "Enabled" : "Disabled";
-                        found = true;
-                    }
-                    if (!found)
-                    {
-                        result.SecureBootEnabled = "Check HP BIOS Settings";
-                    }
-                }
+                QuerySecureBootViaPowerShell(computerName, result);
             }
-            catch
+            catch (Exception ex)
             {
+                _consoleForm?.WriteWarning($"  Secure Boot query failed: {ex.Message}");
                 result.SecureBootEnabled = "Unable to determine";
             }
+        }
+
+        private void QuerySecureBootViaPowerShell(string computerName, BiosQueryResult result)
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-ExecutionPolicy Bypass -NoProfile -Command \"try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+
+            string output;
+            using (var proc = Process.Start(psi))
+            {
+                if (proc == null)
+                    throw new Exception("Failed to start PowerShell process");
+
+                output = proc.StandardOutput.ReadToEnd().Trim();
+                proc.WaitForExit(15000);
+
+                if (!proc.HasExited)
+                {
+                    proc.Kill();
+                    throw new Exception("Secure Boot query timed out");
+                }
+            }
+
+            if (string.Equals(output, "True", StringComparison.OrdinalIgnoreCase))
+                result.SecureBootEnabled = "Enabled";
+            else if (string.Equals(output, "False", StringComparison.OrdinalIgnoreCase))
+                result.SecureBootEnabled = "Disabled";
+            else
+                result.SecureBootEnabled = output;
         }
 
         private void QueryHpBiosSettings(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
