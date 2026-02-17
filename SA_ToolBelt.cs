@@ -290,7 +290,7 @@ namespace SA_ToolBelt
             tabControlMain.TabPages.Add(tabAD);
             tabControlMain.TabPages.Add(tabLDAP);
             // tabControlMain.TabPages.Add(tabRemoteTools);
-            // tabControlMain.TabPages.Add(tabWindowsTools);
+            tabControlMain.TabPages.Add(tabWindowsTools);
             // tabControlMain.TabPages.Add(tabLinuxTools);
             // tabControlMain.TabPages.Add(tabVMwareTools);
             tabControlMain.TabPages.Add(tabOnlineOffline);
