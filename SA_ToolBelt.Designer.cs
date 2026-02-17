@@ -28,9 +28,9 @@ namespace SA_ToolBelt
         /// </summary>
         private void InitializeComponent()
         {
-            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle22 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle23 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle24 = new DataGridViewCellStyle();
             tabControlMain = new TabControl();
             tabLogin = new TabPage();
             panelLogin = new Panel();
@@ -2942,32 +2942,32 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.AllowUserToAddRows = false;
             dgvHpBiosSettings.AllowUserToDeleteRows = false;
             dgvHpBiosSettings.AllowUserToResizeRows = false;
-            dataGridViewCellStyle4.BackColor = Color.FromArgb(248, 250, 252);
-            dataGridViewCellStyle4.ForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle4.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dataGridViewCellStyle4.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle22.BackColor = Color.FromArgb(248, 250, 252);
+            dataGridViewCellStyle22.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle22.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle22.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle22;
             dgvHpBiosSettings.BackgroundColor = Color.White;
             dgvHpBiosSettings.BorderStyle = BorderStyle.None;
             dgvHpBiosSettings.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle5.BackColor = Color.FromArgb(44, 62, 80);
-            dataGridViewCellStyle5.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dataGridViewCellStyle5.ForeColor = Color.White;
-            dataGridViewCellStyle5.Padding = new Padding(8, 4, 6, 4);
-            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
+            dataGridViewCellStyle23.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle23.BackColor = Color.FromArgb(44, 62, 80);
+            dataGridViewCellStyle23.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            dataGridViewCellStyle23.ForeColor = Color.White;
+            dataGridViewCellStyle23.Padding = new Padding(8, 4, 6, 4);
+            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle23;
             dgvHpBiosSettings.ColumnHeadersHeight = 36;
             dgvHpBiosSettings.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colBiosCategory, colBiosSettingName, colBiosSettingValue });
-            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle6.BackColor = Color.White;
-            dataGridViewCellStyle6.Font = new Font("Segoe UI", 9.5F);
-            dataGridViewCellStyle6.ForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle6.Padding = new Padding(6, 2, 6, 2);
-            dataGridViewCellStyle6.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dataGridViewCellStyle6.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.False;
-            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle6;
+            dataGridViewCellStyle24.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle24.BackColor = Color.White;
+            dataGridViewCellStyle24.Font = new Font("Segoe UI", 9.5F);
+            dataGridViewCellStyle24.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle24.Padding = new Padding(6, 2, 6, 2);
+            dataGridViewCellStyle24.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle24.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle24.WrapMode = DataGridViewTriState.False;
+            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle24;
             dgvHpBiosSettings.EnableHeadersVisualStyles = false;
             dgvHpBiosSettings.Font = new Font("Segoe UI", 9.5F);
             dgvHpBiosSettings.GridColor = Color.FromArgb(230, 235, 240);
@@ -5435,6 +5435,7 @@ namespace SA_ToolBelt
             btnSetSqlPath.TabIndex = 27;
             btnSetSqlPath.Text = "Set";
             btnSetSqlPath.UseVisualStyleBackColor = true;
+            btnSetSqlPath.Click += btnSetSqlPath_Click;
             // 
             // btnSetPowerCLIModuleLocation
             // 
@@ -5444,6 +5445,7 @@ namespace SA_ToolBelt
             btnSetPowerCLIModuleLocation.TabIndex = 26;
             btnSetPowerCLIModuleLocation.Text = "Set";
             btnSetPowerCLIModuleLocation.UseVisualStyleBackColor = true;
+            btnSetPowerCLIModuleLocation.Click += btnSetPowerCLIModuleLocation_Click;
             // 
             // btnSetVCenterServer
             // 
@@ -5453,6 +5455,7 @@ namespace SA_ToolBelt
             btnSetVCenterServer.TabIndex = 25;
             btnSetVCenterServer.Text = "Set";
             btnSetVCenterServer.UseVisualStyleBackColor = true;
+            btnSetVCenterServer.Click += btnSetVCenterServer_Click;
             // 
             // btnSetDisabledUsersLocation
             // 
@@ -5462,6 +5465,7 @@ namespace SA_ToolBelt
             btnSetDisabledUsersLocation.TabIndex = 29;
             btnSetDisabledUsersLocation.Text = "Set";
             btnSetDisabledUsersLocation.UseVisualStyleBackColor = true;
+            btnSetDisabledUsersLocation.Click += btnSetDisabledUsersLocation_Click;
             // 
             // btnSetLinuxDs
             // 
@@ -5471,6 +5475,7 @@ namespace SA_ToolBelt
             btnSetLinuxDs.TabIndex = 30;
             btnSetLinuxDs.Text = "Set";
             btnSetLinuxDs.UseVisualStyleBackColor = true;
+            btnSetLinuxDs.Click += btnSetLinuxDs_Click;
             // 
             // btnSetAddExcludeOu
             // 
@@ -5498,6 +5503,7 @@ namespace SA_ToolBelt
             btnSetHomeDirLocation.TabIndex = 32;
             btnSetHomeDirLocation.Text = "Set";
             btnSetHomeDirLocation.UseVisualStyleBackColor = true;
+            btnSetHomeDirLocation.Click += btnSetHomeDirLocation_Click;
             // 
             // SAToolBelt
             // 
