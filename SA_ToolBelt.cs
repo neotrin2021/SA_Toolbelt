@@ -3229,7 +3229,7 @@ namespace SA_ToolBelt
                 try
                 {
                     _consoleForm?.WriteInfo("Prompting for Linux SSH credentials to create home directory...");
-                    var (success, hostname, sshUsername, sshPassword) = LinuxCredentialDialog.GetCredentials();
+                    var (success, hostname, sshUsername, sshPassword) = LinuxCredentialDialog.GetCredentials(txbLinuxDs.Text.Trim());
 
                     if (success)
                     {
@@ -4177,9 +4177,9 @@ namespace SA_ToolBelt
                     return;
                 }
 
-                // Prompt user for Linux SSH credentials
+                // Prompt user for Linux SSH credentials (pre-populate hostname from Linux DS setting)
                 _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
-                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
+                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials(txbLinuxDs.Text.Trim());
 
                 if (!success)
                 {
