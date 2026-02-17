@@ -16,6 +16,51 @@ namespace SA_ToolBelt
             _consoleForm = consoleForm;
         }
 
+        #region WMI Connection Helpers
+
+        /// <summary>
+        /// Determines if the target computer name refers to the local machine.
+        /// </summary>
+        private bool IsLocalComputer(string computerName)
+        {
+            if (string.IsNullOrWhiteSpace(computerName))
+                return true;
+
+            string name = computerName.Trim();
+            return string.Equals(name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, ".", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Builds WMI ConnectionOptions. For local connections credentials are omitted
+        /// because WMI does not allow explicit user credentials for local connections.
+        /// </summary>
+        private ConnectionOptions BuildConnectionOptions(string computerName, string username, string password, string domain, int timeoutSeconds = 30)
+        {
+            if (IsLocalComputer(computerName))
+            {
+                return new ConnectionOptions
+                {
+                    Impersonation = ImpersonationLevel.Impersonate,
+                    EnablePrivileges = true,
+                    Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+                };
+            }
+
+            return new ConnectionOptions
+            {
+                Username = $"{domain}\\{username}",
+                Password = password,
+                Impersonation = ImpersonationLevel.Impersonate,
+                EnablePrivileges = true,
+                Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+            };
+        }
+
+        #endregion
+
         #region Data Classes
 
         /// <summary>
@@ -313,15 +358,8 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"Connecting to {computerName} via WMI...");
 
-                    // Build connection options
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    // Build connection options (omits credentials for local machine)
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     // --- Standard Hardware Info (Win32_ComputerSystem) ---
                     QueryHardwareInfo(computerName, connOptions, result);
@@ -333,7 +371,7 @@ namespace SA_ToolBelt
                     QueryOsInfo(computerName, connOptions, result);
 
                     // --- TPM Info (Win32_Tpm) ---
-                    QueryTpmInfo(computerName, connOptions, result);
+                    QueryTpmInfo(computerName, connOptions, result, username, password, domain);
 
                     // --- Secure Boot ---
                     QuerySecureBoot(computerName, connOptions, result);
@@ -454,7 +492,7 @@ namespace SA_ToolBelt
             }
         }
 
-        private void QueryTpmInfo(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
+        private void QueryTpmInfo(string computerName, ConnectionOptions connOptions, BiosQueryResult result, string username = null, string password = null, string domain = null)
         {
             try
             {
@@ -484,16 +522,101 @@ namespace SA_ToolBelt
                     }
                 }
             }
-            catch
+            catch (Exception wmiEx)
             {
-                // TPM WMI namespace may not exist on all machines
-                result.TpmPresent = "Unknown";
-                result.TpmVersion = "Unknown";
-                result.TpmEnabled = "Unknown";
-                result.TpmActivated = "Unknown";
+                // WMI TPM namespace often requires elevated privileges — fall back to PowerShell Get-Tpm
+                _consoleForm?.WriteWarning($"  WMI TPM query failed ({wmiEx.Message}), trying PowerShell fallback...");
+                try
+                {
+                    QueryTpmInfoViaPowerShell(computerName, result, username, password, domain);
+                }
+                catch (Exception psEx)
+                {
+                    _consoleForm?.WriteWarning($"  PowerShell TPM fallback also failed: {psEx.Message}");
+                    result.TpmPresent = "Unknown (requires elevation)";
+                    result.TpmVersion = "Unknown";
+                    result.TpmEnabled = "Unknown";
+                    result.TpmActivated = "Unknown";
+                }
             }
 
             _consoleForm?.WriteInfo($"  TPM: {result.TpmPresent} (Version: {result.TpmVersion})");
+        }
+
+        private void QueryTpmInfoViaPowerShell(string computerName, BiosQueryResult result, string username, string password, string domain)
+        {
+            using (var ps = PowerShell.Create())
+            {
+                string script;
+
+                if (IsLocalComputer(computerName))
+                {
+                    script = @"
+                        $tpm = Get-Tpm -ErrorAction Stop
+                        $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+                        [PSCustomObject]@{
+                            TpmPresent = $tpm.TpmPresent
+                            TpmReady = $tpm.TpmReady
+                            TpmEnabled = $tpm.TpmEnabled
+                            TpmActivated = $tpm.TpmActivated
+                            SpecVersion = if ($tpmDetails) { $tpmDetails.SpecVersion } else { 'Unknown' }
+                        }
+                    ";
+                }
+                else
+                {
+                    script = $@"
+                        $secPass = ConvertTo-SecureString '{password}' -AsPlainText -Force
+                        $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+                        Invoke-Command -ComputerName '{computerName}' -Credential $cred -ScriptBlock {{
+                            $tpm = Get-Tpm -ErrorAction Stop
+                            $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+                            [PSCustomObject]@{{
+                                TpmPresent = $tpm.TpmPresent
+                                TpmReady = $tpm.TpmReady
+                                TpmEnabled = $tpm.TpmEnabled
+                                TpmActivated = $tpm.TpmActivated
+                                SpecVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
+                            }}
+                        }} -ErrorAction Stop
+                    ";
+                }
+
+                ps.AddScript(script);
+                var results = ps.Invoke();
+
+                if (ps.Streams.Error.Count > 0)
+                {
+                    throw new Exception(ps.Streams.Error[0].Exception?.Message ?? "PowerShell Get-Tpm failed");
+                }
+
+                if (results.Count > 0)
+                {
+                    var obj = results[0];
+                    bool tpmPresent = obj.Properties["TpmPresent"]?.Value as bool? ?? false;
+                    result.TpmPresent = tpmPresent ? "Yes" : "No";
+
+                    if (tpmPresent)
+                    {
+                        result.TpmVersion = obj.Properties["SpecVersion"]?.Value?.ToString()?.Trim() ?? "Unknown";
+                        result.TpmEnabled = obj.Properties["TpmEnabled"]?.Value?.ToString() ?? "Unknown";
+                        result.TpmActivated = obj.Properties["TpmActivated"]?.Value?.ToString() ?? "Unknown";
+                    }
+                    else
+                    {
+                        result.TpmVersion = "N/A";
+                        result.TpmEnabled = "N/A";
+                        result.TpmActivated = "N/A";
+                    }
+                }
+                else
+                {
+                    result.TpmPresent = "No";
+                    result.TpmVersion = "N/A";
+                    result.TpmEnabled = "N/A";
+                    result.TpmActivated = "N/A";
+                }
+            }
         }
 
         private void QuerySecureBoot(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
@@ -612,13 +735,7 @@ namespace SA_ToolBelt
             {
                 try
                 {
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        Timeout = TimeSpan.FromSeconds(10)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain, timeoutSeconds: 10);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
@@ -1665,14 +1782,7 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"Retrieving services from {computerName}...");
 
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
@@ -1726,14 +1836,7 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"{action} service '{serviceName}' on {computerName}...");
 
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
@@ -2033,14 +2136,7 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"Retrieving network shares from {computerName}...");
 
-                    var connOptions = new ConnectionOptions
-                    {
-                        Username = $"{domain}\\{username}",
-                        Password = password,
-                        Impersonation = ImpersonationLevel.Impersonate,
-                        EnablePrivileges = true,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    };
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
