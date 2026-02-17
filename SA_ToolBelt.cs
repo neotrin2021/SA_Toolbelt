@@ -530,6 +530,32 @@ namespace SA_ToolBelt
             }
         }
 
+        private void btnBrowseDisabledUsersLocation_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string selectedOU = ShowOUSelectionDialog("Disabled Users Location");
+                if (!string.IsNullOrEmpty(selectedOU))
+                {
+                    txbDisabledUsersLocation.Text = selectedOU;
+                    _consoleForm.WriteSuccess($"Selected Disabled Users location: {selectedOU}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error browsing for Disabled Users OU: {ex.Message}");
+            }
+        }
+
+        private void btnBrowseHomeDirLocation_Click(object sender, EventArgs e)
+        {
+            string path = _preCheck.BrowseForFolder("Select the Home Directory base path");
+            if (!string.IsNullOrEmpty(path))
+            {
+                txbHomeDirectoryLocation.Text = path;
+            }
+        }
+
         private void btnSetAll_Click(object sender, EventArgs e)
         {
             try
@@ -3203,7 +3229,7 @@ namespace SA_ToolBelt
                 try
                 {
                     _consoleForm?.WriteInfo("Prompting for Linux SSH credentials to create home directory...");
-                    var (success, hostname, sshUsername, sshPassword) = LinuxCredentialDialog.GetCredentials();
+                    var (success, hostname, sshUsername, sshPassword) = LinuxCredentialDialog.GetCredentials(txbLinuxDs.Text.Trim());
 
                     if (success)
                     {
@@ -4151,9 +4177,9 @@ namespace SA_ToolBelt
                     return;
                 }
 
-                // Prompt user for Linux SSH credentials
+                // Prompt user for Linux SSH credentials (pre-populate hostname from Linux DS setting)
                 _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
-                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
+                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials(txbLinuxDs.Text.Trim());
 
                 if (!success)
                 {
@@ -4195,108 +4221,6 @@ namespace SA_ToolBelt
                 btnCheckRepHealth.Text = "Check Replication Health";
             }
         }
-        /*
-        private async void btnCheckRepHealth_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // Disable button during operation
-                btnCheckRepHealth.Enabled = false;
-                btnCheckRepHealth.Text = "Opening SSH...";
-
-                _consoleForm.WriteInfo("Starting LDAP Replication Health Check...");
-
-                // Initialize LinuxService if not already done
-                if (_linuxService == null)
-                {
-                    _linuxService = new Linux_Service(_consoleForm);
-                }
-
-                // Check if plink is available
-                if (!_linuxService.IsPlinkAvailable())
-                {
-                    _consoleForm.WriteError("Plink.exe not found. Please ensure PuTTY is installed and plink.exe is in PATH or current directory.");
-                    return;
-                }
-
-                // Prompt user for Linux SSH credentials
-                _consoleForm.WriteInfo("Please provide Linux SSH credentials for replication health check...");
-                var (success, hostname, username, password) = LinuxCredentialDialog.GetCredentials();
-                
-                if (!success)
-                {
-                    _consoleForm.WriteWarning("Replication health check cancelled by user.");
-                    return;
-                }
-
-                _consoleForm.WriteInfo($"Opening visible SSH session to {hostname}...");
-
-                var processInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/k plink.exe {username}@{hostname} -pw {password}",
-                    UseShellExecute = true,
-                    // RedirectStandardInput = true,
-                    CreateNoWindow = false,
-                    WorkingDirectory = Directory.GetCurrentDirectory()
-                };
-
-                var process = Process.Start(processInfo);
-
-
-                // Wait for SSH connection to establish and shell prompt to appear
-                _consoleForm.WriteSuccess($"Waiting 3 seconds for SSH connection to establish and shell prompt to appear");
-                await Task.Delay(3000); // 8 seconds for SSH banner and prompt
-
-                _consoleForm?.WriteInfo($" IntPtr = '{IntPtr.Zero}' ");
-                _consoleForm?.WriteInfo($" Process MainWindow = '{process.MainWindowHandle}' ");
-
-                if (process.MainWindowHandle != IntPtr.Zero)
-                {
-                    _consoleForm.WriteSuccess($"Setting SSH Window as active....");
-                    SetForegroundWindow(process.MainWindowHandle);
-                }
-
-                await Task.Delay(1000);
-
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                await Task.Delay(2000);
-
-                // Send the dsconf command
-                string command = $"dsconf -D 'cn=Directory Manager' -w '{password}' ldap://{hostname}:389 replication monitor";
-                string command1 = $"cn=Directory Manager";
-                System.Windows.Forms.SendKeys.SendWait(command);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                await Task.Delay(1000);
-                System.Windows.Forms.SendKeys.SendWait(command1);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                await Task.Delay(1000);
-                System.Windows.Forms.SendKeys.SendWait(password);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                await Task.Delay(1000);
-                System.Windows.Forms.SendKeys.SendWait(command1);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-                await Task.Delay(1000);
-                System.Windows.Forms.SendKeys.SendWait(password);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
-
-                // Wait for replication monitor to gather data
-                await Task.Delay(3000);
-
-                btnCheckRepHealth.Text = "Check Replication Health";
-            }
-            catch (Exception ex)
-            {
-                _consoleForm.WriteError($"Error opening SSH session: {ex.Message}");
-            }
-            finally
-            {
-                // Re-enable button
-                btnCheckRepHealth.Enabled = true;
-                btnCheckRepHealth.Text = "Check Replication Health";
-            }
-        }
-        */
         #endregion
 
         #region Database Loading and Saving Methods
@@ -6297,32 +6221,162 @@ namespace SA_ToolBelt
         
         private void btnSetVCenterServer_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbVCenterServer.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("VCenter Server cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                bool valid = _preCheck.ValidateVCenterServer(value);
+                txbVCenterServer.BackColor = valid ? Color.White : Color.LightCoral;
+                if (!valid)
+                {
+                    MessageBox.Show("VCenter Server is invalid or unreachable.", "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _databaseService.UpdateToolbeltConfigField("VCenter_Server", value);
+                _vCenterServer = value;
+                _consoleForm.WriteSuccess($"VCenter Server set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting VCenter Server: {ex.Message}");
+                MessageBox.Show($"Error setting VCenter Server: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetPowerCLIModuleLocation_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbPowerCliModuleLocation.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("PowerCLI Module Location cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                bool valid = Directory.Exists(Path.Combine(value, "VMware.PowerCLI"));
+                txbPowerCliModuleLocation.BackColor = valid ? Color.White : Color.LightCoral;
+                if (!valid)
+                {
+                    MessageBox.Show("VMware.PowerCLI folder not found at the specified path.", "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _databaseService.UpdateToolbeltConfigField("PowerCLI_Location", value);
+                POWERCLI_MODULE_PATH = Path.Combine(value, "VMware.PowerCLI");
+                _consoleForm.WriteSuccess($"PowerCLI Module Location set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting PowerCLI Module Location: {ex.Message}");
+                MessageBox.Show($"Error setting PowerCLI Module Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetSqlPath_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbSqlPath.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("SQL Path cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                if (!Directory.Exists(value))
+                {
+                    try { Directory.CreateDirectory(value); }
+                    catch
+                    {
+                        txbSqlPath.BackColor = Color.LightCoral;
+                        MessageBox.Show("SQL Path is invalid or cannot be created.", "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
+                txbSqlPath.BackColor = Color.White;
+                _databaseService.UpdateToolbeltConfigField("Sql_Path", value);
+                DatabaseService.SetSqlPathInRegistry(value);
+                _consoleForm.WriteSuccess($"SQL Path set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting SQL Path: {ex.Message}");
+                MessageBox.Show($"Error setting SQL Path: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetDisabledUsersLocation_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbDisabledUsersLocation.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("Disabled Users Location cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                _databaseService.UpdateToolbeltConfigField("Disabled_Users_Ou", value);
+                _disabledUsersOu = value;
+                _consoleForm.WriteSuccess($"Disabled Users Location set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting Disabled Users Location: {ex.Message}");
+                MessageBox.Show($"Error setting Disabled Users Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetHomeDirLocation_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbHomeDirectoryLocation.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("Home Directory Location cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                _databaseService.UpdateToolbeltConfigField("HomeDirectory", value);
+                _homeDirectoryPath = value;
+                _linuxService.SetHomeDirectoryBasePath(value);
+                _consoleForm.WriteSuccess($"Home Directory Location set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting Home Directory Location: {ex.Message}");
+                MessageBox.Show($"Error setting Home Directory Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSetLinuxDs_Click(object sender, EventArgs e)
         {
+            try
+            {
+                string value = txbLinuxDs.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("Linux DS cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
+                _databaseService.UpdateToolbeltConfigField("Linux_Ds", value);
+                _consoleForm.WriteSuccess($"Linux DS set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting Linux DS: {ex.Message}");
+                MessageBox.Show($"Error setting Linux DS: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

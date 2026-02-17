@@ -773,6 +773,51 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
+        /// Updates a single column in the Toolbelt_Config table.
+        /// </summary>
+        /// <param name="columnName">The database column name (e.g. "VCenter_Server", "PowerCLI_Location").</param>
+        /// <param name="value">The new value to set.</param>
+        public void UpdateToolbeltConfigField(string columnName, string value)
+        {
+            // Whitelist of allowed column names to prevent SQL injection
+            var allowedColumns = new HashSet<string>
+            {
+                "VCenter_Server", "PowerCLI_Location", "Sql_Path",
+                "Excluded_OU", "Disabled_Users_Ou", "HomeDirectory", "Linux_Ds"
+            };
+
+            if (!allowedColumns.Contains(columnName))
+                throw new ArgumentException($"Invalid column name: {columnName}");
+
+            try
+            {
+                EnsureLockHeld();
+
+                using (var connection = GetConnection())
+                {
+                    // Column name is safe (whitelisted above), so we can interpolate it into SQL
+                    string sql = $"UPDATE Toolbelt_Config SET {columnName} = @value WHERE Id = (SELECT MIN(Id) FROM Toolbelt_Config)";
+
+                    using (var cmd = new SqliteCommand(sql, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@value", value ?? "");
+                        int rows = cmd.ExecuteNonQuery();
+
+                        if (rows > 0)
+                            _consoleForm?.WriteSuccess($"Updated {columnName} in database.");
+                        else
+                            _consoleForm?.WriteWarning($"No config row found to update {columnName}.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm?.WriteError($"Failed to update {columnName}: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Loads the toolbelt configuration from the database.
         /// Returns null if no configuration exists.
         /// </summary>

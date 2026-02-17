@@ -16,10 +16,19 @@ namespace SA_ToolBelt
         public string Username { get; private set; }
         public string Password { get; private set; }
 
-        public LinuxCredentialDialog()
+        public LinuxCredentialDialog(string defaultHostname = null)
         {
             InitializeComponent();
-            this.Shown += (s, e) => txbPassword.Focus();
+
+            if (!string.IsNullOrEmpty(defaultHostname))
+            {
+                txbHostname.Text = defaultHostname;
+                this.Shown += (s, e) => txbUsername.Focus();
+            }
+            else
+            {
+                this.Shown += (s, e) => txbHostname.Focus();
+            }
         }
 
         private void btnOK_Click(object sender, EventArgs e)
@@ -59,9 +68,9 @@ namespace SA_ToolBelt
         /// Show the credential dialog and return the credentials
         /// </summary>
         /// 
-        public static (bool success, string hostname, string username, string password) GetCredentials()
+        public static (bool success, string hostname, string username, string password) GetCredentials(string defaultHostname = null)
         {
-            using (var dialog = new LinuxCredentialDialog())
+            using (var dialog = new LinuxCredentialDialog(defaultHostname))
             {
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
