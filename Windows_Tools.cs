@@ -18,99 +18,7 @@ namespace SA_ToolBelt
             _consoleForm = consoleForm;
         }
 
-        #region WMI Connection Helpers
-
-        /// <summary>
-        /// Determines if the target computer name refers to the local machine.
-        /// </summary>
-        private bool IsLocalComputer(string computerName)
-        {
-            if (string.IsNullOrWhiteSpace(computerName))
-                return true;
-
-            string name = computerName.Trim();
-            return string.Equals(name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, ".", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
-        /// Builds WMI ConnectionOptions. For local connections credentials are omitted
-        /// because WMI does not allow explicit user credentials for local connections.
-        /// </summary>
-        private ConnectionOptions BuildConnectionOptions(string computerName, string username, string password, string domain, int timeoutSeconds = 30)
-        {
-            if (IsLocalComputer(computerName))
-            {
-                return new ConnectionOptions
-                {
-                    Impersonation = ImpersonationLevel.Impersonate,
-                    EnablePrivileges = true,
-                    Timeout = TimeSpan.FromSeconds(timeoutSeconds)
-                };
-            }
-
-            return new ConnectionOptions
-            {
-                Username = $"{domain}\\{username}",
-                Password = password,
-                Impersonation = ImpersonationLevel.Impersonate,
-                EnablePrivileges = true,
-                Timeout = TimeSpan.FromSeconds(timeoutSeconds)
-            };
-        }
-
-        #endregion
-
         #region Data Classes
-
-        /// <summary>
-        /// Holds a single HP BIOS setting name/value pair
-        /// </summary>
-        public class BiosSetting
-        {
-            public string Name { get; set; }
-            public string CurrentValue { get; set; }
-            public string Category { get; set; }
-
-            public BiosSetting() { }
-        }
-
-        /// <summary>
-        /// Aggregate result for a full BIOS query against a remote machine
-        /// </summary>
-        public class BiosQueryResult
-        {
-            public string ComputerName { get; set; }
-            public bool Success { get; set; }
-            public string ErrorMessage { get; set; }
-
-            // Standard WMI BIOS info (works on any manufacturer)
-            public string Manufacturer { get; set; }
-            public string Model { get; set; }
-            public string SerialNumber { get; set; }
-            public string BiosVersion { get; set; }
-            public string BiosDate { get; set; }
-            public string OSName { get; set; }
-            public string OSVersion { get; set; }
-            public string OSArchitecture { get; set; }
-
-            // TPM info
-            public string TpmPresent { get; set; }
-            public string TpmVersion { get; set; }
-            public string TpmEnabled { get; set; }
-            public string TpmActivated { get; set; }
-
-            // Secure Boot
-            public string SecureBootEnabled { get; set; }
-
-            // HP-specific BIOS settings (only populated on HP machines)
-            public List<BiosSetting> HpBiosSettings { get; set; } = new List<BiosSetting>();
-            public bool IsHpMachine { get; set; }
-
-            public BiosQueryResult() { }
-        }
 
         /// <summary>
         /// Represents a single Group Policy Object
@@ -812,98 +720,40 @@ try {{
 
         private void QueryHpBiosSettings(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
         {
-            try
-            {
-                var scope = new ManagementScope($"\\\\{computerName}\\root\\HP\\InstrumentedBIOS", connOptions);
-                scope.Connect();
+            if (string.IsNullOrWhiteSpace(computerName))
+                return true;
 
-                using (var searcher = new ManagementObjectSearcher(scope,
-                    new ObjectQuery("SELECT Name, CurrentValue FROM HP_BIOSSetting")))
-                {
-                    foreach (ManagementObject obj in searcher.Get())
-                    {
-                        string name = obj["Name"]?.ToString()?.Trim();
-                        string value = obj["CurrentValue"]?.ToString()?.Trim();
-
-                        if (!string.IsNullOrEmpty(name))
-                        {
-                            // Categorize the setting
-                            string category = CategorizeBiosSetting(name);
-
-                            result.HpBiosSettings.Add(new BiosSetting
-                            {
-                                Name = name,
-                                CurrentValue = string.IsNullOrEmpty(value) ? "(not set)" : value,
-                                Category = category
-                            });
-                        }
-                    }
-                }
-
-                _consoleForm?.WriteInfo($"  Retrieved {result.HpBiosSettings.Count} HP BIOS settings");
-            }
-            catch (ManagementException ex)
-            {
-                _consoleForm?.WriteWarning($"  HP BIOS namespace not available on {computerName}: {ex.Message}");
-            }
-        }
-
-        #endregion
-
-        #region Helpers
-
-        /// <summary>
-        /// Categorize HP BIOS settings into logical groups for display
-        /// </summary>
-        private string CategorizeBiosSetting(string settingName)
-        {
-            string lower = settingName.ToLowerInvariant();
-
-            if (lower.Contains("boot") || lower.Contains("uefi") || lower.Contains("legacy"))
-                return "Boot Configuration";
-            if (lower.Contains("secure") || lower.Contains("tpm") || lower.Contains("password") ||
-                lower.Contains("drivelock") || lower.Contains("encryption"))
-                return "Security";
-            if (lower.Contains("virtualization") || lower.Contains("vtx") || lower.Contains("vtd") ||
-                lower.Contains("iommu") || lower.Contains("hyper"))
-                return "Virtualization";
-            if (lower.Contains("power") || lower.Contains("wake") || lower.Contains("battery") ||
-                lower.Contains("energy") || lower.Contains("thermal"))
-                return "Power Management";
-            if (lower.Contains("usb") || lower.Contains("port") || lower.Contains("serial") ||
-                lower.Contains("parallel") || lower.Contains("bluetooth") || lower.Contains("wifi") ||
-                lower.Contains("lan") || lower.Contains("network") || lower.Contains("nfc"))
-                return "Ports & Devices";
-            if (lower.Contains("display") || lower.Contains("video") || lower.Contains("gpu") ||
-                lower.Contains("graphics") || lower.Contains("audio") || lower.Contains("speaker"))
-                return "Display & Audio";
-            if (lower.Contains("memory") || lower.Contains("cpu") || lower.Contains("processor") ||
-                lower.Contains("core") || lower.Contains("cache"))
-                return "Performance";
-
-            return "General";
+            string name = computerName.Trim();
+            return string.Equals(name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, ".", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
-        /// Quick connectivity test via standard WMI before doing full query
+        /// Builds WMI ConnectionOptions. For local connections credentials are omitted
+        /// because WMI does not allow explicit user credentials for local connections.
         /// </summary>
-        public async Task<bool> TestWmiConnectivity(string computerName, string username, string password, string domain)
+        private ConnectionOptions BuildConnectionOptions(string computerName, string username, string password, string domain, int timeoutSeconds = 30)
         {
-            return await Task.Run(() =>
+            if (IsLocalComputer(computerName))
             {
-                try
+                return new ConnectionOptions
                 {
-                    var connOptions = BuildConnectionOptions(computerName, username, password, domain, timeoutSeconds: 10);
+                    Impersonation = ImpersonationLevel.Impersonate,
+                    EnablePrivileges = true,
+                    Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+                };
+            }
 
-                    var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
-                    scope.Connect();
-                    return scope.IsConnected;
-                }
-                catch
-                {
-                    return false;
-                }
-            });
+            return new ConnectionOptions
+            {
+                Username = $"{domain}\\{username}",
+                Password = password,
+                Impersonation = ImpersonationLevel.Impersonate,
+                EnablePrivileges = true,
+                Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+            };
         }
 
         #endregion
