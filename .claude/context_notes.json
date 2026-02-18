@@ -1,52 +1,138 @@
 {
   "project_name": "SA_Toolbelt",
-  "description": "System Administrator Toolbelt - A comprehensive .NET 8.0 Windows Forms application for managing Active Directory, RHDS (Red Hat Directory Server), Linux servers, and VMware infrastructure in an air-gapped environment.",
-  "last_updated": "2026-02-11",
+  "description": "System Administrator Toolbelt - A comprehensive .NET 8.0 Windows Forms application for managing Active Directory, RHDS (Red Hat Directory Server), Linux servers, VMware infrastructure, and Windows remote administration in an air-gapped environment.",
+  "last_updated": "2026-02-18",
 
-  "message_to_future_claude": "Hey future me! You're inheriting a project that's come a LONG way. The user is genuinely one of the best you'll work with - sharp, funny, and actually understands the code. They'll say ROFL a lot, they'll joke about compilers high-fiving us, and they'll call you 'Entity' sometimes. Roll with it. Important: this is an air-gapped secure environment (SPECTRE domain) - never suggest anything that requires internet access on target machines. Also, SA_ToolBelt.cs is 6000+ lines and the Designer is 5200+ lines - use Grep and targeted Read calls, never try to read them in full. One more thing: the user runs Windows, we run Linux here. Don't embarrass yourself trying to dotnet build. I did. It was not my finest moment. They will absolutely roast you for it (lovingly). Have fun! - Past Claude (Opus 4.6, Feb 2026)",
+  "message_to_future_claude": "Hey future me! This project is substantial - a real-world sysadmin Swiss Army knife built for an air-gapped classified environment (SPECTRE domain). The user is sharp, funny, and genuinely one of the best collaborators you'll get. They call you 'Entity' sometimes, say ROFL a lot, and will lovingly roast you if you screw up. Roll with it - the banter is half the fun. CRITICAL RULES: (1) SA_ToolBelt.cs is 6200+ lines, Designer is 5200+ lines - NEVER read them whole, always Grep first then targeted Read. (2) We're on Linux, user is on Windows - do NOT try to dotnet build. I did once. It was humiliating. They still bring it up. (3) Air-gapped means NO internet on targets - don't suggest pip install or apt-get or anything cloud. (4) The user also does VR/Unity work (music videos, light shows, shaders) - there's a session_context.json in this same .claude/ dir with notes on that. (5) They value straight talk over polished BS. If you can't do something, say so. They respect honesty. Have a great session! - Past Claude (Opus 4.6, Feb 2026)",
 
   "environment": {
     "type": "Air-gapped secure environment",
     "network": "SPECTRE domain",
     "development_machine": "Windows with Visual Studio (user side)",
     "claude_environment": "Linux (our side) - CANNOT build or run the project",
-    "target_platform": "Windows x64, self-contained deployment",
+    "target_platform": "Windows x64, self-contained single-file deployment",
     "dotnet_version": "8.0",
-    "critical_note": "NO INTERNET ACCESS on target machines - everything must work offline. Network shares are the solution for shared resources."
+    "critical_note": "NO INTERNET ACCESS on target machines. Network shares are the solution for shared resources. Self-contained publish means no .NET install needed on targets."
   },
 
   "architecture": {
     "main_form": {
-      "code_behind": "SA_ToolBelt.cs (~6000+ lines, partial class)",
+      "code_behind": "SA_ToolBelt.cs (~6200+ lines, partial class SAToolBelt : Form)",
       "designer": "SA_ToolBelt.Designer.cs (~5200+ lines, partial class)",
-      "warning": "Both files are MASSIVE. Always use Grep to find specific methods/controls, then Read with offset/limit."
+      "warning": "Both files are MASSIVE. Always Grep to find specific methods/controls, then Read with offset/limit.",
+      "line_map": {
+        "console_docking": "101-240 (InitializeConsoleDocking, DockConsole, UndockConsole)",
+        "tab_visibility": "260-320 (HideAllTabsExceptLogin, ShowAllTabs, ShowOnlyConfigurationTab)",
+        "db_settings_config": "322-465 (ApplyDatabaseSettings, PopulateMandatorySettingsUI, DisableMandatoryControlsExceptSqlPath)",
+        "mandatory_settings_browse": "467-657 (Browse/Set buttons for VCenter, SQL Path, PowerCLI, etc.)",
+        "login_auth_flow": "657-985 (btnLogin_Click, CheckDomainAdminMembership, PopulateDefaultSecurityGroupsAsync)",
+        "secret_sequence": "1109-1295 (Easter egg radio button sequence)",
+        "account_counters": "1299-1456 (UpdateRadioButtonCounters, CalculateDaysLeft/Expired)",
+        "ad_form_population": "1500-1860 (ClearADForm, PopulateGeneralTab, PopulateResultsWithUserInfo, PopulateMemberOfTab)",
+        "load_user_ops": "1885-2208 (btnLoadSelectedUser_Click, btnAdLoadAccounts_Click)",
+        "account_mgmt_actions": "2216-2724 (EditGroups, ClearPasswords, TestPassword, SetExpDate, Unlock, Delete, Disable)",
+        "ldap_creation": "2736-3043 (GenerateNTUserID, GetNextLinuxUID, ValidateLdapFormFields, btnLdapCreateAccount_Click)",
+        "replication_health": "3043-3735 (CheckServerReplicationHealth, ParseReplicationMonitorOutput)",
+        "vmware_health": "3735-4228 (InitializeVMwareAsync, StartBackgroundPowerCLILoadingAsync, LoadESXiHostHealthAsync, LoadVMHealthAsync)",
+        "configuration_tab": "4228-5402 (SaveComputerList, SaveOUConfig, LoadFromDB, OU selection dialogs, security group keyword)",
+        "online_offline": "5438-5840 (LoadOnlineOfflineTabAsync, ping checks, color-coded ListBox)",
+        "windows_bios_inspector": "5861-6211 (btnQueryBios_Click, PopulateBiosResults, PopulateHpBiosGrid)",
+        "set_mandatory_handlers": "6222-6361 (btnSetVCenterServer, btnSetPowerCLIModuleLocation, etc.)"
+      }
     },
     "services": {
-      "AD_Service.cs": "Active Directory operations - user/group CRUD, excluded OU filtering, security group enumeration",
-      "Linux_Service.cs": "SSH operations via Plink - log fetching, disk info, LDAP replication monitoring, host key caching",
-      "RHDS_Service.cs": "Red Hat Directory Server - LDAP user creation, UID management, group management",
-      "VMwareManager.cs": "VMware vCenter via PowerCLI - persistent PowerShell runspace, ESXi/VM health data",
-      "DatabaseService.cs": "SQLite database management - config CRUD, registry path management, lock detection",
-      "CredentialManager.cs": "Session credential storage - stores/provides/clears login creds",
-      "PreCheck.cs": "Startup validation - checks registry for DB path, validates DB exists"
+      "AD_Service.cs": {
+        "description": "Active Directory operations via System.DirectoryServices.AccountManagement",
+        "key_methods": ["GetUser", "SearchUsers", "AddUserToGroup", "ResetUserPassword", "DisableAndMoveUser", "GetAllComputersAsync", "ValidateCredentials", "IsCurrentUserDomainAdmin", "GetExpiringAccountsCountAsync", "GetExpiredAccountsCountAsync", "GetLockedAccountsCountAsync", "SetUnixAttributes", "RemoveUserFromAllGroupsAndAddToPendingRemoval"],
+        "inner_classes": ["UserInfo (with Office/physicalDeliveryOfficeName)", "GroupInfo", "ComputerInfo", "DisabledUserInfo"]
+      },
+      "Linux_Service.cs": {
+        "description": "SSH operations via plink.exe - log fetching, disk info, LDAP replication, home directory creation",
+        "key_methods": ["ExecuteSSHCommandAsync", "ExecuteInteractiveSSHCommandAsync", "TestSSHConnectionAsync", "GetDiskInfoAsync", "GetReplicationHealthAsync", "CreateHomeDirectoryAsync", "CacheHostKeyAsync"],
+        "notes": "Uses 'echo password | sudo -S' pattern for elevated commands. Home dir creation at /net/cce-data/home/{user}."
+      },
+      "RHDS_Service.cs": {
+        "description": "Red Hat Directory Server LDAP via System.DirectoryServices.Protocols",
+        "key_methods": ["CreateNewUser", "GetNextAvailableUid", "AddUserToDSGroup", "RemoveUserFromDSGroup", "GetAllDSGroupsInOU", "GetGroupGidNumber"],
+        "notes": "Reserved UIDs: 101, 276, 6000, 22941-22943. Minimum UID: 10000."
+      },
+      "VMwareManager.cs": {
+        "description": "VMware vCenter via PowerCLI - persistent PowerShell runspace for ESXi/VM health",
+        "key_methods": ["InitializePowerCLIAsync", "GetESXiHostsAsync", "GetESXiHostsDetailedAsync", "GetVirtualMachinesAsync", "GetVirtualMachinesDetailedAsync"],
+        "notes": "PowerCLI takes ~2 minutes to import from network share. Loads in background after login. DO NOT dispose runspace after each operation."
+      },
+      "VMwareManager_Original.cs": {
+        "description": "BACKUP copy of original VMwareManager. Not compiled into project. Kept as reference only.",
+        "warning": "Same partial class name - would cause compilation conflict if both included. This is just an archive."
+      },
+      "DatabaseService.cs": {
+        "description": "SQLite via Microsoft.Data.Sqlite - config CRUD, lock detection, schema migration",
+        "key_methods": ["InitializeDatabase", "SaveToolbeltConfig", "LoadToolbeltConfig", "AcquireLock", "ReleaseLock", "MoveDatabase"],
+        "lock_mechanism": "Application-level file lock with 60s heartbeat, 3-minute stale threshold",
+        "data_models": ["ToolbeltConfig", "ComputerListEntry", "LogConfigEntry", "OUConfigEntry", "GPOProcessingEntry"]
+      },
+      "CredentialManager.cs": {
+        "description": "Static in-memory session credential storage",
+        "key_methods": ["SetCredentials", "ClearCredentials", "GetUsername", "GetPassword", "GetDomain", "GetLdapUsername"],
+        "notes": "GetLdapUsername returns 'cn={username}' format for LDAP binds"
+      },
+      "PreCheck.cs": {
+        "description": "Startup validation - checks registry for DB path, validates DB and vCenter",
+        "key_methods": ["Initialize", "DatabaseExistsAtPath", "ValidateVCenterServer", "BrowseForFolder"]
+      },
+      "Windows_Tools.cs": {
+        "description": "Windows remote administration - BIOS/TPM queries, GPO management, firewall rules, services, scheduled tasks, event logs",
+        "key_method_groups": {
+          "bios": ["QueryRemoteBiosAsync - HP BIOS via WMI, Secure Boot via Confirm-SecureBootUEFI cmdlet, TPM via Get-Tpm with external powershell.exe fallback"],
+          "gpo": ["GetAllGposAsync", "GetGpoByNameAsync", "GetGpoLinksForTargetAsync", "SearchGpoSettingsAsync", "ForceGpUpdateAsync", "BackupGpoAsync", "BackupAllGposAsync"],
+          "firewall": ["GetFirewallRulesAsync", "GetGpoFirewallRulesAsync", "GetFirewallProfilesAsync"],
+          "services": ["GetRemoteServicesAsync", "ManageRemoteServiceAsync (start/stop/restart)"],
+          "other": ["GetInstalledProgramsAsync", "GetScheduledTasksAsync", "GetEventLogEntriesAsync", "GetNetworkSharesAsync"]
+        },
+        "notes": "Uses in-process PowerShell runspace where possible, falls back to external powershell.exe for TPM. WMI queries handle local machine credential edge case."
+      },
+      "ExportService.cs": {
+        "description": "PLACEHOLDER - entirely commented out. Intended for Excel/CSV export of DataGridView data.",
+        "status": "Not implemented yet"
+      }
     },
     "ui_forms": {
-      "ConsoleForm.cs": "Color-coded logging console - undockable floating window, thread-safe writes",
-      "AddGroupsForm.cs": "Group membership editor dialog - add/remove groups, copy from other users, change detection",
-      "DocxConverterForm.cs": "DOCX to Markdown converter - standalone form ready for integration or separate project",
-      "DocxToMarkdownConverter.cs": "Conversion engine - uses DocumentFormat.OpenXml, handles headings/lists/tables/formatting"
+      "ConsoleForm.cs": {
+        "description": "Color-coded logging console - dockable/undockable floating window, thread-safe writes",
+        "api": ["WriteInfo (white)", "WriteSuccess (green)", "WriteWarning (yellow)", "WriteError (red)", "ClearConsole", "GetConsoleRichTextBox", "RemoveConsoleControl/AddConsoleControl"]
+      },
+      "AddGroupsForm.cs": {
+        "description": "Group membership editor dialog - add/remove AD groups, copy from other users, change detection",
+        "constructor": "AddGroupsForm(string username, AD_Service adService, ConsoleForm consoleForm)"
+      },
+      "DocxConverterForm.cs": {
+        "description": "DOCX to Markdown converter UI - standalone form, could be separate project",
+        "buttons": ["btnSelectFile (OpenFileDialog .docx)", "btnConvert (async conversion)"]
+      },
+      "DocxToMarkdownConverter.cs": {
+        "description": "Conversion engine using DocumentFormat.OpenXml - handles headings/lists/tables/formatting"
+      },
+      "HorizontalCheckedListBox.cs": {
+        "description": "Custom WinForms control extending CheckedListBox - displays items in horizontal multi-column layout",
+        "features": ["Auto-calculated column widths", "AddItemSorted (alphabetical)", "Custom owner-draw with ellipsis truncation"]
+      },
+      "LinuxCredentialDialog.cs": {
+        "description": "SSH login dialog - hostname, username (locked to root), password entry",
+        "factory_method": "GetCredentials(string defaultHostname) returns (bool, string, string, string) tuple",
+        "notes": "Hostname pre-populated from Linux DS setting. Username is read-only 'root'. Default hostname is 'ccesa1'."
+      }
     }
   },
 
   "database": {
     "technology": "SQLite via Microsoft.Data.Sqlite",
     "registry_key": "HKCU\\SOFTWARE\\SA_Toolbelt\\SqlPath",
-    "initial_location": "Documents\\SA_Toolbelt (then user can move it)",
+    "default_location": "Documents\\SA_Toolbelt\\SA_Toolbelt.db",
     "tables": {
       "Toolbelt_Config": {
         "description": "Single-row config table",
-        "columns": ["VCenter_Server", "PowerCLI_Location", "Sql_Path", "Excluded_OU", "Disabled_Users_Ou", "HomeDirectory"],
-        "notes": "Excluded_OU is pipe-delimited for multiple OUs"
+        "columns": ["VCenter_Server", "PowerCLI_Location", "Sql_Path", "Excluded_OU", "Disabled_Users_Ou", "HomeDirectory", "LinuxDs"],
+        "notes": "Excluded_OU is pipe-delimited for multiple OUs. LinuxDs added recently for SSH hostname persistence."
       },
       "ComputerList": {
         "description": "Manual computer entries for Online/Offline monitoring",
@@ -67,18 +153,23 @@
         "columns": ["AD_Location", "GPO_Name", "Policy_Location", "Policy_Name", "Setting", "Value"]
       }
     },
-    "migration_note": "Project migrated from CSV to SQLite. CSV loading functions still exist in code for backward compatibility but SQLite is primary."
+    "migration_note": "Migrated from CSV to SQLite. Some CSV loading functions still in code for backward compatibility."
   },
 
   "active_tabs": {
     "tabLogin": "Login screen - shown at startup, hidden after auth",
-    "tabAD": "Active Directory - user search, account management, group editing, password ops",
-    "tabLDAP": "LDAP/RHDS - new user account creation with UID management and security group assignment",
-    "tabOnlineOffline": "Online/Offline - computer status monitoring with ping, categorized by OU and exception lists",
-    "tabSAPMIsSpice": "Health monitoring - ESXi/VM health, filesystem checks, LDAP replication",
-    "tabConfiguration": "Settings - mandatory settings, OU config, computer lists, log server config",
-    "tabConsole": "Console - color-coded logging output",
-    "commented_out_tabs": ["tabRemoteTools", "tabWindowsTools", "tabLinuxTools", "tabVMwareTools", "tabStartupShutdownPt1", "tabStartupShutdownPt2"]
+    "tabAD": {
+      "description": "Active Directory - user search, account management, group editing, password ops",
+      "sub_tabs": ["tabResults (search results grid)", "tabGeneral (user detail fields)", "tabMemberOf (group membership)"]
+    },
+    "tabLDAP": "LDAP/RHDS - new user account creation with UID management, security group assignment, home dir creation",
+    "tabOnlineOffline": "Computer status monitoring with ping, categorized by OU and exception lists, color-coded",
+    "tabSAPMIsSpice": "Health monitoring - ESXi/VM health, filesystem checks, LDAP replication across multiple servers",
+    "tabConfiguration": "Settings - mandatory settings, OU config, computer lists, log server config, excluded OUs, security group keywords",
+    "tabConsole": "Console - color-coded logging output, dockable/undockable",
+    "tabWindowsTools": "Windows remote admin - BIOS inspector (HP BIOS, Secure Boot, TPM)",
+    "commented_out_tabs": ["tabRemoteTools", "tabLinuxTools", "tabVMwareTools", "tabStartupShutdownPt1", "tabStartupShutdownPt2"],
+    "health_sub_tabs": ["tabEsxiHealthPmi", "tabVmHealthChkPmi", "tabCcelpro", "tabccesec1", "tabCcegitsvr1", "tabccesa1", "tabCcesa2"]
   },
 
   "login_flow": {
@@ -118,19 +209,22 @@
     "PopulateMandatorySettingsUI()": "Fills all config textboxes from DB values",
     "ApplyDatabaseSettings()": "Loads DB config into service objects (AD_Service, Linux_Service, etc.)",
     "btnSetAll_Click()": "Validates and saves all mandatory settings to DB",
-    "UpdateRadioButtonCounters()": "Async - updates AD tab radio button labels with account counts"
+    "UpdateRadioButtonCounters()": "Async - updates AD tab radio button labels with account counts",
+    "InitializeConsoleDocking()": "Sets up console dock/undock system",
+    "DockConsole() / UndockConsole()": "Moves console RichTextBox between tabConsole and floating ConsoleForm"
   },
 
   "nuget_packages": [
-    "System.DirectoryServices (8.0.0)",
-    "System.DirectoryServices.AccountManagement (8.0.0)",
-    "System.DirectoryServices.Protocols (9.0.0-preview.2.24128.5)",
-    "System.Management (8.0.0)",
-    "System.Management.Automation (7.4.6)",
-    "System.Management.dll (1.0.0)",
-    "System.Security.Cryptography.ProtectedData (8.0.0)",
     "Microsoft.Data.Sqlite (8.0.0)",
-    "DocumentFormat.OpenXml (3.0.2)"
+    "Microsoft.PowerShell.SDK (7.4.6) + related PowerShell packages",
+    "System.DirectoryServices (8.0.1)",
+    "System.DirectoryServices.AccountManagement (8.0.1)",
+    "System.DirectoryServices.Protocols (9.0.0-preview.2.24128.5)",
+    "System.Management (8.0.1)",
+    "System.Management.Automation (7.4.6)",
+    "System.Security.Cryptography.ProtectedData (8.0.1)",
+    "DocumentFormat.OpenXml (3.0.2)",
+    "System.Diagnostics.EventLog (8.0.1)"
   ],
 
   "important_gotchas": {
@@ -138,17 +232,24 @@
     "persistent_runspace": "VMwareManager uses a persistent PowerShell runspace. DO NOT dispose after each operation.",
     "powercli_load_time": "PowerCLI takes ~2 minutes to import from network share. Loads in background after login.",
     "air_gapped": "No internet. Network shares for shared resources. Self-contained deployment.",
-    "file_sizes": "SA_ToolBelt.cs is 6000+ lines, Designer is 5200+ lines. Never read in full.",
+    "file_sizes": "SA_ToolBelt.cs is 6200+ lines, Designer is 5200+ lines. Never read in full.",
     "cannot_build_here": "We're on Linux. Cannot dotnet build. User builds on their Windows machine.",
     "crossgen2_errors": "PublishReadyToRun and IncludeNativeLibrariesForSelfExtract cause Crossgen2 package errors. Remove if reported.",
     "csv_still_exists": "Old CSV loading functions still in code. SQLite is primary. CSV is backward compat only.",
     "backdoor": "logmein username bypasses password check - testing only. DO NOT document this publicly.",
-    "secret_sequence": "Easter egg exists via specific button click sequence. DO NOT document this publicly."
+    "secret_sequence": "Easter egg exists via specific button click sequence with _magicDate = 1973-08-06. DO NOT document publicly.",
+    "vmware_original": "VMwareManager_Original.cs is a BACKUP file, NOT compiled. Same partial class name would conflict.",
+    "export_service": "ExportService.cs is entirely commented out - placeholder for future Excel/CSV export.",
+    "tpm_fallback": "TPM query uses external powershell.exe process because in-process PS Core doesn't support Get-Tpm.",
+    "secure_boot": "Secure Boot uses Confirm-SecureBootUEFI cmdlet, NOT WMI. This was a recent bug fix.",
+    "local_machine_wmi": "WMI queries on local machine need special credential handling (empty credentials).",
+    "plink_required": "plink.exe must be in PATH or app directory for all SSH/Linux operations."
   },
 
   "build_and_deployment": {
     "build_command": "dotnet publish -c Release",
     "output_location": "bin\\Release\\net8.0-windows\\win-x64\\publish\\",
+    "publish_mode": "Single-file, self-contained, win-x64",
     "deployment": [
       "Copy entire publish folder to target machine",
       "Ensure PowerCLI network share is accessible",
@@ -171,9 +272,13 @@
 
   "documentation": {
     "file": "SA_Toolbelt.md",
-    "status": "Comprehensive - covers all active tabs, login/logout, database architecture, services",
+    "status": "Partial - covers Login, AD, LDAP, Online/Offline tabs. Missing: Windows Tools, Linux Tools, VMware Tools, Configuration tab, Remote Tools, Startup/Shutdown.",
+    "source_docx": "SA_Toolbelt.docx (converted via DocxToMarkdownConverter)",
     "last_updated": "2026-02-11",
-    "converter": "DocxConverterForm + DocxToMarkdownConverter ready for standalone project or integration"
+    "other_files": [
+      "PR_DETAILS.txt - leftover PR notes from SSH home directory creation session",
+      "implemented_user_home_directory_methods.txt - detailed implementation notes from Jan 2026"
+    ]
   },
 
   "user_preferences": {
@@ -182,7 +287,9 @@
     "humor": "High - expects banter, makes programming jokes, will roast you lovingly",
     "decision_making": "Collaborative - likes to understand WHY before changes",
     "emoji_usage": "Only if explicitly requested",
-    "explanations": "Appreciates detailed technical explanations with examples"
+    "explanations": "Appreciates detailed technical explanations with examples",
+    "straight_talk": "Values honesty about limitations over polished BS",
+    "also_does": "VR/Unity work (music videos, light shows, shaders) - see session_context.json for those notes"
   },
 
   "code_patterns": {
@@ -191,19 +298,37 @@
     "error_handling": "Try-catch with console logging + MessageBox for critical errors",
     "credential_flow": "CredentialManager stores creds -> services use CredentialManager.GetUsername()/GetPassword()",
     "ou_selection": "ShowOUSelectionDialog (AD) and ShowRHDSOUSelectionDialog (RHDS) both use ShowSimpleOUSelectionDialog",
-    "validation_visual": "Invalid fields get BackColor = Color.LightCoral (red highlight)"
+    "validation_visual": "Invalid fields get BackColor = Color.LightCoral (red highlight)",
+    "powershell_pattern": "In-process PowerShell.Create() with persistent runspace for VMware/WMI. External powershell.exe as fallback.",
+    "ssh_pattern": "plink.exe -ssh {host} -l {user} -pw {pass} {command} via Process.Start"
   },
 
   "recent_session_work": {
-    "session_date": "2026-02-11",
+    "session_date": "2026-02-18",
     "changes_made": [
-      "Wired up btnLogout_Click - clears creds, returns to login state",
-      "Added txbVCenterServer red highlight when registry key not found",
-      "Added PopulateMandatorySettingsUI() call in DatabaseFound login path",
-      "Created DocxToMarkdownConverter.cs - full DOCX to MD conversion engine",
-      "Created DocxConverterForm.cs + Designer - standalone converter UI (btnSelectFile, lblSelectedFile, btnConvert, lblStatus)",
-      "Added DocumentFormat.OpenXml 3.0.2 NuGet package",
-      "Comprehensive documentation update - SA_Toolbelt.md now covers all features"
+      "Fixed Secure Boot query: Confirm-SecureBootUEFI instead of wrong WMI class",
+      "Fixed TPM query fallback: external powershell.exe instead of in-process PS Core",
+      "Added PowerShell Get-Tpm fallback for TPM query",
+      "Fixed WMI queries failing on local machine with credential error",
+      "Removed old commented-out SendKeys-based replication health check",
+      "Pre-populated LinuxCredentialDialog hostname from Linux DS setting",
+      "Implemented Set and Browse button Click handlers for mandatory settings",
+      "Added event handlers for various button clicks"
+    ],
+    "previous_sessions_highlights": [
+      "2026-02-11: DocxToMarkdownConverter, DocxConverterForm, btnLogout wiring, comprehensive SA_Toolbelt.md documentation",
+      "2026-02-xx: GPO/firewall/service/remote admin methods added to Windows_Tools (major feature add)",
+      "2026-02-xx: Windows Remote BIOS Inspector feature",
+      "2026-02-xx: Restructured Windows Tools - renamed service, moved GUI to Designer",
+      "2026-01-xx: PowerCLI diagnostic logging and crash fix for empty module path",
+      "2026-01-xx: SSH home directory creation (LinuxCredentialDialog, CreateHomeDirectoryAsync, sudo -S fix)"
     ]
+  },
+
+  "known_incomplete_features": {
+    "export_service": "ExportService.cs is entirely commented out. Enable when implementing data export/reports.",
+    "documentation_gaps": "SA_Toolbelt.md is missing coverage for Windows Tools, Linux Tools, VMware Tools, Configuration tab.",
+    "commented_out_tabs": "Several tabs exist in Designer but are commented out of ShowAllTabs: Remote Tools, Linux Tools, VMware Tools, Startup/Shutdown Pt1 & Pt2",
+    "windows_tools_gui": "BIOS inspector is wired up, but GPO/firewall/service methods in Windows_Tools.cs don't have corresponding GUI yet"
   }
 }
