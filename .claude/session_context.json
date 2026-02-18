@@ -1,0 +1,54 @@
+{
+  "session_date": "2026-02-18",
+  "purpose": "Preserved context from conversation for future sessions",
+
+  "user_projects": {
+    "vr_music_videos": {
+      "description": "VR Music Videos - e.g. Amazing Grace with angels flying, Jesus walking toward viewer",
+      "tech_needs": [
+        "Animation triggers and sequencing synced to music",
+        "Shaders for heavenly glow, volumetric light, atmosphere",
+        "Timeline/event scripting for choreographed scenes",
+        "Particle systems for clouds, light rays, ethereal effects"
+      ]
+    },
+    "light_show": {
+      "description": "A light show project - likely shader/math-driven visuals, timing, color transitions",
+      "status": "In progress"
+    },
+    "laser_beam": {
+      "description": "Realistic laser beam shader extracted from a larger complex shader",
+      "status": "Completed successfully",
+      "notes": "Claude Code deconstructed a huge shader, extracted only the laser-relevant components, set correct values. Regular Claude struggled with this for hours and produced a barely-acceptable result."
+    }
+  },
+
+  "fog_machine_problem": {
+    "goal": "Realistic fog/smoke machine effect in Unity particle system",
+    "desired_behavior": {
+      "at_emitter": "Thick, dense smoke - particles tightly clustered",
+      "mid_range": "Mass of smoke moves together with momentum, begins slowing",
+      "far_range": "Particles slow down, spread out, and dissipate"
+    },
+    "recurring_failure": {
+      "symptom": "Particles are evenly spaced near the base, looks like a bead string not smoke",
+      "root_cause": "Setting high startSpeed causes each particle to immediately rocket away from origin on spawn, creating even spacing regardless of emission rate"
+    },
+    "correct_approach": {
+      "start_speed": "Low (0.5-2), NOT high velocity",
+      "emission_rate": "Massive (500-1000+/sec) so particles stack at the nozzle",
+      "velocity_over_lifetime": "Curve that starts moderate and drops to near-zero",
+      "size_over_lifetime": "Grows as particles spread out",
+      "noise_module": "Enabled for turbulent drift",
+      "external_force": "Use a force zone or wind to push the whole MASS forward",
+      "key_insight": "Density comes from particles born on top of each other and staying close. Cloud movement comes from external forces pushing the group, NOT individual particle startSpeed."
+    }
+  },
+
+  "working_relationship_notes": {
+    "claude_code_vs_regular_claude": "User has experienced significantly better results with Claude Code (can read actual project files, see errors, iterate tightly) vs regular Claude (trial-and-error, often fails or produces barely-acceptable results)",
+    "user_preferences": "Straight talk, no overselling capabilities, practical results over theory",
+    "strength_areas": "Shader work, script extraction/refactoring, Unity C# scripting, Blender Python for non-organic geometry",
+    "known_weakness": "Procedural organic modeling (e.g. human heads from photos) - not realistic to attempt"
+  }
+}
