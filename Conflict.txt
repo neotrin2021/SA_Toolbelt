@@ -253,6 +253,11 @@ namespace SA_ToolBelt
 
         #endregion
 
+<<<<<<< claude/read-context-notes-BdxO9 (Current change)
+        #region WMI Connection Helpers
+
+        private bool IsLocalComputer(string computerName)
+=======
         #region Remote BIOS Query
 
         /// <summary>
@@ -719,6 +724,7 @@ try {{
         }
 
         private void QueryHpBiosSettings(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
+>>>>>>> main (Incoming Change)
         {
             if (string.IsNullOrWhiteSpace(computerName))
                 return true;

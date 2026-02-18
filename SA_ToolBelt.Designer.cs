@@ -28,9 +28,9 @@ namespace SA_ToolBelt
         /// </summary>
         private void InitializeComponent()
         {
-            DataGridViewCellStyle dataGridViewCellStyle22 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle23 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle24 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
             tabControlMain = new TabControl();
             tabLogin = new TabPage();
             panelLogin = new Panel();
@@ -192,7 +192,7 @@ namespace SA_ToolBelt
             lblNoteLowerCase = new Label();
             lblNewUserAcntCreation = new Label();
             tabRemoteTools = new TabPage();
-            tabWindowsTools = new TabPage();
+            tabBiosTools = new TabPage();
             pnlWinToolsHeader = new Panel();
             lblWinToolsTitle = new Label();
             lblWinToolsSubtitle = new Label();
@@ -437,7 +437,15 @@ namespace SA_ToolBelt
             tabStartupShutdownPt1 = new TabPage();
             tabStartupShutdownPt2 = new TabPage();
             tabConfiguration = new TabPage();
+            btnSetDisabledUsersLocation = new Button();
             gbxManditorySettings = new GroupBox();
+            btnSetHomeDirLocation = new Button();
+            btnBrowseHomeDirLocation = new Button();
+            btnSetSqlPath = new Button();
+            btnSetPowerCLIModuleLocation = new Button();
+            btnSetAddExcludeOu = new Button();
+            btnSetLinuxDs = new Button();
+            btnSetVCenterServer = new Button();
             btnBrowseDisabledUsersLocation = new Button();
             txbHomeDirectoryLocation = new TextBox();
             lblHomeDirectoryLocation = new Label();
@@ -508,14 +516,6 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
-            btnSetSqlPath = new Button();
-            btnSetPowerCLIModuleLocation = new Button();
-            btnSetVCenterServer = new Button();
-            btnSetDisabledUsersLocation = new Button();
-            btnSetLinuxDs = new Button();
-            btnSetAddExcludeOu = new Button();
-            btnBrowseHomeDirLocation = new Button();
-            btnSetHomeDirLocation = new Button();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -540,7 +540,7 @@ namespace SA_ToolBelt
             gbxAcntExpDate.SuspendLayout();
             tabLDAP.SuspendLayout();
             gbxUserAccountCreation.SuspendLayout();
-            tabWindowsTools.SuspendLayout();
+            tabBiosTools.SuspendLayout();
             pnlWinToolsHeader.SuspendLayout();
             gbxBiosQuery.SuspendLayout();
             pnlSystemInfo.SuspendLayout();
@@ -584,7 +584,7 @@ namespace SA_ToolBelt
             tabControlMain.Controls.Add(tabAD);
             tabControlMain.Controls.Add(tabLDAP);
             tabControlMain.Controls.Add(tabRemoteTools);
-            tabControlMain.Controls.Add(tabWindowsTools);
+            tabControlMain.Controls.Add(tabBiosTools);
             tabControlMain.Controls.Add(tabLinuxTools);
             tabControlMain.Controls.Add(tabVMwareTools);
             tabControlMain.Controls.Add(tabOnlineOffline);
@@ -2331,19 +2331,19 @@ namespace SA_ToolBelt
             tabRemoteTools.Text = "Remote Tools";
             tabRemoteTools.UseVisualStyleBackColor = true;
             // 
-            // tabWindowsTools
+            // tabBiosTools
             // 
-            tabWindowsTools.BackColor = Color.FromArgb(245, 247, 250);
-            tabWindowsTools.Controls.Add(pnlWinToolsHeader);
-            tabWindowsTools.Controls.Add(gbxBiosQuery);
-            tabWindowsTools.Controls.Add(pnlSystemInfo);
-            tabWindowsTools.Controls.Add(pnlSecurityStatus);
-            tabWindowsTools.Controls.Add(pnlHpBiosSettings);
-            tabWindowsTools.Location = new Point(4, 24);
-            tabWindowsTools.Name = "tabWindowsTools";
-            tabWindowsTools.Size = new Size(1651, 847);
-            tabWindowsTools.TabIndex = 4;
-            tabWindowsTools.Text = "Windows Tools";
+            tabBiosTools.BackColor = Color.FromArgb(245, 247, 250);
+            tabBiosTools.Controls.Add(pnlWinToolsHeader);
+            tabBiosTools.Controls.Add(gbxBiosQuery);
+            tabBiosTools.Controls.Add(pnlSystemInfo);
+            tabBiosTools.Controls.Add(pnlSecurityStatus);
+            tabBiosTools.Controls.Add(pnlHpBiosSettings);
+            tabBiosTools.Location = new Point(4, 24);
+            tabBiosTools.Name = "tabBiosTools";
+            tabBiosTools.Size = new Size(1651, 847);
+            tabBiosTools.TabIndex = 4;
+            tabBiosTools.Text = "BIOS Tools";
             // 
             // pnlWinToolsHeader
             // 
@@ -2942,32 +2942,32 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.AllowUserToAddRows = false;
             dgvHpBiosSettings.AllowUserToDeleteRows = false;
             dgvHpBiosSettings.AllowUserToResizeRows = false;
-            dataGridViewCellStyle22.BackColor = Color.FromArgb(248, 250, 252);
-            dataGridViewCellStyle22.ForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle22.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dataGridViewCellStyle22.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle22;
+            dataGridViewCellStyle4.BackColor = Color.FromArgb(248, 250, 252);
+            dataGridViewCellStyle4.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle4.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle4.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
             dgvHpBiosSettings.BackgroundColor = Color.White;
             dgvHpBiosSettings.BorderStyle = BorderStyle.None;
             dgvHpBiosSettings.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dataGridViewCellStyle23.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle23.BackColor = Color.FromArgb(44, 62, 80);
-            dataGridViewCellStyle23.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dataGridViewCellStyle23.ForeColor = Color.White;
-            dataGridViewCellStyle23.Padding = new Padding(8, 4, 6, 4);
-            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle23;
+            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = Color.FromArgb(44, 62, 80);
+            dataGridViewCellStyle5.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            dataGridViewCellStyle5.ForeColor = Color.White;
+            dataGridViewCellStyle5.Padding = new Padding(8, 4, 6, 4);
+            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
             dgvHpBiosSettings.ColumnHeadersHeight = 36;
             dgvHpBiosSettings.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colBiosCategory, colBiosSettingName, colBiosSettingValue });
-            dataGridViewCellStyle24.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle24.BackColor = Color.White;
-            dataGridViewCellStyle24.Font = new Font("Segoe UI", 9.5F);
-            dataGridViewCellStyle24.ForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle24.Padding = new Padding(6, 2, 6, 2);
-            dataGridViewCellStyle24.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dataGridViewCellStyle24.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle24.WrapMode = DataGridViewTriState.False;
-            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle24;
+            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = Color.White;
+            dataGridViewCellStyle6.Font = new Font("Segoe UI", 9.5F);
+            dataGridViewCellStyle6.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle6.Padding = new Padding(6, 2, 6, 2);
+            dataGridViewCellStyle6.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle6.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.False;
+            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle6;
             dgvHpBiosSettings.EnableHeadersVisualStyles = false;
             dgvHpBiosSettings.Font = new Font("Segoe UI", 9.5F);
             dgvHpBiosSettings.GridColor = Color.FromArgb(230, 235, 240);
@@ -4730,6 +4730,16 @@ namespace SA_ToolBelt
             tabConfiguration.Text = "Configuration";
             tabConfiguration.UseVisualStyleBackColor = true;
             // 
+            // btnSetDisabledUsersLocation
+            // 
+            btnSetDisabledUsersLocation.Location = new Point(1396, 631);
+            btnSetDisabledUsersLocation.Name = "btnSetDisabledUsersLocation";
+            btnSetDisabledUsersLocation.Size = new Size(123, 23);
+            btnSetDisabledUsersLocation.TabIndex = 29;
+            btnSetDisabledUsersLocation.Text = "Set";
+            btnSetDisabledUsersLocation.UseVisualStyleBackColor = true;
+            btnSetDisabledUsersLocation.Click += btnSetDisabledUsersLocation_Click;
+            // 
             // gbxManditorySettings
             // 
             gbxManditorySettings.Controls.Add(btnSetHomeDirLocation);
@@ -4766,6 +4776,74 @@ namespace SA_ToolBelt
             gbxManditorySettings.TabStop = false;
             gbxManditorySettings.Text = "Manditory Settings";
             // 
+            // btnSetHomeDirLocation
+            // 
+            btnSetHomeDirLocation.Location = new Point(488, 334);
+            btnSetHomeDirLocation.Name = "btnSetHomeDirLocation";
+            btnSetHomeDirLocation.Size = new Size(123, 23);
+            btnSetHomeDirLocation.TabIndex = 32;
+            btnSetHomeDirLocation.Text = "Set";
+            btnSetHomeDirLocation.UseVisualStyleBackColor = true;
+            btnSetHomeDirLocation.Click += btnSetHomeDirLocation_Click;
+            // 
+            // btnBrowseHomeDirLocation
+            // 
+            btnBrowseHomeDirLocation.Location = new Point(350, 334);
+            btnBrowseHomeDirLocation.Name = "btnBrowseHomeDirLocation";
+            btnBrowseHomeDirLocation.Size = new Size(123, 23);
+            btnBrowseHomeDirLocation.TabIndex = 31;
+            btnBrowseHomeDirLocation.Text = "Browse";
+            btnBrowseHomeDirLocation.UseVisualStyleBackColor = true;
+            // 
+            // btnSetSqlPath
+            // 
+            btnSetSqlPath.Location = new Point(467, 135);
+            btnSetSqlPath.Name = "btnSetSqlPath";
+            btnSetSqlPath.Size = new Size(75, 23);
+            btnSetSqlPath.TabIndex = 27;
+            btnSetSqlPath.Text = "Set";
+            btnSetSqlPath.UseVisualStyleBackColor = true;
+            btnSetSqlPath.Click += btnSetSqlPath_Click;
+            // 
+            // btnSetPowerCLIModuleLocation
+            // 
+            btnSetPowerCLIModuleLocation.Location = new Point(467, 86);
+            btnSetPowerCLIModuleLocation.Name = "btnSetPowerCLIModuleLocation";
+            btnSetPowerCLIModuleLocation.Size = new Size(75, 23);
+            btnSetPowerCLIModuleLocation.TabIndex = 26;
+            btnSetPowerCLIModuleLocation.Text = "Set";
+            btnSetPowerCLIModuleLocation.UseVisualStyleBackColor = true;
+            btnSetPowerCLIModuleLocation.Click += btnSetPowerCLIModuleLocation_Click;
+            // 
+            // btnSetAddExcludeOu
+            // 
+            btnSetAddExcludeOu.Location = new Point(536, 225);
+            btnSetAddExcludeOu.Name = "btnSetAddExcludeOu";
+            btnSetAddExcludeOu.Size = new Size(75, 23);
+            btnSetAddExcludeOu.TabIndex = 28;
+            btnSetAddExcludeOu.Text = "Set";
+            btnSetAddExcludeOu.UseVisualStyleBackColor = true;
+            // 
+            // btnSetLinuxDs
+            // 
+            btnSetLinuxDs.Location = new Point(488, 393);
+            btnSetLinuxDs.Name = "btnSetLinuxDs";
+            btnSetLinuxDs.Size = new Size(123, 23);
+            btnSetLinuxDs.TabIndex = 30;
+            btnSetLinuxDs.Text = "Set";
+            btnSetLinuxDs.UseVisualStyleBackColor = true;
+            btnSetLinuxDs.Click += btnSetLinuxDs_Click;
+            // 
+            // btnSetVCenterServer
+            // 
+            btnSetVCenterServer.Location = new Point(467, 45);
+            btnSetVCenterServer.Name = "btnSetVCenterServer";
+            btnSetVCenterServer.Size = new Size(75, 23);
+            btnSetVCenterServer.TabIndex = 25;
+            btnSetVCenterServer.Text = "Set";
+            btnSetVCenterServer.UseVisualStyleBackColor = true;
+            btnSetVCenterServer.Click += btnSetVCenterServer_Click;
+            // 
             // btnBrowseDisabledUsersLocation
             // 
             btnBrowseDisabledUsersLocation.Location = new Point(350, 278);
@@ -4774,8 +4852,7 @@ namespace SA_ToolBelt
             btnBrowseDisabledUsersLocation.TabIndex = 21;
             btnBrowseDisabledUsersLocation.Text = "Browse";
             btnBrowseDisabledUsersLocation.UseVisualStyleBackColor = true;
-            btnBrowseDisabledUsersLocation.Click += btnBrowseDisabledUsersLocation_Click;
-            //
+            // 
             // txbHomeDirectoryLocation
             // 
             txbHomeDirectoryLocation.Location = new Point(8, 334);
@@ -5428,85 +5505,6 @@ namespace SA_ToolBelt
             btnLogout.UseVisualStyleBackColor = true;
             btnLogout.Click += btnLogout_Click;
             // 
-            // btnSetSqlPath
-            // 
-            btnSetSqlPath.Location = new Point(467, 135);
-            btnSetSqlPath.Name = "btnSetSqlPath";
-            btnSetSqlPath.Size = new Size(75, 23);
-            btnSetSqlPath.TabIndex = 27;
-            btnSetSqlPath.Text = "Set";
-            btnSetSqlPath.UseVisualStyleBackColor = true;
-            btnSetSqlPath.Click += btnSetSqlPath_Click;
-            // 
-            // btnSetPowerCLIModuleLocation
-            // 
-            btnSetPowerCLIModuleLocation.Location = new Point(467, 86);
-            btnSetPowerCLIModuleLocation.Name = "btnSetPowerCLIModuleLocation";
-            btnSetPowerCLIModuleLocation.Size = new Size(75, 23);
-            btnSetPowerCLIModuleLocation.TabIndex = 26;
-            btnSetPowerCLIModuleLocation.Text = "Set";
-            btnSetPowerCLIModuleLocation.UseVisualStyleBackColor = true;
-            btnSetPowerCLIModuleLocation.Click += btnSetPowerCLIModuleLocation_Click;
-            // 
-            // btnSetVCenterServer
-            // 
-            btnSetVCenterServer.Location = new Point(467, 45);
-            btnSetVCenterServer.Name = "btnSetVCenterServer";
-            btnSetVCenterServer.Size = new Size(75, 23);
-            btnSetVCenterServer.TabIndex = 25;
-            btnSetVCenterServer.Text = "Set";
-            btnSetVCenterServer.UseVisualStyleBackColor = true;
-            btnSetVCenterServer.Click += btnSetVCenterServer_Click;
-            // 
-            // btnSetDisabledUsersLocation
-            // 
-            btnSetDisabledUsersLocation.Location = new Point(1396, 631);
-            btnSetDisabledUsersLocation.Name = "btnSetDisabledUsersLocation";
-            btnSetDisabledUsersLocation.Size = new Size(123, 23);
-            btnSetDisabledUsersLocation.TabIndex = 29;
-            btnSetDisabledUsersLocation.Text = "Set";
-            btnSetDisabledUsersLocation.UseVisualStyleBackColor = true;
-            btnSetDisabledUsersLocation.Click += btnSetDisabledUsersLocation_Click;
-            // 
-            // btnSetLinuxDs
-            // 
-            btnSetLinuxDs.Location = new Point(488, 393);
-            btnSetLinuxDs.Name = "btnSetLinuxDs";
-            btnSetLinuxDs.Size = new Size(123, 23);
-            btnSetLinuxDs.TabIndex = 30;
-            btnSetLinuxDs.Text = "Set";
-            btnSetLinuxDs.UseVisualStyleBackColor = true;
-            btnSetLinuxDs.Click += btnSetLinuxDs_Click;
-            // 
-            // btnSetAddExcludeOu
-            // 
-            btnSetAddExcludeOu.Location = new Point(536, 225);
-            btnSetAddExcludeOu.Name = "btnSetAddExcludeOu";
-            btnSetAddExcludeOu.Size = new Size(75, 23);
-            btnSetAddExcludeOu.TabIndex = 28;
-            btnSetAddExcludeOu.Text = "Set";
-            btnSetAddExcludeOu.UseVisualStyleBackColor = true;
-            // 
-            // btnBrowseHomeDirLocation
-            // 
-            btnBrowseHomeDirLocation.Location = new Point(350, 334);
-            btnBrowseHomeDirLocation.Name = "btnBrowseHomeDirLocation";
-            btnBrowseHomeDirLocation.Size = new Size(123, 23);
-            btnBrowseHomeDirLocation.TabIndex = 31;
-            btnBrowseHomeDirLocation.Text = "Browse";
-            btnBrowseHomeDirLocation.UseVisualStyleBackColor = true;
-            btnBrowseHomeDirLocation.Click += btnBrowseHomeDirLocation_Click;
-            //
-            // btnSetHomeDirLocation
-            // 
-            btnSetHomeDirLocation.Location = new Point(488, 334);
-            btnSetHomeDirLocation.Name = "btnSetHomeDirLocation";
-            btnSetHomeDirLocation.Size = new Size(123, 23);
-            btnSetHomeDirLocation.TabIndex = 32;
-            btnSetHomeDirLocation.Text = "Set";
-            btnSetHomeDirLocation.UseVisualStyleBackColor = true;
-            btnSetHomeDirLocation.Click += btnSetHomeDirLocation_Click;
-            // 
             // SAToolBelt
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -5556,7 +5554,7 @@ namespace SA_ToolBelt
             tabLDAP.PerformLayout();
             gbxUserAccountCreation.ResumeLayout(false);
             gbxUserAccountCreation.PerformLayout();
-            tabWindowsTools.ResumeLayout(false);
+            tabBiosTools.ResumeLayout(false);
             pnlWinToolsHeader.ResumeLayout(false);
             pnlWinToolsHeader.PerformLayout();
             gbxBiosQuery.ResumeLayout(false);
@@ -5717,7 +5715,7 @@ namespace SA_ToolBelt
         private Button btnAcntExeDateUpdate;
         private TabPage tabLDAP;
         private TabPage tabRemoteTools;
-        private TabPage tabWindowsTools;
+        private TabPage tabBiosTools;
         private Panel pnlWinToolsHeader;
         private Label lblWinToolsTitle;
         private Label lblWinToolsSubtitle;
