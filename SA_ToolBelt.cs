@@ -33,6 +33,7 @@ namespace SA_ToolBelt
         private PreCheck _preCheck;
         private DatabaseService _databaseService;
         private Windows_Tools _windowsTools;
+        private BIOS_Tools _biosTools;
 
         // Startup Shutdown Variables
         public string VMMode = "NormalRun";
@@ -69,6 +70,7 @@ namespace SA_ToolBelt
             _windowsTools = new Windows_Tools(_consoleForm);
             _preCheck = new PreCheck(_consoleForm);
             _databaseService = new DatabaseService(_consoleForm);
+            _biosTools = new BIOS_Tools(_consoleForm);
 
             this.KeyPreview = true;
             this.FormClosing += SAToolBelt_FormClosing;
@@ -5856,7 +5858,7 @@ namespace SA_ToolBelt
         private static readonly Color WtTextMuted = Color.FromArgb(108, 117, 125);
 
         // Cached query result for filtering
-        private Windows_Tools.BiosQueryResult _lastBiosResult;
+        private BIOS_Tools.BiosQueryResult _lastBiosResult;
 
         private void txbBiosComputerName_KeyDown(object sender, KeyEventArgs e)
         {
@@ -5894,7 +5896,7 @@ namespace SA_ToolBelt
                 string password = CredentialManager.GetPassword();
                 string domain = CredentialManager.GetDomain();
 
-                var result = await _windowsTools.QueryRemoteBiosAsync(computerName, username, password, domain);
+                var result = await _biosTools.QueryRemoteBiosAsync(computerName, username, password, domain);
 
                 if (result.Success)
                 {
@@ -5944,7 +5946,7 @@ namespace SA_ToolBelt
                 string password = CredentialManager.GetPassword();
                 string domain = CredentialManager.GetDomain();
 
-                bool connected = await _windowsTools.TestWmiConnectivity(computerName, username, password, domain);
+                bool connected = await _biosTools.TestWmiConnectivity(computerName, username, password, domain);
 
                 if (connected)
                 {
@@ -6094,7 +6096,7 @@ namespace SA_ToolBelt
             PopulateHpBiosGrid(_lastBiosResult.HpBiosSettings, txbBiosSettingsFilter.Text.Trim());
         }
 
-        private void PopulateBiosResults(Windows_Tools.BiosQueryResult result)
+        private void PopulateBiosResults(BIOS_Tools.BiosQueryResult result)
         {
             // System info
             lblManufacturerValue.Text = result.Manufacturer ?? "\u2014";
@@ -6133,7 +6135,7 @@ namespace SA_ToolBelt
             }
         }
 
-        private void PopulateHpBiosGrid(List<Windows_Tools.BiosSetting> settings, string filter)
+        private void PopulateHpBiosGrid(List<BIOS_Tools.BiosSetting> settings, string filter)
         {
             dgvHpBiosSettings.Rows.Clear();
 
