@@ -516,10 +516,6 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
-            btnSetLocationOfUsers = new Button();
-            btnBrowseLocationOfUsers = new Button();
-            txbLocationOfUsers = new TextBox();
-            lblLocationOfUsers = new Label();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -5512,42 +5508,7 @@ namespace SA_ToolBelt
             btnLogout.Text = "Log Out";
             btnLogout.UseVisualStyleBackColor = true;
             btnLogout.Click += btnLogout_Click;
-            // 
-            // btnSetLocationOfUsers
-            // 
-            btnSetLocationOfUsers.Location = new Point(489, 240);
-            btnSetLocationOfUsers.Name = "btnSetLocationOfUsers";
-            btnSetLocationOfUsers.Size = new Size(123, 23);
-            btnSetLocationOfUsers.TabIndex = 36;
-            btnSetLocationOfUsers.Text = "Set";
-            btnSetLocationOfUsers.UseVisualStyleBackColor = true;
-            btnSetLocationOfUsers.Click += btnSetLocationOfUsers_Click;
-            // 
-            // btnBrowseLocationOfUsers
-            // 
-            btnBrowseLocationOfUsers.Location = new Point(352, 241);
-            btnBrowseLocationOfUsers.Name = "btnBrowseLocationOfUsers";
-            btnBrowseLocationOfUsers.Size = new Size(123, 23);
-            btnBrowseLocationOfUsers.TabIndex = 35;
-            btnBrowseLocationOfUsers.Text = "Browse";
-            btnBrowseLocationOfUsers.UseVisualStyleBackColor = true;
-            btnBrowseLocationOfUsers.Click += btnBrowseLocationOfUsers_Click;
-            // 
-            // txbLocationOfUsers
-            // 
-            txbLocationOfUsers.Location = new Point(8, 241);
-            txbLocationOfUsers.Name = "txbLocationOfUsers";
-            txbLocationOfUsers.Size = new Size(326, 23);
-            txbLocationOfUsers.TabIndex = 34;
-            // 
-            // lblLocationOfUsers
-            // 
-            lblLocationOfUsers.AutoSize = true;
-            lblLocationOfUsers.Location = new Point(8, 223);
-            lblLocationOfUsers.Name = "lblLocationOfUsers";
-            lblLocationOfUsers.Size = new Size(101, 15);
-            lblLocationOfUsers.TabIndex = 33;
-            lblLocationOfUsers.Text = "Location of Users:";
+ 
             // 
             // SAToolBelt
             // 
@@ -6137,9 +6098,6 @@ namespace SA_ToolBelt
         private Button btnSetVCenterServer;
         private Button btnSetHomeDirLocation;
         private Button btnBrowseHomeDirLocation;
-        private Button btnSetLocationOfUsers;
-        private Button btnBrowseLocationOfUsers;
-        private TextBox txbLocationOfUsers;
-        private Label lblLocationOfUsers;
     }
 }
+
