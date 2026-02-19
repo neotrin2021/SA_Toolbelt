@@ -4741,10 +4741,6 @@ namespace SA_ToolBelt
             // 
             // gbxManditorySettings
             // 
-            gbxManditorySettings.Controls.Add(btnSetLocationOfUsers);
-            gbxManditorySettings.Controls.Add(btnBrowseLocationOfUsers);
-            gbxManditorySettings.Controls.Add(txbLocationOfUsers);
-            gbxManditorySettings.Controls.Add(lblLocationOfUsers);
             gbxManditorySettings.Controls.Add(btnSetDisabledUsersLocation);
             gbxManditorySettings.Controls.Add(btnSetHomeDirLocation);
             gbxManditorySettings.Controls.Add(btnBrowseHomeDirLocation);
@@ -6100,4 +6096,5 @@ namespace SA_ToolBelt
         private Button btnBrowseHomeDirLocation;
     }
 }
+
 
