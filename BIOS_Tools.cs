@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Management;
 using System.Management.Automation;
@@ -10,6 +12,9 @@ namespace SA_ToolBelt
     public class BIOS_Tools
     {
         private readonly ConsoleForm _consoleForm;
+
+        // Caches Secure Boot result from elevated TPM query so we don't trigger a second UAC prompt
+        private string _tpmFallbackSecureBoot;
 
         public BIOS_Tools(ConsoleForm consoleForm = null)
         {
@@ -314,111 +319,271 @@ namespace SA_ToolBelt
 
         private void QueryTpmInfoViaPowerShell(string computerName, BiosQueryResult result, string username, string password, string domain)
         {
-            using (var ps = PowerShell.Create())
+            if (IsLocalComputer(computerName))
             {
-                string script;
+                // Local: must use elevated external powershell.exe because in-process PS Core doesn't support Get-Tpm
+                QueryLocalTpmViaElevatedPowerShell(result);
+            }
+            else
+            {
+                // Remote: no UAC needed, supplied credentials handle authorization on the remote end
+                QueryRemoteTpmViaPowerShell(computerName, result, username, password, domain);
+            }
+        }
 
-                if (IsLocalComputer(computerName))
+        /// <summary>
+        /// Queries TPM info on the local machine by launching an elevated powershell.exe (Windows PowerShell 5.1) process.
+        /// This triggers a one-time UAC prompt so the rest of the app can remain unelevated.
+        /// Results are written to a temp file since stdout cannot be redirected from an elevated process.
+        /// Both Get-Tpm and Confirm-SecureBootUEFI are bundled in one call to avoid a second UAC prompt.
+        /// </summary>
+        private void QueryLocalTpmViaElevatedPowerShell(BiosQueryResult result)
+        {
+            string tempOutput = Path.Combine(Path.GetTempPath(), $"sa_tpm_{Guid.NewGuid():N}.txt");
+            string tempScript = Path.Combine(Path.GetTempPath(), $"sa_tpm_{Guid.NewGuid():N}.ps1");
+
+            try
+            {
+                string script = $@"
+try {{
+    $tpm = Get-Tpm -ErrorAction Stop
+    $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+    $specVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
+    try {{ $sb = Confirm-SecureBootUEFI -ErrorAction Stop }} catch {{ $sb = 'Unsupported' }}
+    @(
+        ""TpmPresent=$($tpm.TpmPresent)"",
+        ""TpmReady=$($tpm.TpmReady)"",
+        ""TpmEnabled=$($tpm.TpmEnabled)"",
+        ""TpmActivated=$($tpm.TpmActivated)"",
+        ""SpecVersion=$specVersion"",
+        ""SecureBoot=$sb""
+    ) | Out-File -FilePath '{tempOutput}' -Encoding UTF8
+}} catch {{
+    ""ERROR=$($_.Exception.Message)"" | Out-File -FilePath '{tempOutput}' -Encoding UTF8
+}}";
+
+                File.WriteAllText(tempScript, script);
+
+                _consoleForm?.WriteInfo("  Requesting elevated privileges for TPM query (UAC prompt may appear)...");
+
+                var psi = new ProcessStartInfo
                 {
-                    script = @"
-                        $tpm = Get-Tpm -ErrorAction Stop
-                        $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
-                        [PSCustomObject]@{
-                            TpmPresent = $tpm.TpmPresent
-                            TpmReady = $tpm.TpmReady
-                            TpmEnabled = $tpm.TpmEnabled
-                            TpmActivated = $tpm.TpmActivated
-                            SpecVersion = if ($tpmDetails) { $tpmDetails.SpecVersion } else { 'Unknown' }
-                        }
-                    ";
-                }
-                else
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -NoProfile -File \"{tempScript}\"",
+                    Verb = "runas",
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                using (var proc = Process.Start(psi))
                 {
-                    script = $@"
-                        $secPass = ConvertTo-SecureString '{password}' -AsPlainText -Force
-                        $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
-                        Invoke-Command -ComputerName '{computerName}' -Credential $cred -ScriptBlock {{
-                            $tpm = Get-Tpm -ErrorAction Stop
-                            $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
-                            [PSCustomObject]@{{
-                                TpmPresent = $tpm.TpmPresent
-                                TpmReady = $tpm.TpmReady
-                                TpmEnabled = $tpm.TpmEnabled
-                                TpmActivated = $tpm.TpmActivated
-                                SpecVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
-                            }}
-                        }} -ErrorAction Stop
-                    ";
-                }
+                    if (proc == null)
+                        throw new Exception("Failed to start elevated PowerShell process");
 
-                ps.AddScript(script);
-                var results = ps.Invoke();
-
-                if (ps.Streams.Error.Count > 0)
-                {
-                    throw new Exception(ps.Streams.Error[0].Exception?.Message ?? "PowerShell Get-Tpm failed");
-                }
-
-                if (results.Count > 0)
-                {
-                    var obj = results[0];
-                    bool tpmPresent = obj.Properties["TpmPresent"]?.Value as bool? ?? false;
-                    result.TpmPresent = tpmPresent ? "Yes" : "No";
-
-                    if (tpmPresent)
+                    if (!proc.WaitForExit(30000))
                     {
-                        result.TpmVersion = obj.Properties["SpecVersion"]?.Value?.ToString()?.Trim() ?? "Unknown";
-                        result.TpmEnabled = obj.Properties["TpmEnabled"]?.Value?.ToString() ?? "Unknown";
-                        result.TpmActivated = obj.Properties["TpmActivated"]?.Value?.ToString() ?? "Unknown";
-                    }
-                    else
-                    {
-                        result.TpmVersion = "N/A";
-                        result.TpmEnabled = "N/A";
-                        result.TpmActivated = "N/A";
+                        proc.Kill();
+                        throw new Exception("Elevated PowerShell TPM query timed out");
                     }
                 }
-                else
+
+                if (!File.Exists(tempOutput))
+                    throw new Exception("Elevated PowerShell TPM query produced no output (UAC may have been declined)");
+
+                ParseTpmOutput(File.ReadAllLines(tempOutput), result);
+            }
+            finally
+            {
+                try { if (File.Exists(tempScript)) File.Delete(tempScript); } catch { }
+                try { if (File.Exists(tempOutput)) File.Delete(tempOutput); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Queries TPM info on a remote machine by launching powershell.exe (Windows PowerShell 5.1) externally.
+        /// No elevation needed — the supplied credentials handle authorization on the remote end.
+        /// Stdout is redirected directly since no UAC/RunAs is involved.
+        /// </summary>
+        private void QueryRemoteTpmViaPowerShell(string computerName, BiosQueryResult result, string username, string password, string domain)
+        {
+            string tempScript = Path.Combine(Path.GetTempPath(), $"sa_tpm_{Guid.NewGuid():N}.ps1");
+
+            try
+            {
+                string script = $@"
+try {{
+    $secPass = ConvertTo-SecureString '{password}' -AsPlainText -Force
+    $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+    $tpmData = Invoke-Command -ComputerName '{computerName}' -Credential $cred -ScriptBlock {{
+        $tpm = Get-Tpm -ErrorAction Stop
+        $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+        $specVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
+        try {{ $sb = Confirm-SecureBootUEFI -ErrorAction Stop }} catch {{ $sb = 'Unsupported' }}
+        [PSCustomObject]@{{
+            TpmPresent = $tpm.TpmPresent
+            TpmReady = $tpm.TpmReady
+            TpmEnabled = $tpm.TpmEnabled
+            TpmActivated = $tpm.TpmActivated
+            SpecVersion = $specVersion
+            SecureBoot = $sb
+        }}
+    }} -ErrorAction Stop
+    Write-Output ""TpmPresent=$($tpmData.TpmPresent)""
+    Write-Output ""TpmReady=$($tpmData.TpmReady)""
+    Write-Output ""TpmEnabled=$($tpmData.TpmEnabled)""
+    Write-Output ""TpmActivated=$($tpmData.TpmActivated)""
+    Write-Output ""SpecVersion=$($tpmData.SpecVersion)""
+    Write-Output ""SecureBoot=$($tpmData.SecureBoot)""
+}} catch {{
+    Write-Output ""ERROR=$($_.Exception.Message)""
+}}";
+
+                File.WriteAllText(tempScript, script);
+
+                var psi = new ProcessStartInfo
                 {
-                    result.TpmPresent = "No";
-                    result.TpmVersion = "N/A";
-                    result.TpmEnabled = "N/A";
-                    result.TpmActivated = "N/A";
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -NoProfile -File \"{tempScript}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                string output;
+                using (var proc = Process.Start(psi))
+                {
+                    if (proc == null)
+                        throw new Exception("Failed to start PowerShell process for remote TPM query");
+
+                    output = proc.StandardOutput.ReadToEnd();
+                    proc.WaitForExit(30000);
+
+                    if (!proc.HasExited)
+                    {
+                        proc.Kill();
+                        throw new Exception("PowerShell remote TPM query timed out");
+                    }
                 }
+
+                if (string.IsNullOrWhiteSpace(output))
+                    throw new Exception("PowerShell remote TPM query produced no output");
+
+                ParseTpmOutput(output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries), result);
+            }
+            finally
+            {
+                try { if (File.Exists(tempScript)) File.Delete(tempScript); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Parses KEY=VALUE lines from PowerShell TPM output into a BiosQueryResult.
+        /// Used by both the local elevated and remote query paths.
+        /// </summary>
+        private void ParseTpmOutput(string[] lines, BiosQueryResult result)
+        {
+            var data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in lines)
+            {
+                var trimmed = line.Trim();
+                int eqIndex = trimmed.IndexOf('=');
+                if (eqIndex > 0)
+                {
+                    string key = trimmed.Substring(0, eqIndex);
+                    string value = trimmed.Substring(eqIndex + 1);
+                    data[key] = value;
+                }
+            }
+
+            if (data.TryGetValue("ERROR", out string error))
+                throw new Exception(error);
+
+            bool tpmPresent = data.TryGetValue("TpmPresent", out string present) &&
+                              string.Equals(present, "True", StringComparison.OrdinalIgnoreCase);
+
+            result.TpmPresent = tpmPresent ? "Yes" : "No";
+
+            if (tpmPresent)
+            {
+                result.TpmVersion = data.TryGetValue("SpecVersion", out string ver) ? ver.Trim() : "Unknown";
+                result.TpmEnabled = data.TryGetValue("TpmEnabled", out string en) ? en : "Unknown";
+                result.TpmActivated = data.TryGetValue("TpmActivated", out string act) ? act : "Unknown";
+            }
+            else
+            {
+                result.TpmVersion = "N/A";
+                result.TpmEnabled = "N/A";
+                result.TpmActivated = "N/A";
+            }
+
+            // Secure Boot (bundled into the same elevated PS process to avoid a second UAC prompt)
+            if (data.TryGetValue("SecureBoot", out string sb))
+            {
+                if (string.Equals(sb, "True", StringComparison.OrdinalIgnoreCase))
+                    _tpmFallbackSecureBoot = "Enabled";
+                else if (string.Equals(sb, "False", StringComparison.OrdinalIgnoreCase))
+                    _tpmFallbackSecureBoot = "Disabled";
+                else
+                    _tpmFallbackSecureBoot = sb;
             }
         }
 
         private void QuerySecureBoot(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
         {
+            // If the elevated PowerShell TPM fallback already determined Secure Boot status, use that.
+            if (!string.IsNullOrEmpty(_tpmFallbackSecureBoot))
+            {
+                result.SecureBootEnabled = _tpmFallbackSecureBoot;
+                _consoleForm?.WriteInfo($"  Secure Boot: {result.SecureBootEnabled} (from elevated PowerShell)");
+                return;
+            }
+
+            // Otherwise try Confirm-SecureBootUEFI via an external powershell.exe process.
             try
             {
-                // Secure Boot is exposed via MSFT_SecureBootUEFI in root\Microsoft\Windows\SecureBoot\UEFI
-                // but requires specific permissions. Fallback: check via registry or HP BIOS settings.
-                var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
-                scope.Connect();
-
-                // Use the registry provider as a fallback approach
-                using (var searcher = new ManagementObjectSearcher(scope,
-                    new ObjectQuery("SELECT * FROM Win32_OptionalFeature WHERE Name='SecureBoot'")))
-                {
-                    // This query may not return results on all systems
-                    var collection = searcher.Get();
-                    bool found = false;
-                    foreach (ManagementObject obj in collection)
-                    {
-                        result.SecureBootEnabled = obj["InstallState"]?.ToString() == "1" ? "Enabled" : "Disabled";
-                        found = true;
-                    }
-                    if (!found)
-                    {
-                        result.SecureBootEnabled = "Check HP BIOS Settings";
-                    }
-                }
+                QuerySecureBootViaPowerShell(computerName, result);
             }
-            catch
+            catch (Exception ex)
             {
+                _consoleForm?.WriteWarning($"  Secure Boot query failed: {ex.Message}");
                 result.SecureBootEnabled = "Unable to determine";
             }
+        }
+
+        private void QuerySecureBootViaPowerShell(string computerName, BiosQueryResult result)
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-ExecutionPolicy Bypass -NoProfile -Command \"try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+
+            string output;
+            using (var proc = Process.Start(psi))
+            {
+                if (proc == null)
+                    throw new Exception("Failed to start PowerShell process");
+
+                output = proc.StandardOutput.ReadToEnd().Trim();
+                proc.WaitForExit(15000);
+
+                if (!proc.HasExited)
+                {
+                    proc.Kill();
+                    throw new Exception("Secure Boot query timed out");
+                }
+            }
+
+            if (string.Equals(output, "True", StringComparison.OrdinalIgnoreCase))
+                result.SecureBootEnabled = "Enabled";
+            else if (string.Equals(output, "False", StringComparison.OrdinalIgnoreCase))
+                result.SecureBootEnabled = "Disabled";
+            else
+                result.SecureBootEnabled = output;
         }
 
         private void QueryHpBiosSettings(string computerName, ConnectionOptions connOptions, BiosQueryResult result)

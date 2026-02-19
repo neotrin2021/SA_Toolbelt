@@ -81,15 +81,20 @@
         "key_methods": ["Initialize", "DatabaseExistsAtPath", "ValidateVCenterServer", "BrowseForFolder"]
       },
       "Windows_Tools.cs": {
-        "description": "Windows remote administration - BIOS/TPM queries, GPO management, firewall rules, services, scheduled tasks, event logs",
+        "description": "Windows remote administration - GPO management, firewall rules, services, scheduled tasks, event logs. BIOS code has been migrated OUT to BIOS_Tools.cs.",
         "key_method_groups": {
-          "bios": ["QueryRemoteBiosAsync - HP BIOS via WMI, Secure Boot via Confirm-SecureBootUEFI cmdlet, TPM via Get-Tpm with external powershell.exe fallback"],
           "gpo": ["GetAllGposAsync", "GetGpoByNameAsync", "GetGpoLinksForTargetAsync", "SearchGpoSettingsAsync", "ForceGpUpdateAsync", "BackupGpoAsync", "BackupAllGposAsync"],
           "firewall": ["GetFirewallRulesAsync", "GetGpoFirewallRulesAsync", "GetFirewallProfilesAsync"],
           "services": ["GetRemoteServicesAsync", "ManageRemoteServiceAsync (start/stop/restart)"],
           "other": ["GetInstalledProgramsAsync", "GetScheduledTasksAsync", "GetEventLogEntriesAsync", "GetNetworkSharesAsync"]
         },
-        "notes": "Uses in-process PowerShell runspace where possible, falls back to external powershell.exe for TPM. WMI queries handle local machine credential edge case."
+        "notes": "Uses in-process PowerShell runspace. No longer contains any BIOS/TPM/Secure Boot code."
+      },
+      "BIOS_Tools.cs": {
+        "description": "BIOS/TPM/Secure Boot/HP BIOS queries - fully migrated from Windows_Tools.cs with UAC elevation support.",
+        "key_methods": ["QueryRemoteBiosAsync (entry point)", "QueryHardwareInfo", "QueryBiosInfo", "QueryOsInfo", "QueryTpmInfo", "QueryTpmInfoViaPowerShell", "QueryLocalTpmViaElevatedPowerShell (UAC!)", "QueryRemoteTpmViaPowerShell", "ParseTpmOutput", "QuerySecureBoot", "QuerySecureBootViaPowerShell", "QueryHpBiosSettings", "TestWmiConnectivity", "IsLocalComputer", "BuildConnectionOptions"],
+        "inner_classes": ["BiosSetting", "BiosQueryResult"],
+        "notes": "Migration complete. SA_ToolBelt.cs calls BIOS_Tools for all BIOS queries. UAC elevation for local TPM/SecureBoot is handled via elevated external powershell.exe. See 'BIOS_Tools_UAC_status' for architectural details."
       },
       "ExportService.cs": {
         "description": "PLACEHOLDER - entirely commented out. Intended for Excel/CSV export of DataGridView data.",
@@ -167,7 +172,7 @@
     "tabSAPMIsSpice": "Health monitoring - ESXi/VM health, filesystem checks, LDAP replication across multiple servers",
     "tabConfiguration": "Settings - mandatory settings, OU config, computer lists, log server config, excluded OUs, security group keywords",
     "tabConsole": "Console - color-coded logging output, dockable/undockable",
-    "tabWindowsTools": "Windows remote admin - BIOS inspector (HP BIOS, Secure Boot, TPM)",
+    "tabWindowsTools": "Windows remote admin - BIOS inspector (HP BIOS, Secure Boot, TPM) - now backed by BIOS_Tools.cs instead of Windows_Tools.cs",
     "commented_out_tabs": ["tabRemoteTools", "tabLinuxTools", "tabVMwareTools", "tabStartupShutdownPt1", "tabStartupShutdownPt2"],
     "health_sub_tabs": ["tabEsxiHealthPmi", "tabVmHealthChkPmi", "tabCcelpro", "tabccesec1", "tabCcegitsvr1", "tabccesa1", "tabCcesa2"]
   },
@@ -306,6 +311,9 @@
   "recent_session_work": {
     "session_date": "2026-02-18",
     "changes_made": [
+      "Migrated BIOS code from Windows_Tools.cs to new BIOS_Tools.cs (commit 087c4e1)",
+      "Refactored SA_ToolBelt.cs to use BIOS_Tools instead of Windows_Tools for BIOS queries (commit 20b93ef)",
+      "Updated context_notes.json with UAC elevation guidance for BIOS_Tools migration",
       "Fixed Secure Boot query: Confirm-SecureBootUEFI instead of wrong WMI class",
       "Fixed TPM query fallback: external powershell.exe instead of in-process PS Core",
       "Added PowerShell Get-Tpm fallback for TPM query",
@@ -330,5 +338,35 @@
     "documentation_gaps": "SA_Toolbelt.md is missing coverage for Windows Tools, Linux Tools, VMware Tools, Configuration tab.",
     "commented_out_tabs": "Several tabs exist in Designer but are commented out of ShowAllTabs: Remote Tools, Linux Tools, VMware Tools, Startup/Shutdown Pt1 & Pt2",
     "windows_tools_gui": "BIOS inspector is wired up, but GPO/firewall/service methods in Windows_Tools.cs don't have corresponding GUI yet"
+  },
+
+  "BIOS_Tools_UAC_status": {
+    "status": "COMPLETE - UAC elevation code has been restored to BIOS_Tools.cs",
+
+    "summary": "The BIOS code migration from Windows_Tools.cs to BIOS_Tools.cs is fully complete, INCLUDING the UAC elevation code. SA_ToolBelt.cs calls BIOS_Tools for all BIOS queries. All TPM and Secure Boot fallbacks are working.",
+
+    "reference_file": "Windows_Tools_UAC_version.cs is a snapshot of the ORIGINAL Windows_Tools.cs taken BEFORE the migration. Kept as archive/reference only.",
+
+    "UAC_elevation_explained": {
+      "why_it_exists": "The app intentionally runs WITHOUT admin privileges (principle of least privilege). However, TPM and Secure Boot queries on the LOCAL machine require admin elevation. Rather than running the ENTIRE app as admin, we spawn ONE elevated PowerShell process via Verb='runas' which triggers a single UAC prompt.",
+
+      "how_it_works": [
+        "1. WMI TPM query is attempted first (QueryTpmInfo via Win32_Tpm WMI class)",
+        "2. If WMI fails, QueryTpmInfoViaPowerShell routes based on local vs remote",
+        "3. LOCAL: QueryLocalTpmViaElevatedPowerShell() writes a temp .ps1 with Get-Tpm AND Confirm-SecureBootUEFI, launches powershell.exe with Verb='runas' (ONE UAC prompt), output via temp file",
+        "4. REMOTE: QueryRemoteTpmViaPowerShell() uses external powershell.exe with Invoke-Command and supplied credentials (NO UAC needed)",
+        "5. ParseTpmOutput() shared parser handles KEY=VALUE output from both paths, caches Secure Boot result in _tpmFallbackSecureBoot",
+        "6. QuerySecureBoot() checks _tpmFallbackSecureBoot first (avoids second UAC), falls back to QuerySecureBootViaPowerShell() using Confirm-SecureBootUEFI"
+      ],
+
+      "critical_design_constraints": [
+        "CANNOT redirect stdout from elevated child to unelevated parent - must use temp files for output",
+        "MUST bundle TPM + Secure Boot in one elevated call - two UAC prompts is unacceptable UX",
+        "MUST cache Secure Boot result from elevated call via _tpmFallbackSecureBoot field",
+        "MUST use external powershell.exe for local Get-Tpm - in-process PS Core does NOT support it",
+        "MUST preserve fallback chain: WMI first -> elevated external PowerShell only if WMI fails",
+        "Secure Boot uses Confirm-SecureBootUEFI cmdlet, NOT Win32_OptionalFeature WMI (that was a bug)"
+      ]
+    }
   }
 }
