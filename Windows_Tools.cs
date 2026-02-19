@@ -255,6 +255,18 @@ namespace SA_ToolBelt
 
  
 
+        private bool IsLocalComputer(string computerName)
+        {
+            if (string.IsNullOrWhiteSpace(computerName))
+                return true;
+
+            string name = computerName.Trim();
+            return string.Equals(name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, ".", StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         /// Builds WMI ConnectionOptions. For local connections credentials are omitted
         /// because WMI does not allow explicit user credentials for local connections.
