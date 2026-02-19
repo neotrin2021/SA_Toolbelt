@@ -5456,6 +5456,9 @@ namespace SA_ToolBelt
                 // Note: These may need additional configuration setup if not already present
                 await LoadCriticalSystemsAsync();
 
+                // Populate the BIOS query ComboBox from loaded DGV data
+                PopulateBiosComputerNameComboBox();
+
                 _consoleForm.WriteSuccess("Online/Offline tab loaded successfully");
             }
             catch (Exception ex)
@@ -5860,7 +5863,32 @@ namespace SA_ToolBelt
         // Cached query result for filtering
         private BIOS_Tools.BiosQueryResult _lastBiosResult;
 
-        private void txbBiosComputerName_KeyDown(object sender, KeyEventArgs e)
+        private void PopulateBiosComputerNameComboBox()
+        {
+            cbxBiosComputerName.Items.Clear();
+
+            var computerNames = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DataGridViewRow row in dgvWorkstations.Rows)
+            {
+                if (row.Cells[0].Value is string name && !string.IsNullOrWhiteSpace(name))
+                    computerNames.Add(name);
+            }
+
+            foreach (DataGridViewRow row in dgvPatriotPark.Rows)
+            {
+                if (row.Cells[0].Value is string name && !string.IsNullOrWhiteSpace(name))
+                    computerNames.Add(name);
+            }
+
+            foreach (var name in computerNames)
+                cbxBiosComputerName.Items.Add(name);
+
+            cbxBiosComputerName.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            cbxBiosComputerName.AutoCompleteSource = AutoCompleteSource.ListItems;
+        }
+
+        private void cbxBiosComputerName_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
@@ -5871,7 +5899,7 @@ namespace SA_ToolBelt
 
         private async void btnQueryBios_Click(object sender, EventArgs e)
         {
-            string computerName = txbBiosComputerName.Text.Trim();
+            string computerName = cbxBiosComputerName.Text.Trim();
             if (string.IsNullOrEmpty(computerName))
             {
                 _consoleForm?.WriteWarning("Please enter a computer name or IP address.");
@@ -5922,7 +5950,7 @@ namespace SA_ToolBelt
 
         private async void btnTestWmiConnection_Click(object sender, EventArgs e)
         {
-            string computerName = txbBiosComputerName.Text.Trim();
+            string computerName = cbxBiosComputerName.Text.Trim();
             if (string.IsNullOrEmpty(computerName))
             {
                 _consoleForm?.WriteWarning("Please enter a computer name or IP address.");
