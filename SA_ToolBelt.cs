@@ -5863,9 +5863,13 @@ namespace SA_ToolBelt
         // Cached query result for filtering
         private BIOS_Tools.BiosQueryResult _lastBiosResult;
 
+        private const string BiosQueryAll = "-- All --";
+        private const int MaxConcurrentBiosQueries = 5;
+
         private void PopulateBiosComputerNameComboBox()
         {
             cbxBiosComputerName.Items.Clear();
+            cbxBiosComputerName.Items.Add(BiosQueryAll);
 
             var computerNames = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -5916,6 +5920,12 @@ namespace SA_ToolBelt
                 return;
             }
 
+            if (computerName == BiosQueryAll)
+            {
+                await QueryAllBiosAsync();
+                return;
+            }
+
             try
             {
                 SetBiosQueryBusy(true, "Querying...");
@@ -5946,6 +5956,143 @@ namespace SA_ToolBelt
                 lblBiosQueryStatusValue.ForeColor = WtWarnRed;
                 _consoleForm?.WriteError($"BIOS query exception: {ex.Message}");
             }
+        }
+
+        private async Task QueryAllBiosAsync()
+        {
+            var computerNames = cbxBiosComputerName.Items
+                .Cast<string>()
+                .Where(n => n != BiosQueryAll)
+                .ToList();
+
+            if (computerNames.Count == 0)
+            {
+                _consoleForm?.WriteWarning("No computers in the list to query.");
+                return;
+            }
+
+            string username = CredentialManager.GetUsername();
+            string password = CredentialManager.GetPassword();
+            string domain = CredentialManager.GetDomain();
+
+            dgvHpBiosSettings.Rows.Clear();
+            int completed = 0;
+            int succeeded = 0;
+            int failed = 0;
+            int total = computerNames.Count;
+
+            SetBiosQueryBusy(true, $"Querying 0 / {total}...");
+            _consoleForm?.WriteInfo($"Starting BIOS query for {total} computers ({MaxConcurrentBiosQueries} concurrent)...");
+
+            var semaphore = new SemaphoreSlim(MaxConcurrentBiosQueries);
+            var tasks = computerNames.Select(async name =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var result = await _biosTools.QueryRemoteBiosAsync(name, username, password, domain);
+
+                    // Marshal back to UI thread to update the DGV
+                    Invoke((Action)(() =>
+                    {
+                        if (result.Success)
+                        {
+                            Interlocked.Increment(ref succeeded);
+
+                            // Look up Assigned To from dgvWorkstations / dgvPatriotPark
+                            string assignedTo = LookupAssignedTo(name);
+
+                            if (result.IsHpMachine && result.HpBiosSettings.Count > 0)
+                            {
+                                foreach (var setting in result.HpBiosSettings.OrderBy(s => s.Category).ThenBy(s => s.Name))
+                                {
+                                    dgvHpBiosSettings.Rows.Add(
+                                        result.ComputerName,
+                                        assignedTo,
+                                        result.Manufacturer ?? "\u2014",
+                                        result.Model ?? "\u2014",
+                                        result.SerialNumber ?? "\u2014",
+                                        result.BiosVersion ?? "\u2014",
+                                        result.BiosDate ?? "\u2014",
+                                        result.OSName ?? "\u2014",
+                                        result.OSVersion ?? "\u2014",
+                                        result.OSArchitecture ?? "\u2014",
+                                        result.TpmPresent ?? "\u2014",
+                                        result.TpmVersion ?? "\u2014",
+                                        result.TpmEnabled ?? "\u2014",
+                                        result.TpmActivated ?? "\u2014",
+                                        result.SecureBootEnabled ?? "\u2014",
+                                        setting.Category,
+                                        setting.Name,
+                                        setting.CurrentValue
+                                    );
+                                }
+                            }
+                            else
+                            {
+                                // Non-HP or no settings — add one summary row
+                                dgvHpBiosSettings.Rows.Add(
+                                    result.ComputerName,
+                                    assignedTo,
+                                    result.Manufacturer ?? "\u2014",
+                                    result.Model ?? "\u2014",
+                                    result.SerialNumber ?? "\u2014",
+                                    result.BiosVersion ?? "\u2014",
+                                    result.BiosDate ?? "\u2014",
+                                    result.OSName ?? "\u2014",
+                                    result.OSVersion ?? "\u2014",
+                                    result.OSArchitecture ?? "\u2014",
+                                    result.TpmPresent ?? "\u2014",
+                                    result.TpmVersion ?? "\u2014",
+                                    result.TpmEnabled ?? "\u2014",
+                                    result.TpmActivated ?? "\u2014",
+                                    result.SecureBootEnabled ?? "\u2014",
+                                    "\u2014",
+                                    "\u2014",
+                                    "\u2014"
+                                );
+                            }
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref failed);
+                        }
+
+                        int done = Interlocked.Increment(ref completed);
+                        lblBiosQueryStatusValue.Text = $"Querying {done} / {total}...";
+                    }));
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            SetBiosQueryBusy(false, $"Complete — {succeeded} succeeded, {failed} failed");
+            lblBiosQueryStatusValue.ForeColor = failed == 0 ? WtGoodGreen : WtWarnAmber;
+            lblBiosSettingsCount.Text = $"{dgvHpBiosSettings.Rows.Count} rows";
+            _consoleForm?.WriteSuccess($"BIOS query complete: {succeeded} succeeded, {failed} failed out of {total}");
+        }
+
+        private string LookupAssignedTo(string computerName)
+        {
+            foreach (DataGridViewRow row in dgvWorkstations.Rows)
+            {
+                if (row.Cells[0].Value is string name &&
+                    string.Equals(name, computerName, StringComparison.OrdinalIgnoreCase))
+                    return row.Cells[2].Value?.ToString() ?? "";
+            }
+
+            foreach (DataGridViewRow row in dgvPatriotPark.Rows)
+            {
+                if (row.Cells[0].Value is string name &&
+                    string.Equals(name, computerName, StringComparison.OrdinalIgnoreCase))
+                    return row.Cells[2].Value?.ToString() ?? "";
+            }
+
+            return "";
         }
 
         private async void btnTestWmiConnection_Click(object sender, EventArgs e)
