@@ -213,6 +213,21 @@ namespace SA_ToolBelt
             txbBiosSettingsFilter = new TextBox();
             lblBiosSettingsCount = new Label();
             dgvHpBiosSettings = new DataGridView();
+            colComputerName = new DataGridViewTextBoxColumn();
+            colAssignedTo = new DataGridViewTextBoxColumn();
+            colBiosManufacturer = new DataGridViewTextBoxColumn();
+            colBiosModel = new DataGridViewTextBoxColumn();
+            colBiosSerialNumber = new DataGridViewTextBoxColumn();
+            colBiosVersion = new DataGridViewTextBoxColumn();
+            colBiosDate = new DataGridViewTextBoxColumn();
+            colBiosOperatingSystem = new DataGridViewTextBoxColumn();
+            colOsVersion = new DataGridViewTextBoxColumn();
+            colBiosArchitecture = new DataGridViewTextBoxColumn();
+            colBiosTpmPresent = new DataGridViewTextBoxColumn();
+            colBiosTpmVersion = new DataGridViewTextBoxColumn();
+            colBiosTpmEnabled = new DataGridViewTextBoxColumn();
+            colBiosTpmActivated = new DataGridViewTextBoxColumn();
+            colBiosSecureBoot = new DataGridViewTextBoxColumn();
             colBiosCategory = new DataGridViewTextBoxColumn();
             colBiosSettingName = new DataGridViewTextBoxColumn();
             colBiosSettingValue = new DataGridViewTextBoxColumn();
@@ -2571,7 +2586,7 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
             dgvHpBiosSettings.ColumnHeadersHeight = 36;
             dgvHpBiosSettings.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colBiosCategory, colBiosSettingName, colBiosSettingValue });
+            dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colComputerName, colAssignedTo, colBiosManufacturer, colBiosModel, colBiosSerialNumber, colBiosVersion, colBiosDate, colBiosOperatingSystem, colOsVersion, colBiosArchitecture, colBiosTpmPresent, colBiosTpmVersion, colBiosTpmEnabled, colBiosTpmActivated, colBiosSecureBoot, colBiosCategory, colBiosSettingName, colBiosSettingValue });
             dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle6.BackColor = Color.White;
             dataGridViewCellStyle6.Font = new Font("Segoe UI", 9.5F);
@@ -2593,9 +2608,114 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvHpBiosSettings.Size = new Size(1242, 608);
             dgvHpBiosSettings.TabIndex = 4;
-            // 
+            //
+            // colComputerName
+            //
+            colComputerName.HeaderText = "Computer Name";
+            colComputerName.Name = "colComputerName";
+            colComputerName.ReadOnly = true;
+            colComputerName.Width = 150;
+            //
+            // colAssignedTo
+            //
+            colAssignedTo.HeaderText = "Assigned To";
+            colAssignedTo.Name = "colAssignedTo";
+            colAssignedTo.ReadOnly = true;
+            colAssignedTo.Width = 150;
+            //
+            // colBiosManufacturer
+            //
+            colBiosManufacturer.HeaderText = "Manufacturer";
+            colBiosManufacturer.Name = "colBiosManufacturer";
+            colBiosManufacturer.ReadOnly = true;
+            colBiosManufacturer.Width = 150;
+            //
+            // colBiosModel
+            //
+            colBiosModel.HeaderText = "Model";
+            colBiosModel.Name = "colBiosModel";
+            colBiosModel.ReadOnly = true;
+            colBiosModel.Width = 150;
+            //
+            // colBiosSerialNumber
+            //
+            colBiosSerialNumber.HeaderText = "Serial Number";
+            colBiosSerialNumber.Name = "colBiosSerialNumber";
+            colBiosSerialNumber.ReadOnly = true;
+            colBiosSerialNumber.Width = 150;
+            //
+            // colBiosVersion
+            //
+            colBiosVersion.HeaderText = "BIOS Version";
+            colBiosVersion.Name = "colBiosVersion";
+            colBiosVersion.ReadOnly = true;
+            colBiosVersion.Width = 150;
+            //
+            // colBiosDate
+            //
+            colBiosDate.HeaderText = "BIOS Date";
+            colBiosDate.Name = "colBiosDate";
+            colBiosDate.ReadOnly = true;
+            colBiosDate.Width = 120;
+            //
+            // colBiosOperatingSystem
+            //
+            colBiosOperatingSystem.HeaderText = "Operating System";
+            colBiosOperatingSystem.Name = "colBiosOperatingSystem";
+            colBiosOperatingSystem.ReadOnly = true;
+            colBiosOperatingSystem.Width = 200;
+            //
+            // colOsVersion
+            //
+            colOsVersion.HeaderText = "OS Version";
+            colOsVersion.Name = "colOsVersion";
+            colOsVersion.ReadOnly = true;
+            colOsVersion.Width = 120;
+            //
+            // colBiosArchitecture
+            //
+            colBiosArchitecture.HeaderText = "Architecture";
+            colBiosArchitecture.Name = "colBiosArchitecture";
+            colBiosArchitecture.ReadOnly = true;
+            colBiosArchitecture.Width = 100;
+            //
+            // colBiosTpmPresent
+            //
+            colBiosTpmPresent.HeaderText = "TPM Present";
+            colBiosTpmPresent.Name = "colBiosTpmPresent";
+            colBiosTpmPresent.ReadOnly = true;
+            colBiosTpmPresent.Width = 100;
+            //
+            // colBiosTpmVersion
+            //
+            colBiosTpmVersion.HeaderText = "TPM Version";
+            colBiosTpmVersion.Name = "colBiosTpmVersion";
+            colBiosTpmVersion.ReadOnly = true;
+            colBiosTpmVersion.Width = 110;
+            //
+            // colBiosTpmEnabled
+            //
+            colBiosTpmEnabled.HeaderText = "TPM Enabled";
+            colBiosTpmEnabled.Name = "colBiosTpmEnabled";
+            colBiosTpmEnabled.ReadOnly = true;
+            colBiosTpmEnabled.Width = 100;
+            //
+            // colBiosTpmActivated
+            //
+            colBiosTpmActivated.HeaderText = "TPM Activated";
+            colBiosTpmActivated.Name = "colBiosTpmActivated";
+            colBiosTpmActivated.ReadOnly = true;
+            colBiosTpmActivated.Width = 110;
+            //
+            // colBiosSecureBoot
+            //
+            colBiosSecureBoot.HeaderText = "Secure Boot";
+            colBiosSecureBoot.Name = "colBiosSecureBoot";
+            colBiosSecureBoot.ReadOnly = true;
+            colBiosSecureBoot.Width = 100;
+            //
             // colBiosCategory
-            // 
+            //
             colBiosCategory.HeaderText = "Category";
             colBiosCategory.Name = "colBiosCategory";
             colBiosCategory.ReadOnly = true;
@@ -5347,6 +5467,21 @@ namespace SA_ToolBelt
         private Label lblBiosFilterTag;
         private TextBox txbBiosSettingsFilter;
         private DataGridView dgvHpBiosSettings;
+        private DataGridViewTextBoxColumn colComputerName;
+        private DataGridViewTextBoxColumn colAssignedTo;
+        private DataGridViewTextBoxColumn colBiosManufacturer;
+        private DataGridViewTextBoxColumn colBiosModel;
+        private DataGridViewTextBoxColumn colBiosSerialNumber;
+        private DataGridViewTextBoxColumn colBiosVersion;
+        private DataGridViewTextBoxColumn colBiosDate;
+        private DataGridViewTextBoxColumn colBiosOperatingSystem;
+        private DataGridViewTextBoxColumn colOsVersion;
+        private DataGridViewTextBoxColumn colBiosArchitecture;
+        private DataGridViewTextBoxColumn colBiosTpmPresent;
+        private DataGridViewTextBoxColumn colBiosTpmVersion;
+        private DataGridViewTextBoxColumn colBiosTpmEnabled;
+        private DataGridViewTextBoxColumn colBiosTpmActivated;
+        private DataGridViewTextBoxColumn colBiosSecureBoot;
         private DataGridViewTextBoxColumn colBiosCategory;
         private DataGridViewTextBoxColumn colBiosSettingName;
         private DataGridViewTextBoxColumn colBiosSettingValue;
