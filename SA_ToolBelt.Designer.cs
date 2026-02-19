@@ -207,6 +207,14 @@ namespace SA_ToolBelt
             lblBiosQueryStatusValue = new Label();
             pgbBiosQuery = new ProgressBar();
 
+            gbxBiosActions = new GroupBox();
+            lblBiosPasswordTag = new Label();
+            txbBiosPassword = new TextBox();
+            btnEnableTpm = new Button();
+            btnEnableSecureBoot = new Button();
+            lblBiosActionStatus = new Label();
+            lblBiosRebootNote = new Label();
+
             pnlHpBiosSettings = new Panel();
             lblHpBiosHeader = new Label();
             lblBiosFilterTag = new Label();
@@ -529,6 +537,7 @@ namespace SA_ToolBelt
             tabBiosTools.SuspendLayout();
             pnlWinToolsHeader.SuspendLayout();
             gbxBiosQuery.SuspendLayout();
+            gbxBiosActions.SuspendLayout();
 
             pnlHpBiosSettings.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).BeginInit();
@@ -2321,6 +2330,7 @@ namespace SA_ToolBelt
             tabBiosTools.BackColor = Color.FromArgb(245, 247, 250);
             tabBiosTools.Controls.Add(pnlWinToolsHeader);
             tabBiosTools.Controls.Add(gbxBiosQuery);
+            tabBiosTools.Controls.Add(gbxBiosActions);
             tabBiosTools.Controls.Add(pnlHpBiosSettings);
             tabBiosTools.Location = new Point(4, 24);
             tabBiosTools.Name = "tabBiosTools";
@@ -2505,9 +2515,108 @@ namespace SA_ToolBelt
             pgbBiosQuery.TabIndex = 8;
             pgbBiosQuery.Visible = false;
 
-            // 
+            //
+            // gbxBiosActions
+            //
+            gbxBiosActions.BackColor = Color.FromArgb(245, 247, 250);
+            gbxBiosActions.Controls.Add(lblBiosPasswordTag);
+            gbxBiosActions.Controls.Add(txbBiosPassword);
+            gbxBiosActions.Controls.Add(btnEnableTpm);
+            gbxBiosActions.Controls.Add(btnEnableSecureBoot);
+            gbxBiosActions.Controls.Add(lblBiosActionStatus);
+            gbxBiosActions.Controls.Add(lblBiosRebootNote);
+            gbxBiosActions.FlatStyle = FlatStyle.Flat;
+            gbxBiosActions.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            gbxBiosActions.ForeColor = Color.FromArgb(30, 58, 95);
+            gbxBiosActions.Location = new Point(383, 72);
+            gbxBiosActions.Name = "gbxBiosActions";
+            gbxBiosActions.Size = new Size(400, 210);
+            gbxBiosActions.TabIndex = 5;
+            gbxBiosActions.TabStop = false;
+            gbxBiosActions.Text = "BIOS Actions (HP Only)";
+            //
+            // lblBiosPasswordTag
+            //
+            lblBiosPasswordTag.AutoSize = true;
+            lblBiosPasswordTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblBiosPasswordTag.ForeColor = Color.FromArgb(33, 37, 41);
+            lblBiosPasswordTag.Location = new Point(14, 30);
+            lblBiosPasswordTag.Name = "lblBiosPasswordTag";
+            lblBiosPasswordTag.Size = new Size(131, 15);
+            lblBiosPasswordTag.TabIndex = 0;
+            lblBiosPasswordTag.Text = "BIOS Setup Password:";
+            //
+            // txbBiosPassword
+            //
+            txbBiosPassword.BorderStyle = BorderStyle.FixedSingle;
+            txbBiosPassword.Font = new Font("Segoe UI", 10F);
+            txbBiosPassword.Location = new Point(14, 50);
+            txbBiosPassword.Name = "txbBiosPassword";
+            txbBiosPassword.PasswordChar = '\u25CF';
+            txbBiosPassword.PlaceholderText = "Leave blank if none set";
+            txbBiosPassword.Size = new Size(370, 25);
+            txbBiosPassword.TabIndex = 1;
+            //
+            // btnEnableTpm
+            //
+            btnEnableTpm.BackColor = Color.FromArgb(40, 167, 69);
+            btnEnableTpm.Cursor = Cursors.Hand;
+            btnEnableTpm.Enabled = false;
+            btnEnableTpm.FlatAppearance.BorderSize = 0;
+            btnEnableTpm.FlatAppearance.MouseOverBackColor = Color.FromArgb(55, 185, 88);
+            btnEnableTpm.FlatStyle = FlatStyle.Flat;
+            btnEnableTpm.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            btnEnableTpm.ForeColor = Color.White;
+            btnEnableTpm.Location = new Point(14, 90);
+            btnEnableTpm.Name = "btnEnableTpm";
+            btnEnableTpm.Size = new Size(180, 36);
+            btnEnableTpm.TabIndex = 2;
+            btnEnableTpm.Text = "Enable TPM";
+            btnEnableTpm.UseVisualStyleBackColor = false;
+            btnEnableTpm.Click += btnEnableTpm_Click;
+            //
+            // btnEnableSecureBoot
+            //
+            btnEnableSecureBoot.BackColor = Color.FromArgb(40, 167, 69);
+            btnEnableSecureBoot.Cursor = Cursors.Hand;
+            btnEnableSecureBoot.Enabled = false;
+            btnEnableSecureBoot.FlatAppearance.BorderSize = 0;
+            btnEnableSecureBoot.FlatAppearance.MouseOverBackColor = Color.FromArgb(55, 185, 88);
+            btnEnableSecureBoot.FlatStyle = FlatStyle.Flat;
+            btnEnableSecureBoot.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            btnEnableSecureBoot.ForeColor = Color.White;
+            btnEnableSecureBoot.Location = new Point(204, 90);
+            btnEnableSecureBoot.Name = "btnEnableSecureBoot";
+            btnEnableSecureBoot.Size = new Size(180, 36);
+            btnEnableSecureBoot.TabIndex = 3;
+            btnEnableSecureBoot.Text = "Enable Secure Boot";
+            btnEnableSecureBoot.UseVisualStyleBackColor = false;
+            btnEnableSecureBoot.Click += btnEnableSecureBoot_Click;
+            //
+            // lblBiosActionStatus
+            //
+            lblBiosActionStatus.Font = new Font("Segoe UI", 8.5F);
+            lblBiosActionStatus.ForeColor = Color.FromArgb(108, 117, 125);
+            lblBiosActionStatus.Location = new Point(14, 135);
+            lblBiosActionStatus.Name = "lblBiosActionStatus";
+            lblBiosActionStatus.Size = new Size(370, 40);
+            lblBiosActionStatus.TabIndex = 4;
+            lblBiosActionStatus.Text = "";
+            //
+            // lblBiosRebootNote
+            //
+            lblBiosRebootNote.AutoSize = true;
+            lblBiosRebootNote.Font = new Font("Segoe UI", 8F, FontStyle.Italic);
+            lblBiosRebootNote.ForeColor = Color.FromArgb(108, 117, 125);
+            lblBiosRebootNote.Location = new Point(14, 185);
+            lblBiosRebootNote.Name = "lblBiosRebootNote";
+            lblBiosRebootNote.Size = new Size(275, 13);
+            lblBiosRebootNote.TabIndex = 5;
+            lblBiosRebootNote.Text = "* BIOS changes require a reboot to take effect";
+
+            //
             // pnlHpBiosSettings
-            // 
+            //
             pnlHpBiosSettings.BackColor = Color.White;
             pnlHpBiosSettings.BorderStyle = BorderStyle.FixedSingle;
             pnlHpBiosSettings.Controls.Add(lblHpBiosHeader);
@@ -5291,6 +5400,8 @@ namespace SA_ToolBelt
             pnlWinToolsHeader.PerformLayout();
             gbxBiosQuery.ResumeLayout(false);
             gbxBiosQuery.PerformLayout();
+            gbxBiosActions.ResumeLayout(false);
+            gbxBiosActions.PerformLayout();
 
             pnlHpBiosSettings.ResumeLayout(false);
             pnlHpBiosSettings.PerformLayout();
@@ -5460,6 +5571,14 @@ namespace SA_ToolBelt
         private Label lblBiosQueryStatus;
         private Label lblBiosQueryStatusValue;
         private ProgressBar pgbBiosQuery;
+
+        private GroupBox gbxBiosActions;
+        private Label lblBiosPasswordTag;
+        private TextBox txbBiosPassword;
+        private Button btnEnableTpm;
+        private Button btnEnableSecureBoot;
+        private Label lblBiosActionStatus;
+        private Label lblBiosRebootNote;
 
         private Panel pnlHpBiosSettings;
         private Label lblHpBiosHeader;
