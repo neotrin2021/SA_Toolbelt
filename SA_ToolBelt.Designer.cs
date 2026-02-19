@@ -198,7 +198,7 @@ namespace SA_ToolBelt
             lblWinToolsSubtitle = new Label();
             gbxBiosQuery = new GroupBox();
             lblBiosComputerName = new Label();
-            txbBiosComputerName = new TextBox();
+            cbxBiosComputerName = new ComboBox();
             btnQueryBios = new Button();
             btnTestWmiConnection = new Button();
             btnClearBiosResults = new Button();
@@ -2367,7 +2367,7 @@ namespace SA_ToolBelt
             // 
             gbxBiosQuery.BackColor = Color.White;
             gbxBiosQuery.Controls.Add(lblBiosComputerName);
-            gbxBiosQuery.Controls.Add(txbBiosComputerName);
+            gbxBiosQuery.Controls.Add(cbxBiosComputerName);
             gbxBiosQuery.Controls.Add(btnQueryBios);
             gbxBiosQuery.Controls.Add(btnTestWmiConnection);
             gbxBiosQuery.Controls.Add(btnClearBiosResults);
@@ -2396,15 +2396,14 @@ namespace SA_ToolBelt
             lblBiosComputerName.TabIndex = 0;
             lblBiosComputerName.Text = "Computer Name or IP:";
             // 
-            // txbBiosComputerName
+            // cbxBiosComputerName
             // 
-            txbBiosComputerName.BorderStyle = BorderStyle.FixedSingle;
-            txbBiosComputerName.Font = new Font("Segoe UI", 10F);
-            txbBiosComputerName.Location = new Point(14, 50);
-            txbBiosComputerName.Name = "txbBiosComputerName";
-            txbBiosComputerName.Size = new Size(335, 25);
-            txbBiosComputerName.TabIndex = 1;
-            txbBiosComputerName.KeyDown += txbBiosComputerName_KeyDown;
+            cbxBiosComputerName.Font = new Font("Segoe UI", 10F);
+            cbxBiosComputerName.Location = new Point(14, 50);
+            cbxBiosComputerName.Name = "cbxBiosComputerName";
+            cbxBiosComputerName.Size = new Size(335, 25);
+            cbxBiosComputerName.TabIndex = 1;
+            cbxBiosComputerName.KeyDown += cbxBiosComputerName_KeyDown;
             // 
             // btnQueryBios
             // 
@@ -5453,7 +5452,7 @@ namespace SA_ToolBelt
         private Label lblWinToolsSubtitle;
         private GroupBox gbxBiosQuery;
         private Label lblBiosComputerName;
-        private TextBox txbBiosComputerName;
+        private ComboBox cbxBiosComputerName;
         private Button btnQueryBios;
         private Button btnTestWmiConnection;
         private Button btnClearBiosResults;
