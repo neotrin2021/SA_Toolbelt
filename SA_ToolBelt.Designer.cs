@@ -206,7 +206,7 @@ namespace SA_ToolBelt
             lblBiosQueryStatus = new Label();
             lblBiosQueryStatusValue = new Label();
             pgbBiosQuery = new ProgressBar();
-            pnlSecurityStatus = new Panel();
+
             pnlHpBiosSettings = new Panel();
             lblHpBiosHeader = new Label();
             lblBiosFilterTag = new Label();
@@ -514,7 +514,7 @@ namespace SA_ToolBelt
             tabBiosTools.SuspendLayout();
             pnlWinToolsHeader.SuspendLayout();
             gbxBiosQuery.SuspendLayout();
-            pnlSecurityStatus.SuspendLayout();
+
             pnlHpBiosSettings.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).BeginInit();
             tabLinuxTools.SuspendLayout();
@@ -2306,7 +2306,6 @@ namespace SA_ToolBelt
             tabBiosTools.BackColor = Color.FromArgb(245, 247, 250);
             tabBiosTools.Controls.Add(pnlWinToolsHeader);
             tabBiosTools.Controls.Add(gbxBiosQuery);
-            tabBiosTools.Controls.Add(pnlSecurityStatus);
             tabBiosTools.Controls.Add(pnlHpBiosSettings);
             tabBiosTools.Location = new Point(4, 24);
             tabBiosTools.Name = "tabBiosTools";
@@ -2491,15 +2490,7 @@ namespace SA_ToolBelt
             pgbBiosQuery.Style = ProgressBarStyle.Marquee;
             pgbBiosQuery.TabIndex = 8;
             pgbBiosQuery.Visible = false;
-            //
-            // pnlSecurityStatus
-            // 
-            pnlSecurityStatus.BackColor = Color.White;
-            pnlSecurityStatus.BorderStyle = BorderStyle.FixedSingle;
-            pnlSecurityStatus.Location = new Point(10, 562);
-            pnlSecurityStatus.Name = "pnlSecurityStatus";
-            pnlSecurityStatus.Size = new Size(365, 194);
-            pnlSecurityStatus.TabIndex = 3;
+
             // 
             // pnlHpBiosSettings
             // 
@@ -5181,7 +5172,7 @@ namespace SA_ToolBelt
             pnlWinToolsHeader.PerformLayout();
             gbxBiosQuery.ResumeLayout(false);
             gbxBiosQuery.PerformLayout();
-            pnlSecurityStatus.ResumeLayout(false);
+
             pnlHpBiosSettings.ResumeLayout(false);
             pnlHpBiosSettings.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).EndInit();
@@ -5350,7 +5341,7 @@ namespace SA_ToolBelt
         private Label lblBiosQueryStatus;
         private Label lblBiosQueryStatusValue;
         private ProgressBar pgbBiosQuery;
-        private Panel pnlSecurityStatus;
+
         private Panel pnlHpBiosSettings;
         private Label lblHpBiosHeader;
         private Label lblBiosFilterTag;
