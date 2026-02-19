@@ -6380,15 +6380,5 @@ namespace SA_ToolBelt
                 MessageBox.Show($"Error setting Linux DS: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-        private void btnBrowseLocationOfUsers_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void btnSetLocationOfUsers_Click(object sender, EventArgs e)
-        {
-
-        }
     }
 }
