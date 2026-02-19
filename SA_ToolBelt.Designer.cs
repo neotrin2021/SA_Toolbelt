@@ -28,9 +28,9 @@ namespace SA_ToolBelt
         /// </summary>
         private void InitializeComponent()
         {
-            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle10 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle11 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle12 = new DataGridViewCellStyle();
             tabControlMain = new TabControl();
             tabLogin = new TabPage();
             panelLogin = new Panel();
@@ -516,6 +516,10 @@ namespace SA_ToolBelt
             tabConsole = new TabPage();
             btnUndockConsole = new Button();
             btnLogout = new Button();
+            btnSetLocationOfUsers = new Button();
+            btnBrowseLocationOfUsers = new Button();
+            txbLocationOfUsers = new TextBox();
+            lblLocationOfUsers = new Label();
             tabControlMain.SuspendLayout();
             tabLogin.SuspendLayout();
             panelLogin.SuspendLayout();
@@ -2942,32 +2946,32 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.AllowUserToAddRows = false;
             dgvHpBiosSettings.AllowUserToDeleteRows = false;
             dgvHpBiosSettings.AllowUserToResizeRows = false;
-            dataGridViewCellStyle4.BackColor = Color.FromArgb(248, 250, 252);
-            dataGridViewCellStyle4.ForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle4.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dataGridViewCellStyle4.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle10.BackColor = Color.FromArgb(248, 250, 252);
+            dataGridViewCellStyle10.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle10.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle10.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dgvHpBiosSettings.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle10;
             dgvHpBiosSettings.BackgroundColor = Color.White;
             dgvHpBiosSettings.BorderStyle = BorderStyle.None;
             dgvHpBiosSettings.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle5.BackColor = Color.FromArgb(44, 62, 80);
-            dataGridViewCellStyle5.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dataGridViewCellStyle5.ForeColor = Color.White;
-            dataGridViewCellStyle5.Padding = new Padding(8, 4, 6, 4);
-            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
+            dataGridViewCellStyle11.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle11.BackColor = Color.FromArgb(44, 62, 80);
+            dataGridViewCellStyle11.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            dataGridViewCellStyle11.ForeColor = Color.White;
+            dataGridViewCellStyle11.Padding = new Padding(8, 4, 6, 4);
+            dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle11;
             dgvHpBiosSettings.ColumnHeadersHeight = 36;
             dgvHpBiosSettings.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colBiosCategory, colBiosSettingName, colBiosSettingValue });
-            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle6.BackColor = Color.White;
-            dataGridViewCellStyle6.Font = new Font("Segoe UI", 9.5F);
-            dataGridViewCellStyle6.ForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle6.Padding = new Padding(6, 2, 6, 2);
-            dataGridViewCellStyle6.SelectionBackColor = Color.FromArgb(220, 235, 252);
-            dataGridViewCellStyle6.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.False;
-            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle6;
+            dataGridViewCellStyle12.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle12.BackColor = Color.White;
+            dataGridViewCellStyle12.Font = new Font("Segoe UI", 9.5F);
+            dataGridViewCellStyle12.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle12.Padding = new Padding(6, 2, 6, 2);
+            dataGridViewCellStyle12.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle12.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle12.WrapMode = DataGridViewTriState.False;
+            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle12;
             dgvHpBiosSettings.EnableHeadersVisualStyles = false;
             dgvHpBiosSettings.Font = new Font("Segoe UI", 9.5F);
             dgvHpBiosSettings.GridColor = Color.FromArgb(230, 235, 240);
@@ -4716,7 +4720,6 @@ namespace SA_ToolBelt
             // 
             // tabConfiguration
             // 
-            tabConfiguration.Controls.Add(btnSetDisabledUsersLocation);
             tabConfiguration.Controls.Add(gbxManditorySettings);
             tabConfiguration.Controls.Add(gbxServerInstances);
             tabConfiguration.Controls.Add(gbxImportantVariables);
@@ -4732,7 +4735,7 @@ namespace SA_ToolBelt
             // 
             // btnSetDisabledUsersLocation
             // 
-            btnSetDisabledUsersLocation.Location = new Point(1396, 631);
+            btnSetDisabledUsersLocation.Location = new Point(486, 295);
             btnSetDisabledUsersLocation.Name = "btnSetDisabledUsersLocation";
             btnSetDisabledUsersLocation.Size = new Size(123, 23);
             btnSetDisabledUsersLocation.TabIndex = 29;
@@ -4742,6 +4745,11 @@ namespace SA_ToolBelt
             // 
             // gbxManditorySettings
             // 
+            gbxManditorySettings.Controls.Add(btnSetLocationOfUsers);
+            gbxManditorySettings.Controls.Add(btnBrowseLocationOfUsers);
+            gbxManditorySettings.Controls.Add(txbLocationOfUsers);
+            gbxManditorySettings.Controls.Add(lblLocationOfUsers);
+            gbxManditorySettings.Controls.Add(btnSetDisabledUsersLocation);
             gbxManditorySettings.Controls.Add(btnSetHomeDirLocation);
             gbxManditorySettings.Controls.Add(btnBrowseHomeDirLocation);
             gbxManditorySettings.Controls.Add(btnSetSqlPath);
@@ -4769,16 +4777,16 @@ namespace SA_ToolBelt
             gbxManditorySettings.Controls.Add(btnBrowsePowerCLIModuleLocation);
             gbxManditorySettings.Controls.Add(btnVerifyVCenterServer);
             gbxManditorySettings.Controls.Add(txbVCenterServer);
-            gbxManditorySettings.Location = new Point(908, 353);
+            gbxManditorySettings.Location = new Point(908, 301);
             gbxManditorySettings.Name = "gbxManditorySettings";
-            gbxManditorySettings.Size = new Size(630, 457);
+            gbxManditorySettings.Size = new Size(630, 509);
             gbxManditorySettings.TabIndex = 133;
             gbxManditorySettings.TabStop = false;
             gbxManditorySettings.Text = "Manditory Settings";
             // 
             // btnSetHomeDirLocation
             // 
-            btnSetHomeDirLocation.Location = new Point(488, 334);
+            btnSetHomeDirLocation.Location = new Point(487, 352);
             btnSetHomeDirLocation.Name = "btnSetHomeDirLocation";
             btnSetHomeDirLocation.Size = new Size(123, 23);
             btnSetHomeDirLocation.TabIndex = 32;
@@ -4788,7 +4796,7 @@ namespace SA_ToolBelt
             // 
             // btnBrowseHomeDirLocation
             // 
-            btnBrowseHomeDirLocation.Location = new Point(350, 334);
+            btnBrowseHomeDirLocation.Location = new Point(349, 352);
             btnBrowseHomeDirLocation.Name = "btnBrowseHomeDirLocation";
             btnBrowseHomeDirLocation.Size = new Size(123, 23);
             btnBrowseHomeDirLocation.TabIndex = 31;
@@ -4797,7 +4805,7 @@ namespace SA_ToolBelt
             // 
             // btnSetSqlPath
             // 
-            btnSetSqlPath.Location = new Point(467, 135);
+            btnSetSqlPath.Location = new Point(466, 110);
             btnSetSqlPath.Name = "btnSetSqlPath";
             btnSetSqlPath.Size = new Size(75, 23);
             btnSetSqlPath.TabIndex = 27;
@@ -4807,7 +4815,7 @@ namespace SA_ToolBelt
             // 
             // btnSetPowerCLIModuleLocation
             // 
-            btnSetPowerCLIModuleLocation.Location = new Point(467, 86);
+            btnSetPowerCLIModuleLocation.Location = new Point(466, 61);
             btnSetPowerCLIModuleLocation.Name = "btnSetPowerCLIModuleLocation";
             btnSetPowerCLIModuleLocation.Size = new Size(75, 23);
             btnSetPowerCLIModuleLocation.TabIndex = 26;
@@ -4817,7 +4825,7 @@ namespace SA_ToolBelt
             // 
             // btnSetAddExcludeOu
             // 
-            btnSetAddExcludeOu.Location = new Point(536, 225);
+            btnSetAddExcludeOu.Location = new Point(535, 200);
             btnSetAddExcludeOu.Name = "btnSetAddExcludeOu";
             btnSetAddExcludeOu.Size = new Size(75, 23);
             btnSetAddExcludeOu.TabIndex = 28;
@@ -4826,7 +4834,7 @@ namespace SA_ToolBelt
             // 
             // btnSetLinuxDs
             // 
-            btnSetLinuxDs.Location = new Point(488, 393);
+            btnSetLinuxDs.Location = new Point(487, 411);
             btnSetLinuxDs.Name = "btnSetLinuxDs";
             btnSetLinuxDs.Size = new Size(123, 23);
             btnSetLinuxDs.TabIndex = 30;
@@ -4836,7 +4844,7 @@ namespace SA_ToolBelt
             // 
             // btnSetVCenterServer
             // 
-            btnSetVCenterServer.Location = new Point(467, 45);
+            btnSetVCenterServer.Location = new Point(466, 20);
             btnSetVCenterServer.Name = "btnSetVCenterServer";
             btnSetVCenterServer.Size = new Size(75, 23);
             btnSetVCenterServer.TabIndex = 25;
@@ -4846,7 +4854,7 @@ namespace SA_ToolBelt
             // 
             // btnBrowseDisabledUsersLocation
             // 
-            btnBrowseDisabledUsersLocation.Location = new Point(350, 278);
+            btnBrowseDisabledUsersLocation.Location = new Point(349, 296);
             btnBrowseDisabledUsersLocation.Name = "btnBrowseDisabledUsersLocation";
             btnBrowseDisabledUsersLocation.Size = new Size(123, 23);
             btnBrowseDisabledUsersLocation.TabIndex = 21;
@@ -4855,7 +4863,7 @@ namespace SA_ToolBelt
             // 
             // txbHomeDirectoryLocation
             // 
-            txbHomeDirectoryLocation.Location = new Point(8, 334);
+            txbHomeDirectoryLocation.Location = new Point(7, 352);
             txbHomeDirectoryLocation.Name = "txbHomeDirectoryLocation";
             txbHomeDirectoryLocation.Size = new Size(324, 23);
             txbHomeDirectoryLocation.TabIndex = 20;
@@ -4863,7 +4871,7 @@ namespace SA_ToolBelt
             // lblHomeDirectoryLocation
             // 
             lblHomeDirectoryLocation.AutoSize = true;
-            lblHomeDirectoryLocation.Location = new Point(8, 316);
+            lblHomeDirectoryLocation.Location = new Point(7, 334);
             lblHomeDirectoryLocation.Name = "lblHomeDirectoryLocation";
             lblHomeDirectoryLocation.Size = new Size(177, 15);
             lblHomeDirectoryLocation.TabIndex = 19;
@@ -4871,7 +4879,7 @@ namespace SA_ToolBelt
             // 
             // txbLinuxDs
             // 
-            txbLinuxDs.Location = new Point(8, 394);
+            txbLinuxDs.Location = new Point(7, 412);
             txbLinuxDs.Name = "txbLinuxDs";
             txbLinuxDs.Size = new Size(324, 23);
             txbLinuxDs.TabIndex = 23;
@@ -4887,7 +4895,7 @@ namespace SA_ToolBelt
             // 
             // txbDisabledUsersLocation
             // 
-            txbDisabledUsersLocation.Location = new Point(6, 278);
+            txbDisabledUsersLocation.Location = new Point(5, 296);
             txbDisabledUsersLocation.Name = "txbDisabledUsersLocation";
             txbDisabledUsersLocation.Size = new Size(326, 23);
             txbDisabledUsersLocation.TabIndex = 16;
@@ -4895,7 +4903,7 @@ namespace SA_ToolBelt
             // lblDisabledUsersLocation
             // 
             lblDisabledUsersLocation.AutoSize = true;
-            lblDisabledUsersLocation.Location = new Point(6, 260);
+            lblDisabledUsersLocation.Location = new Point(5, 278);
             lblDisabledUsersLocation.Name = "lblDisabledUsersLocation";
             lblDisabledUsersLocation.Size = new Size(149, 15);
             lblDisabledUsersLocation.TabIndex = 15;
@@ -4903,7 +4911,7 @@ namespace SA_ToolBelt
             // 
             // btnSelectAddExcludeOu
             // 
-            btnSelectAddExcludeOu.Location = new Point(350, 225);
+            btnSelectAddExcludeOu.Location = new Point(349, 200);
             btnSelectAddExcludeOu.Name = "btnSelectAddExcludeOu";
             btnSelectAddExcludeOu.Size = new Size(175, 23);
             btnSelectAddExcludeOu.TabIndex = 14;
@@ -4914,7 +4922,7 @@ namespace SA_ToolBelt
             // cbxExcludeOu
             // 
             cbxExcludeOu.FormattingEnabled = true;
-            cbxExcludeOu.Location = new Point(8, 222);
+            cbxExcludeOu.Location = new Point(7, 197);
             cbxExcludeOu.Name = "cbxExcludeOu";
             cbxExcludeOu.Size = new Size(324, 23);
             cbxExcludeOu.TabIndex = 13;
@@ -4923,7 +4931,7 @@ namespace SA_ToolBelt
             // 
             lblNoticeExcludeOUs.AllowDrop = true;
             lblNoticeExcludeOUs.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblNoticeExcludeOUs.Location = new Point(7, 181);
+            lblNoticeExcludeOUs.Location = new Point(6, 156);
             lblNoticeExcludeOUs.Name = "lblNoticeExcludeOUs";
             lblNoticeExcludeOUs.Size = new Size(490, 38);
             lblNoticeExcludeOUs.TabIndex = 12;
@@ -4931,14 +4939,14 @@ namespace SA_ToolBelt
             // 
             // txbPowerCliModuleLocation
             // 
-            txbPowerCliModuleLocation.Location = new Point(161, 86);
+            txbPowerCliModuleLocation.Location = new Point(160, 61);
             txbPowerCliModuleLocation.Name = "txbPowerCliModuleLocation";
             txbPowerCliModuleLocation.Size = new Size(210, 23);
             txbPowerCliModuleLocation.TabIndex = 11;
             // 
             // txbSqlPath
             // 
-            txbSqlPath.Location = new Point(161, 136);
+            txbSqlPath.Location = new Point(160, 111);
             txbSqlPath.Name = "txbSqlPath";
             txbSqlPath.Size = new Size(210, 23);
             txbSqlPath.TabIndex = 10;
@@ -4946,7 +4954,7 @@ namespace SA_ToolBelt
             // lblSqlPath
             // 
             lblSqlPath.AutoSize = true;
-            lblSqlPath.Location = new Point(94, 144);
+            lblSqlPath.Location = new Point(93, 119);
             lblSqlPath.Name = "lblSqlPath";
             lblSqlPath.Size = new Size(58, 15);
             lblSqlPath.TabIndex = 9;
@@ -4955,7 +4963,7 @@ namespace SA_ToolBelt
             // lblPowerCLIModuleLocation
             // 
             lblPowerCLIModuleLocation.AutoSize = true;
-            lblPowerCLIModuleLocation.Location = new Point(46, 94);
+            lblPowerCLIModuleLocation.Location = new Point(45, 69);
             lblPowerCLIModuleLocation.Name = "lblPowerCLIModuleLocation";
             lblPowerCLIModuleLocation.Size = new Size(109, 15);
             lblPowerCLIModuleLocation.TabIndex = 8;
@@ -4964,7 +4972,7 @@ namespace SA_ToolBelt
             // lblVCenterServer
             // 
             lblVCenterServer.AutoSize = true;
-            lblVCenterServer.Location = new Point(68, 48);
+            lblVCenterServer.Location = new Point(67, 23);
             lblVCenterServer.Name = "lblVCenterServer";
             lblVCenterServer.Size = new Size(87, 15);
             lblVCenterServer.TabIndex = 7;
@@ -4972,7 +4980,7 @@ namespace SA_ToolBelt
             // 
             // btnSetAll
             // 
-            btnSetAll.Location = new Point(210, 423);
+            btnSetAll.Location = new Point(209, 441);
             btnSetAll.Name = "btnSetAll";
             btnSetAll.Size = new Size(75, 23);
             btnSetAll.TabIndex = 6;
@@ -4982,7 +4990,7 @@ namespace SA_ToolBelt
             // 
             // btnBrowseSqlPath
             // 
-            btnBrowseSqlPath.Location = new Point(389, 135);
+            btnBrowseSqlPath.Location = new Point(388, 110);
             btnBrowseSqlPath.Name = "btnBrowseSqlPath";
             btnBrowseSqlPath.Size = new Size(75, 23);
             btnBrowseSqlPath.TabIndex = 5;
@@ -4991,7 +4999,7 @@ namespace SA_ToolBelt
             // 
             // btnBrowsePowerCLIModuleLocation
             // 
-            btnBrowsePowerCLIModuleLocation.Location = new Point(389, 86);
+            btnBrowsePowerCLIModuleLocation.Location = new Point(388, 61);
             btnBrowsePowerCLIModuleLocation.Name = "btnBrowsePowerCLIModuleLocation";
             btnBrowsePowerCLIModuleLocation.Size = new Size(75, 23);
             btnBrowsePowerCLIModuleLocation.TabIndex = 4;
@@ -5001,7 +5009,7 @@ namespace SA_ToolBelt
             // 
             // btnVerifyVCenterServer
             // 
-            btnVerifyVCenterServer.Location = new Point(389, 45);
+            btnVerifyVCenterServer.Location = new Point(388, 20);
             btnVerifyVCenterServer.Name = "btnVerifyVCenterServer";
             btnVerifyVCenterServer.Size = new Size(75, 23);
             btnVerifyVCenterServer.TabIndex = 3;
@@ -5011,7 +5019,7 @@ namespace SA_ToolBelt
             // 
             // txbVCenterServer
             // 
-            txbVCenterServer.Location = new Point(161, 45);
+            txbVCenterServer.Location = new Point(160, 20);
             txbVCenterServer.Name = "txbVCenterServer";
             txbVCenterServer.Size = new Size(210, 23);
             txbVCenterServer.TabIndex = 0;
@@ -5023,16 +5031,16 @@ namespace SA_ToolBelt
             gbxServerInstances.Controls.Add(lblLdapServerInstance2);
             gbxServerInstances.Controls.Add(txbLdapServerInstace1);
             gbxServerInstances.Controls.Add(lblLdapServerInstance1);
-            gbxServerInstances.Location = new Point(908, 187);
+            gbxServerInstances.Location = new Point(908, 153);
             gbxServerInstances.Name = "gbxServerInstances";
-            gbxServerInstances.Size = new Size(630, 155);
+            gbxServerInstances.Size = new Size(630, 142);
             gbxServerInstances.TabIndex = 132;
             gbxServerInstances.TabStop = false;
             gbxServerInstances.Text = "LDAP Server Instances";
             // 
             // btnSubmitServerInstance
             // 
-            btnSubmitServerInstance.Location = new Point(228, 109);
+            btnSubmitServerInstance.Location = new Point(227, 92);
             btnSubmitServerInstance.Name = "btnSubmitServerInstance";
             btnSubmitServerInstance.Size = new Size(114, 33);
             btnSubmitServerInstance.TabIndex = 3;
@@ -5042,7 +5050,7 @@ namespace SA_ToolBelt
             // 
             // txbLdapServerInstace2
             // 
-            txbLdapServerInstace2.Location = new Point(171, 74);
+            txbLdapServerInstace2.Location = new Point(170, 57);
             txbLdapServerInstace2.Name = "txbLdapServerInstace2";
             txbLdapServerInstace2.Size = new Size(310, 23);
             txbLdapServerInstace2.TabIndex = 3;
@@ -5050,7 +5058,7 @@ namespace SA_ToolBelt
             // lblLdapServerInstance2
             // 
             lblLdapServerInstance2.AutoSize = true;
-            lblLdapServerInstance2.Location = new Point(38, 77);
+            lblLdapServerInstance2.Location = new Point(37, 60);
             lblLdapServerInstance2.Name = "lblLdapServerInstance2";
             lblLdapServerInstance2.Size = new Size(127, 15);
             lblLdapServerInstance2.TabIndex = 2;
@@ -5058,7 +5066,7 @@ namespace SA_ToolBelt
             // 
             // txbLdapServerInstace1
             // 
-            txbLdapServerInstace1.Location = new Point(171, 36);
+            txbLdapServerInstace1.Location = new Point(170, 19);
             txbLdapServerInstace1.Name = "txbLdapServerInstace1";
             txbLdapServerInstace1.Size = new Size(310, 23);
             txbLdapServerInstace1.TabIndex = 1;
@@ -5066,7 +5074,7 @@ namespace SA_ToolBelt
             // lblLdapServerInstance1
             // 
             lblLdapServerInstance1.AutoSize = true;
-            lblLdapServerInstance1.Location = new Point(38, 39);
+            lblLdapServerInstance1.Location = new Point(37, 22);
             lblLdapServerInstance1.Name = "lblLdapServerInstance1";
             lblLdapServerInstance1.Size = new Size(127, 15);
             lblLdapServerInstance1.TabIndex = 0;
@@ -5079,14 +5087,14 @@ namespace SA_ToolBelt
             gbxImportantVariables.Controls.Add(lblSecurityGroupKW);
             gbxImportantVariables.Location = new Point(908, 20);
             gbxImportantVariables.Name = "gbxImportantVariables";
-            gbxImportantVariables.Size = new Size(630, 147);
+            gbxImportantVariables.Size = new Size(630, 127);
             gbxImportantVariables.TabIndex = 127;
             gbxImportantVariables.TabStop = false;
             gbxImportantVariables.Text = "Important Variables";
             // 
             // btnSubmitVars
             // 
-            btnSubmitVars.Location = new Point(233, 103);
+            btnSubmitVars.Location = new Point(238, 82);
             btnSubmitVars.Name = "btnSubmitVars";
             btnSubmitVars.Size = new Size(114, 33);
             btnSubmitVars.TabIndex = 2;
@@ -5096,7 +5104,7 @@ namespace SA_ToolBelt
             // 
             // txbSecurityGroupKW
             // 
-            txbSecurityGroupKW.Location = new Point(146, 74);
+            txbSecurityGroupKW.Location = new Point(147, 53);
             txbSecurityGroupKW.Name = "txbSecurityGroupKW";
             txbSecurityGroupKW.Size = new Size(287, 23);
             txbSecurityGroupKW.TabIndex = 1;
@@ -5104,9 +5112,9 @@ namespace SA_ToolBelt
             // lblSecurityGroupKW
             // 
             lblSecurityGroupKW.AllowDrop = true;
-            lblSecurityGroupKW.Location = new Point(68, 33);
+            lblSecurityGroupKW.Location = new Point(8, 20);
             lblSecurityGroupKW.Name = "lblSecurityGroupKW";
-            lblSecurityGroupKW.Size = new Size(491, 38);
+            lblSecurityGroupKW.Size = new Size(616, 38);
             lblSecurityGroupKW.TabIndex = 0;
             lblSecurityGroupKW.Text = "Variable to look for in each security groups \"Notes\" property to determine if it should be a selectable item in the Security Groups Checked ListBox when creating a new user.";
             // 
@@ -5504,6 +5512,42 @@ namespace SA_ToolBelt
             btnLogout.Text = "Log Out";
             btnLogout.UseVisualStyleBackColor = true;
             btnLogout.Click += btnLogout_Click;
+            // 
+            // btnSetLocationOfUsers
+            // 
+            btnSetLocationOfUsers.Location = new Point(489, 240);
+            btnSetLocationOfUsers.Name = "btnSetLocationOfUsers";
+            btnSetLocationOfUsers.Size = new Size(123, 23);
+            btnSetLocationOfUsers.TabIndex = 36;
+            btnSetLocationOfUsers.Text = "Set";
+            btnSetLocationOfUsers.UseVisualStyleBackColor = true;
+            btnSetLocationOfUsers.Click += btnSetLocationOfUsers_Click;
+            // 
+            // btnBrowseLocationOfUsers
+            // 
+            btnBrowseLocationOfUsers.Location = new Point(352, 241);
+            btnBrowseLocationOfUsers.Name = "btnBrowseLocationOfUsers";
+            btnBrowseLocationOfUsers.Size = new Size(123, 23);
+            btnBrowseLocationOfUsers.TabIndex = 35;
+            btnBrowseLocationOfUsers.Text = "Browse";
+            btnBrowseLocationOfUsers.UseVisualStyleBackColor = true;
+            btnBrowseLocationOfUsers.Click += btnBrowseLocationOfUsers_Click;
+            // 
+            // txbLocationOfUsers
+            // 
+            txbLocationOfUsers.Location = new Point(8, 241);
+            txbLocationOfUsers.Name = "txbLocationOfUsers";
+            txbLocationOfUsers.Size = new Size(326, 23);
+            txbLocationOfUsers.TabIndex = 34;
+            // 
+            // lblLocationOfUsers
+            // 
+            lblLocationOfUsers.AutoSize = true;
+            lblLocationOfUsers.Location = new Point(8, 223);
+            lblLocationOfUsers.Name = "lblLocationOfUsers";
+            lblLocationOfUsers.Size = new Size(101, 15);
+            lblLocationOfUsers.TabIndex = 33;
+            lblLocationOfUsers.Text = "Location of Users:";
             // 
             // SAToolBelt
             // 
@@ -6093,5 +6137,9 @@ namespace SA_ToolBelt
         private Button btnSetVCenterServer;
         private Button btnSetHomeDirLocation;
         private Button btnBrowseHomeDirLocation;
+        private Button btnSetLocationOfUsers;
+        private Button btnBrowseLocationOfUsers;
+        private TextBox txbLocationOfUsers;
+        private Label lblLocationOfUsers;
     }
 }
