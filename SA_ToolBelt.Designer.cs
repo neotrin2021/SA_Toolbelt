@@ -2515,9 +2515,9 @@ namespace SA_ToolBelt
             pnlHpBiosSettings.Controls.Add(txbBiosSettingsFilter);
             pnlHpBiosSettings.Controls.Add(lblBiosSettingsCount);
             pnlHpBiosSettings.Controls.Add(dgvHpBiosSettings);
-            pnlHpBiosSettings.Location = new Point(383, 72);
+            pnlHpBiosSettings.Location = new Point(10, 290);
             pnlHpBiosSettings.Name = "pnlHpBiosSettings";
-            pnlHpBiosSettings.Size = new Size(1258, 684);
+            pnlHpBiosSettings.Size = new Size(1631, 547);
             pnlHpBiosSettings.TabIndex = 4;
             // 
             // lblHpBiosHeader
@@ -2527,7 +2527,7 @@ namespace SA_ToolBelt
             lblHpBiosHeader.ForeColor = Color.White;
             lblHpBiosHeader.Location = new Point(0, 0);
             lblHpBiosHeader.Name = "lblHpBiosHeader";
-            lblHpBiosHeader.Size = new Size(1258, 32);
+            lblHpBiosHeader.Size = new Size(1629, 32);
             lblHpBiosHeader.TabIndex = 0;
             lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
             lblHpBiosHeader.TextAlign = ContentAlignment.MiddleLeft;
@@ -2605,7 +2605,7 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.RowHeadersVisible = false;
             dgvHpBiosSettings.RowTemplate.Height = 30;
             dgvHpBiosSettings.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvHpBiosSettings.Size = new Size(1242, 608);
+            dgvHpBiosSettings.Size = new Size(1613, 469);
             dgvHpBiosSettings.TabIndex = 4;
             //
             // colComputerName
