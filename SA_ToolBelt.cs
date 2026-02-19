@@ -6268,52 +6268,40 @@ namespace SA_ToolBelt
         private void txbBiosSettingsFilter_TextChanged(object sender, EventArgs e)
         {
             if (_lastBiosResult == null) return;
-            PopulateHpBiosGrid(_lastBiosResult.HpBiosSettings, txbBiosSettingsFilter.Text.Trim());
+            string assignedTo = LookupAssignedTo(_lastBiosResult.ComputerName);
+            PopulateHpBiosGrid(_lastBiosResult, assignedTo, txbBiosSettingsFilter.Text.Trim());
         }
 
         private void PopulateBiosResults(BIOS_Tools.BiosQueryResult result)
         {
-            // System info
-            lblManufacturerValue.Text = result.Manufacturer ?? "\u2014";
-            lblModelValue.Text = result.Model ?? "\u2014";
-            lblSerialValue.Text = result.SerialNumber ?? "\u2014";
-            lblBiosVersionValue.Text = result.BiosVersion ?? "\u2014";
-            lblBiosDateValue.Text = result.BiosDate ?? "\u2014";
-            lblOsNameValue.Text = result.OSName ?? "\u2014";
-            lblOsVersionValue.Text = result.OSVersion ?? "\u2014";
-            lblOsArchValue.Text = result.OSArchitecture ?? "\u2014";
+            string assignedTo = LookupAssignedTo(result.ComputerName);
 
-            // Security - with color indicators
-            SetSecurityValue(lblTpmPresentValue, result.TpmPresent, "Yes");
-            lblTpmVersionValue.Text = result.TpmVersion ?? "\u2014";
-            SetSecurityValue(lblTpmEnabledValue, result.TpmEnabled, "True");
-            SetSecurityValue(lblTpmActivatedValue, result.TpmActivated, "True");
-            SetSecurityValue(lblSecureBootValue, result.SecureBootEnabled, "Enabled");
+            dgvHpBiosSettings.Rows.Clear();
 
-            // HP BIOS settings grid
             if (result.IsHpMachine && result.HpBiosSettings.Count > 0)
             {
-                PopulateHpBiosGrid(result.HpBiosSettings, "");
+                PopulateHpBiosGrid(result, assignedTo, "");
                 lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
             }
             else if (result.IsHpMachine)
             {
-                dgvHpBiosSettings.Rows.Clear();
+                AddBiosResultRow(result, assignedTo, "\u2014", "\u2014", "\u2014");
                 lblBiosSettingsCount.Text = "HP machine detected but no BIOS settings retrieved";
                 lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
             }
             else
             {
-                dgvHpBiosSettings.Rows.Clear();
+                AddBiosResultRow(result, assignedTo, "\u2014", "\u2014", "\u2014");
                 lblBiosSettingsCount.Text = $"Non-HP machine ({result.Manufacturer}) \u2014 HP BIOS namespace not available";
                 lblHpBiosHeader.Text = "  BIOS SETTINGS (HP namespace not available)";
             }
         }
 
-        private void PopulateHpBiosGrid(List<BIOS_Tools.BiosSetting> settings, string filter)
+        private void PopulateHpBiosGrid(BIOS_Tools.BiosQueryResult result, string assignedTo, string filter)
         {
             dgvHpBiosSettings.Rows.Clear();
 
+            var settings = result.HpBiosSettings;
             var filtered = string.IsNullOrEmpty(filter)
                 ? settings
                 : settings.Where(s =>
@@ -6324,7 +6312,7 @@ namespace SA_ToolBelt
 
             foreach (var setting in filtered.OrderBy(s => s.Category).ThenBy(s => s.Name))
             {
-                dgvHpBiosSettings.Rows.Add(setting.Category, setting.Name, setting.CurrentValue);
+                AddBiosResultRow(result, assignedTo, setting.Category, setting.Name, setting.CurrentValue);
             }
 
             lblBiosSettingsCount.Text = string.IsNullOrEmpty(filter)
@@ -6332,55 +6320,33 @@ namespace SA_ToolBelt
                 : $"{filtered.Count} of {settings.Count} settings";
         }
 
-        private void SetSecurityValue(Label label, string value, string goodValue)
+        private void AddBiosResultRow(BIOS_Tools.BiosQueryResult result, string assignedTo,
+            string category, string settingName, string settingValue)
         {
-            if (string.IsNullOrEmpty(value) || value == "\u2014")
-            {
-                label.Text = "\u2014";
-                label.ForeColor = WtTextMuted;
-                return;
-            }
-
-            label.Text = value;
-
-            if (value.IndexOf(goodValue, StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                label.ForeColor = WtGoodGreen;
-                label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            }
-            else if (value.Equals("No", StringComparison.OrdinalIgnoreCase) ||
-                     value.Equals("False", StringComparison.OrdinalIgnoreCase) ||
-                     value.Equals("Disabled", StringComparison.OrdinalIgnoreCase))
-            {
-                label.ForeColor = WtWarnRed;
-                label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            }
-            else
-            {
-                label.ForeColor = WtWarnAmber;
-                label.Font = new Font("Segoe UI", 9.5F);
-            }
+            dgvHpBiosSettings.Rows.Add(
+                result.ComputerName,
+                assignedTo,
+                result.Manufacturer ?? "\u2014",
+                result.Model ?? "\u2014",
+                result.SerialNumber ?? "\u2014",
+                result.BiosVersion ?? "\u2014",
+                result.BiosDate ?? "\u2014",
+                result.OSName ?? "\u2014",
+                result.OSVersion ?? "\u2014",
+                result.OSArchitecture ?? "\u2014",
+                result.TpmPresent ?? "\u2014",
+                result.TpmVersion ?? "\u2014",
+                result.TpmEnabled ?? "\u2014",
+                result.TpmActivated ?? "\u2014",
+                result.SecureBootEnabled ?? "\u2014",
+                category,
+                settingName,
+                settingValue
+            );
         }
 
         private void ClearBiosResults()
         {
-            lblManufacturerValue.Text = "\u2014";
-            lblModelValue.Text = "\u2014";
-            lblSerialValue.Text = "\u2014";
-            lblBiosVersionValue.Text = "\u2014";
-            lblBiosDateValue.Text = "\u2014";
-            lblOsNameValue.Text = "\u2014";
-            lblOsVersionValue.Text = "\u2014";
-            lblOsArchValue.Text = "\u2014";
-
-            foreach (var lbl in new[] { lblTpmPresentValue, lblTpmVersionValue, lblTpmEnabledValue,
-                                        lblTpmActivatedValue, lblSecureBootValue })
-            {
-                lbl.Text = "\u2014";
-                lbl.ForeColor = WtTextDark;
-                lbl.Font = new Font("Segoe UI", 9.5F);
-            }
-
             dgvHpBiosSettings.Rows.Clear();
             lblBiosSettingsCount.Text = "";
         }
