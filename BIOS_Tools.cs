@@ -115,6 +115,21 @@ namespace SA_ToolBelt
             public BiosQueryResult() { }
         }
 
+        /// <summary>
+        /// Result from a BIOS setting modification attempt
+        /// </summary>
+        public class BiosSetResult
+        {
+            public bool Success { get; set; }
+            public string ErrorMessage { get; set; }
+            public int ReturnCode { get; set; }
+            public string SettingName { get; set; }
+            public string NewValue { get; set; }
+            public bool RequiresReboot => Success;
+
+            public BiosSetResult() { }
+        }
+
         #endregion
 
         #region Remote BIOS Query
@@ -621,6 +636,174 @@ try {{
             catch (ManagementException ex)
             {
                 _consoleForm?.WriteWarning($"  HP BIOS namespace not available on {computerName}: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region BIOS Setting Modification (HP Only)
+
+        // Known HP TPM setting names with their enable values, in priority order
+        private static readonly (string Name, string EnableValue)[] KnownTpmSettings =
+        {
+            ("TPM State", "Enable"),
+            ("TPM Device", "Available"),
+            ("Activate TPM On Next Boot", "Enable"),
+            ("Embedded Security Device", "Device available"),
+            ("Embedded Security Device Availability", "Available"),
+        };
+
+        // Known HP Secure Boot setting names with their enable values, in priority order
+        private static readonly (string Name, string EnableValue)[] KnownSecureBootSettings =
+        {
+            ("Secure Boot", "Enable"),
+            ("SecureBoot", "Enable"),
+            ("Configure Legacy Support and Secure Boot", "Legacy Support Disable and Secure Boot Enable"),
+        };
+
+        /// <summary>
+        /// Sets a single HP BIOS setting via the HP_BIOSSettingInterface WMI class.
+        /// </summary>
+        public async Task<BiosSetResult> SetHpBiosSettingAsync(
+            string computerName, string username, string password, string domain,
+            string settingName, string newValue, string biosPassword)
+        {
+            return await Task.Run(() =>
+            {
+                var result = new BiosSetResult { SettingName = settingName, NewValue = newValue };
+
+                try
+                {
+                    _consoleForm?.WriteInfo($"Setting '{settingName}' to '{newValue}' on {computerName}...");
+
+                    var connOptions = BuildConnectionOptions(computerName, username, password, domain);
+                    var scope = new ManagementScope($"\\\\{computerName}\\root\\HP\\InstrumentedBIOS", connOptions);
+                    scope.Connect();
+
+                    using (var settingInterface = new ManagementClass(scope,
+                        new ManagementPath("HP_BIOSSettingInterface"), null))
+                    {
+                        var inParams = settingInterface.GetMethodParameters("SetBIOSSetting");
+                        inParams["Setting"] = settingName;
+                        inParams["Value"] = string.IsNullOrEmpty(biosPassword)
+                            ? newValue
+                            : $"{newValue},<utf-16/>{biosPassword}";
+
+                        var outParams = settingInterface.InvokeMethod("SetBIOSSetting", inParams, null);
+                        int returnCode = Convert.ToInt32(outParams["return"]);
+
+                        result.ReturnCode = returnCode;
+                        result.Success = returnCode == 0;
+
+                        if (result.Success)
+                            _consoleForm?.WriteSuccess($"  '{settingName}' set to '{newValue}' — reboot required to take effect");
+                        else
+                        {
+                            result.ErrorMessage = GetHpReturnCodeMessage(returnCode);
+                            _consoleForm?.WriteError($"  Failed to set '{settingName}': {result.ErrorMessage}");
+                        }
+                    }
+                }
+                catch (ManagementException ex)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = $"WMI error: {ex.Message}";
+                    _consoleForm?.WriteError($"  WMI error setting '{settingName}': {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = ex.Message;
+                    _consoleForm?.WriteError($"  Error setting '{settingName}': {ex.Message}");
+                }
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Enables TPM on an HP machine by setting all known TPM-related BIOS settings.
+        /// Searches the machine's queried settings to find the correct setting names.
+        /// </summary>
+        public async Task<List<BiosSetResult>> EnableTpmAsync(
+            string computerName, string username, string password, string domain,
+            string biosPassword, List<BiosSetting> currentSettings)
+        {
+            var results = new List<BiosSetResult>();
+
+            // Find matching TPM settings from the machine's queried settings
+            foreach (var (name, enableValue) in KnownTpmSettings)
+            {
+                var match = currentSettings.FirstOrDefault(s =>
+                    s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null && !match.CurrentValue.Equals(enableValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = await SetHpBiosSettingAsync(computerName, username, password, domain,
+                        name, enableValue, biosPassword);
+                    results.Add(r);
+                }
+            }
+
+            // If no known settings matched, try the most common one as a fallback
+            if (results.Count == 0)
+            {
+                _consoleForm?.WriteWarning("No known TPM settings found in queried data, trying 'TPM State'...");
+                var r = await SetHpBiosSettingAsync(computerName, username, password, domain,
+                    "TPM State", "Enable", biosPassword);
+                results.Add(r);
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Enables Secure Boot on an HP machine by setting the appropriate BIOS setting.
+        /// Searches the machine's queried settings to find the correct setting name.
+        /// </summary>
+        public async Task<List<BiosSetResult>> EnableSecureBootAsync(
+            string computerName, string username, string password, string domain,
+            string biosPassword, List<BiosSetting> currentSettings)
+        {
+            var results = new List<BiosSetResult>();
+
+            foreach (var (name, enableValue) in KnownSecureBootSettings)
+            {
+                var match = currentSettings.FirstOrDefault(s =>
+                    s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null && !match.CurrentValue.Equals(enableValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = await SetHpBiosSettingAsync(computerName, username, password, domain,
+                        name, enableValue, biosPassword);
+                    results.Add(r);
+                    break; // Only need to set one Secure Boot setting
+                }
+            }
+
+            if (results.Count == 0)
+            {
+                _consoleForm?.WriteWarning("No known Secure Boot settings found in queried data, trying 'Secure Boot'...");
+                var r = await SetHpBiosSettingAsync(computerName, username, password, domain,
+                    "Secure Boot", "Enable", biosPassword);
+                results.Add(r);
+            }
+
+            return results;
+        }
+
+        private static string GetHpReturnCodeMessage(int code)
+        {
+            switch (code)
+            {
+                case 0: return "Success";
+                case 1: return "Not Supported";
+                case 2: return "Unspecified Error";
+                case 3: return "Timeout";
+                case 4: return "Failed \u2014 verify BIOS password is correct";
+                case 5: return "Invalid Parameter";
+                case 6: return "Access Denied \u2014 BIOS password may be required";
+                default: return $"Unknown error (code {code})";
             }
         }
 

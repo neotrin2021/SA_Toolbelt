@@ -5456,6 +5456,9 @@ namespace SA_ToolBelt
                 // Note: These may need additional configuration setup if not already present
                 await LoadCriticalSystemsAsync();
 
+                // Populate the BIOS query ComboBox from loaded DGV data
+                PopulateBiosComputerNameComboBox();
+
                 _consoleForm.WriteSuccess("Online/Offline tab loaded successfully");
             }
             catch (Exception ex)
@@ -5860,7 +5863,36 @@ namespace SA_ToolBelt
         // Cached query result for filtering
         private BIOS_Tools.BiosQueryResult _lastBiosResult;
 
-        private void txbBiosComputerName_KeyDown(object sender, KeyEventArgs e)
+        private const string BiosQueryAll = "-- All --";
+        private const int MaxConcurrentBiosQueries = 5;
+
+        private void PopulateBiosComputerNameComboBox()
+        {
+            cbxBiosComputerName.Items.Clear();
+            cbxBiosComputerName.Items.Add(BiosQueryAll);
+
+            var computerNames = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DataGridViewRow row in dgvWorkstations.Rows)
+            {
+                if (row.Cells[0].Value is string name && !string.IsNullOrWhiteSpace(name))
+                    computerNames.Add(name);
+            }
+
+            foreach (DataGridViewRow row in dgvPatriotPark.Rows)
+            {
+                if (row.Cells[0].Value is string name && !string.IsNullOrWhiteSpace(name))
+                    computerNames.Add(name);
+            }
+
+            foreach (var name in computerNames)
+                cbxBiosComputerName.Items.Add(name);
+
+            cbxBiosComputerName.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            cbxBiosComputerName.AutoCompleteSource = AutoCompleteSource.ListItems;
+        }
+
+        private void cbxBiosComputerName_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
@@ -5871,7 +5903,7 @@ namespace SA_ToolBelt
 
         private async void btnQueryBios_Click(object sender, EventArgs e)
         {
-            string computerName = txbBiosComputerName.Text.Trim();
+            string computerName = cbxBiosComputerName.Text.Trim();
             if (string.IsNullOrEmpty(computerName))
             {
                 _consoleForm?.WriteWarning("Please enter a computer name or IP address.");
@@ -5885,6 +5917,12 @@ namespace SA_ToolBelt
                 _consoleForm?.WriteError("Please log in first before querying remote BIOS.");
                 lblBiosQueryStatusValue.Text = "Not authenticated";
                 lblBiosQueryStatusValue.ForeColor = WtWarnRed;
+                return;
+            }
+
+            if (computerName == BiosQueryAll)
+            {
+                await QueryAllBiosAsync();
                 return;
             }
 
@@ -5902,6 +5940,7 @@ namespace SA_ToolBelt
                 {
                     _lastBiosResult = result;
                     PopulateBiosResults(result);
+                    UpdateBiosActionButtons();
                     SetBiosQueryBusy(false, "Query complete");
                     lblBiosQueryStatusValue.ForeColor = WtGoodGreen;
                 }
@@ -5920,9 +5959,146 @@ namespace SA_ToolBelt
             }
         }
 
+        private async Task QueryAllBiosAsync()
+        {
+            var computerNames = cbxBiosComputerName.Items
+                .Cast<string>()
+                .Where(n => n != BiosQueryAll)
+                .ToList();
+
+            if (computerNames.Count == 0)
+            {
+                _consoleForm?.WriteWarning("No computers in the list to query.");
+                return;
+            }
+
+            string username = CredentialManager.GetUsername();
+            string password = CredentialManager.GetPassword();
+            string domain = CredentialManager.GetDomain();
+
+            dgvHpBiosSettings.Rows.Clear();
+            int completed = 0;
+            int succeeded = 0;
+            int failed = 0;
+            int total = computerNames.Count;
+
+            SetBiosQueryBusy(true, $"Querying 0 / {total}...");
+            _consoleForm?.WriteInfo($"Starting BIOS query for {total} computers ({MaxConcurrentBiosQueries} concurrent)...");
+
+            var semaphore = new SemaphoreSlim(MaxConcurrentBiosQueries);
+            var tasks = computerNames.Select(async name =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var result = await _biosTools.QueryRemoteBiosAsync(name, username, password, domain);
+
+                    // Marshal back to UI thread to update the DGV
+                    Invoke((Action)(() =>
+                    {
+                        if (result.Success)
+                        {
+                            Interlocked.Increment(ref succeeded);
+
+                            // Look up Assigned To from dgvWorkstations / dgvPatriotPark
+                            string assignedTo = LookupAssignedTo(name);
+
+                            if (result.IsHpMachine && result.HpBiosSettings.Count > 0)
+                            {
+                                foreach (var setting in result.HpBiosSettings.OrderBy(s => s.Category).ThenBy(s => s.Name))
+                                {
+                                    dgvHpBiosSettings.Rows.Add(
+                                        result.ComputerName,
+                                        assignedTo,
+                                        result.Manufacturer ?? "\u2014",
+                                        result.Model ?? "\u2014",
+                                        result.SerialNumber ?? "\u2014",
+                                        result.BiosVersion ?? "\u2014",
+                                        result.BiosDate ?? "\u2014",
+                                        result.OSName ?? "\u2014",
+                                        result.OSVersion ?? "\u2014",
+                                        result.OSArchitecture ?? "\u2014",
+                                        result.TpmPresent ?? "\u2014",
+                                        result.TpmVersion ?? "\u2014",
+                                        result.TpmEnabled ?? "\u2014",
+                                        result.TpmActivated ?? "\u2014",
+                                        result.SecureBootEnabled ?? "\u2014",
+                                        setting.Category,
+                                        setting.Name,
+                                        setting.CurrentValue
+                                    );
+                                }
+                            }
+                            else
+                            {
+                                // Non-HP or no settings — add one summary row
+                                dgvHpBiosSettings.Rows.Add(
+                                    result.ComputerName,
+                                    assignedTo,
+                                    result.Manufacturer ?? "\u2014",
+                                    result.Model ?? "\u2014",
+                                    result.SerialNumber ?? "\u2014",
+                                    result.BiosVersion ?? "\u2014",
+                                    result.BiosDate ?? "\u2014",
+                                    result.OSName ?? "\u2014",
+                                    result.OSVersion ?? "\u2014",
+                                    result.OSArchitecture ?? "\u2014",
+                                    result.TpmPresent ?? "\u2014",
+                                    result.TpmVersion ?? "\u2014",
+                                    result.TpmEnabled ?? "\u2014",
+                                    result.TpmActivated ?? "\u2014",
+                                    result.SecureBootEnabled ?? "\u2014",
+                                    "\u2014",
+                                    "\u2014",
+                                    "\u2014"
+                                );
+                            }
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref failed);
+                        }
+
+                        int done = Interlocked.Increment(ref completed);
+                        lblBiosQueryStatusValue.Text = $"Querying {done} / {total}...";
+                    }));
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            SetBiosQueryBusy(false, $"Complete — {succeeded} succeeded, {failed} failed");
+            lblBiosQueryStatusValue.ForeColor = failed == 0 ? WtGoodGreen : WtWarnAmber;
+            lblBiosSettingsCount.Text = $"{dgvHpBiosSettings.Rows.Count} rows";
+            _consoleForm?.WriteSuccess($"BIOS query complete: {succeeded} succeeded, {failed} failed out of {total}");
+        }
+
+        private string LookupAssignedTo(string computerName)
+        {
+            foreach (DataGridViewRow row in dgvWorkstations.Rows)
+            {
+                if (row.Cells[0].Value is string name &&
+                    string.Equals(name, computerName, StringComparison.OrdinalIgnoreCase))
+                    return row.Cells[2].Value?.ToString() ?? "";
+            }
+
+            foreach (DataGridViewRow row in dgvPatriotPark.Rows)
+            {
+                if (row.Cells[0].Value is string name &&
+                    string.Equals(name, computerName, StringComparison.OrdinalIgnoreCase))
+                    return row.Cells[2].Value?.ToString() ?? "";
+            }
+
+            return "";
+        }
+
         private async void btnTestWmiConnection_Click(object sender, EventArgs e)
         {
-            string computerName = txbBiosComputerName.Text.Trim();
+            string computerName = cbxBiosComputerName.Text.Trim();
             if (string.IsNullOrEmpty(computerName))
             {
                 _consoleForm?.WriteWarning("Please enter a computer name or IP address.");
@@ -5978,6 +6154,7 @@ namespace SA_ToolBelt
         {
             _lastBiosResult = null;
             ClearBiosResults();
+            UpdateBiosActionButtons();
             lblBiosQueryStatusValue.Text = "Ready";
             lblBiosQueryStatusValue.ForeColor = WtAccentBlue;
             txbBiosSettingsFilter.Clear();
@@ -6093,52 +6270,40 @@ namespace SA_ToolBelt
         private void txbBiosSettingsFilter_TextChanged(object sender, EventArgs e)
         {
             if (_lastBiosResult == null) return;
-            PopulateHpBiosGrid(_lastBiosResult.HpBiosSettings, txbBiosSettingsFilter.Text.Trim());
+            string assignedTo = LookupAssignedTo(_lastBiosResult.ComputerName);
+            PopulateHpBiosGrid(_lastBiosResult, assignedTo, txbBiosSettingsFilter.Text.Trim());
         }
 
         private void PopulateBiosResults(BIOS_Tools.BiosQueryResult result)
         {
-            // System info
-            lblManufacturerValue.Text = result.Manufacturer ?? "\u2014";
-            lblModelValue.Text = result.Model ?? "\u2014";
-            lblSerialValue.Text = result.SerialNumber ?? "\u2014";
-            lblBiosVersionValue.Text = result.BiosVersion ?? "\u2014";
-            lblBiosDateValue.Text = result.BiosDate ?? "\u2014";
-            lblOsNameValue.Text = result.OSName ?? "\u2014";
-            lblOsVersionValue.Text = result.OSVersion ?? "\u2014";
-            lblOsArchValue.Text = result.OSArchitecture ?? "\u2014";
+            string assignedTo = LookupAssignedTo(result.ComputerName);
 
-            // Security - with color indicators
-            SetSecurityValue(lblTpmPresentValue, result.TpmPresent, "Yes");
-            lblTpmVersionValue.Text = result.TpmVersion ?? "\u2014";
-            SetSecurityValue(lblTpmEnabledValue, result.TpmEnabled, "True");
-            SetSecurityValue(lblTpmActivatedValue, result.TpmActivated, "True");
-            SetSecurityValue(lblSecureBootValue, result.SecureBootEnabled, "Enabled");
+            dgvHpBiosSettings.Rows.Clear();
 
-            // HP BIOS settings grid
             if (result.IsHpMachine && result.HpBiosSettings.Count > 0)
             {
-                PopulateHpBiosGrid(result.HpBiosSettings, "");
+                PopulateHpBiosGrid(result, assignedTo, "");
                 lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
             }
             else if (result.IsHpMachine)
             {
-                dgvHpBiosSettings.Rows.Clear();
+                AddBiosResultRow(result, assignedTo, "\u2014", "\u2014", "\u2014");
                 lblBiosSettingsCount.Text = "HP machine detected but no BIOS settings retrieved";
                 lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
             }
             else
             {
-                dgvHpBiosSettings.Rows.Clear();
+                AddBiosResultRow(result, assignedTo, "\u2014", "\u2014", "\u2014");
                 lblBiosSettingsCount.Text = $"Non-HP machine ({result.Manufacturer}) \u2014 HP BIOS namespace not available";
                 lblHpBiosHeader.Text = "  BIOS SETTINGS (HP namespace not available)";
             }
         }
 
-        private void PopulateHpBiosGrid(List<BIOS_Tools.BiosSetting> settings, string filter)
+        private void PopulateHpBiosGrid(BIOS_Tools.BiosQueryResult result, string assignedTo, string filter)
         {
             dgvHpBiosSettings.Rows.Clear();
 
+            var settings = result.HpBiosSettings;
             var filtered = string.IsNullOrEmpty(filter)
                 ? settings
                 : settings.Where(s =>
@@ -6149,7 +6314,7 @@ namespace SA_ToolBelt
 
             foreach (var setting in filtered.OrderBy(s => s.Category).ThenBy(s => s.Name))
             {
-                dgvHpBiosSettings.Rows.Add(setting.Category, setting.Name, setting.CurrentValue);
+                AddBiosResultRow(result, assignedTo, setting.Category, setting.Name, setting.CurrentValue);
             }
 
             lblBiosSettingsCount.Text = string.IsNullOrEmpty(filter)
@@ -6157,57 +6322,186 @@ namespace SA_ToolBelt
                 : $"{filtered.Count} of {settings.Count} settings";
         }
 
-        private void SetSecurityValue(Label label, string value, string goodValue)
+        private void AddBiosResultRow(BIOS_Tools.BiosQueryResult result, string assignedTo,
+            string category, string settingName, string settingValue)
         {
-            if (string.IsNullOrEmpty(value) || value == "\u2014")
-            {
-                label.Text = "\u2014";
-                label.ForeColor = WtTextMuted;
-                return;
-            }
-
-            label.Text = value;
-
-            if (value.IndexOf(goodValue, StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                label.ForeColor = WtGoodGreen;
-                label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            }
-            else if (value.Equals("No", StringComparison.OrdinalIgnoreCase) ||
-                     value.Equals("False", StringComparison.OrdinalIgnoreCase) ||
-                     value.Equals("Disabled", StringComparison.OrdinalIgnoreCase))
-            {
-                label.ForeColor = WtWarnRed;
-                label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            }
-            else
-            {
-                label.ForeColor = WtWarnAmber;
-                label.Font = new Font("Segoe UI", 9.5F);
-            }
+            dgvHpBiosSettings.Rows.Add(
+                result.ComputerName,
+                assignedTo,
+                result.Manufacturer ?? "\u2014",
+                result.Model ?? "\u2014",
+                result.SerialNumber ?? "\u2014",
+                result.BiosVersion ?? "\u2014",
+                result.BiosDate ?? "\u2014",
+                result.OSName ?? "\u2014",
+                result.OSVersion ?? "\u2014",
+                result.OSArchitecture ?? "\u2014",
+                result.TpmPresent ?? "\u2014",
+                result.TpmVersion ?? "\u2014",
+                result.TpmEnabled ?? "\u2014",
+                result.TpmActivated ?? "\u2014",
+                result.SecureBootEnabled ?? "\u2014",
+                category,
+                settingName,
+                settingValue
+            );
         }
 
         private void ClearBiosResults()
         {
-            lblManufacturerValue.Text = "\u2014";
-            lblModelValue.Text = "\u2014";
-            lblSerialValue.Text = "\u2014";
-            lblBiosVersionValue.Text = "\u2014";
-            lblBiosDateValue.Text = "\u2014";
-            lblOsNameValue.Text = "\u2014";
-            lblOsVersionValue.Text = "\u2014";
-            lblOsArchValue.Text = "\u2014";
-
-            foreach (var lbl in new[] { lblTpmPresentValue, lblTpmVersionValue, lblTpmEnabledValue,
-                                        lblTpmActivatedValue, lblSecureBootValue })
-            {
-                lbl.Text = "\u2014";
-                lbl.ForeColor = WtTextDark;
-                lbl.Font = new Font("Segoe UI", 9.5F);
-            }
-
             dgvHpBiosSettings.Rows.Clear();
             lblBiosSettingsCount.Text = "";
+        }
+
+        private async void btnEnableTpm_Click(object sender, EventArgs e)
+        {
+            if (_lastBiosResult == null || !_lastBiosResult.IsHpMachine) return;
+
+            string computerName = _lastBiosResult.ComputerName;
+            btnEnableTpm.Enabled = false;
+            btnEnableTpm.Text = "Enabling...";
+            lblBiosActionStatus.Text = $"Enabling TPM on {computerName}...";
+            lblBiosActionStatus.ForeColor = WtAccentBlue;
+
+            try
+            {
+                string username = CredentialManager.GetUsername();
+                string password = CredentialManager.GetPassword();
+                string domain = CredentialManager.GetDomain();
+                string biosPassword = txbBiosPassword.Text;
+
+                var results = await _biosTools.EnableTpmAsync(
+                    computerName, username, password, domain,
+                    biosPassword, _lastBiosResult.HpBiosSettings);
+
+                bool allSuccess = results.All(r => r.Success);
+                bool anySuccess = results.Any(r => r.Success);
+
+                if (allSuccess && results.Count > 0)
+                {
+                    lblBiosActionStatus.Text = $"TPM enabled on {computerName} \u2014 reboot required";
+                    lblBiosActionStatus.ForeColor = WtGoodGreen;
+                    _consoleForm?.WriteSuccess($"TPM enabled on {computerName} ({results.Count} setting(s) changed)");
+                }
+                else if (anySuccess)
+                {
+                    var failed = results.Where(r => !r.Success).ToList();
+                    lblBiosActionStatus.Text = $"Partial success \u2014 {failed.Count} setting(s) failed";
+                    lblBiosActionStatus.ForeColor = WtWarnAmber;
+                    foreach (var f in failed)
+                        _consoleForm?.WriteWarning($"  Failed: {f.SettingName} \u2014 {f.ErrorMessage}");
+                }
+                else
+                {
+                    string err = results.FirstOrDefault()?.ErrorMessage ?? "Unknown error";
+                    lblBiosActionStatus.Text = $"Failed: {err}";
+                    lblBiosActionStatus.ForeColor = WtWarnRed;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblBiosActionStatus.Text = $"Error: {ex.Message}";
+                lblBiosActionStatus.ForeColor = WtWarnRed;
+                _consoleForm?.WriteError($"Enable TPM error: {ex.Message}");
+            }
+            finally
+            {
+                btnEnableTpm.Text = "Enable TPM";
+                UpdateBiosActionButtons();
+            }
+        }
+
+        private async void btnEnableSecureBoot_Click(object sender, EventArgs e)
+        {
+            if (_lastBiosResult == null || !_lastBiosResult.IsHpMachine) return;
+
+            string computerName = _lastBiosResult.ComputerName;
+            btnEnableSecureBoot.Enabled = false;
+            btnEnableSecureBoot.Text = "Enabling...";
+            lblBiosActionStatus.Text = $"Enabling Secure Boot on {computerName}...";
+            lblBiosActionStatus.ForeColor = WtAccentBlue;
+
+            try
+            {
+                string username = CredentialManager.GetUsername();
+                string password = CredentialManager.GetPassword();
+                string domain = CredentialManager.GetDomain();
+                string biosPassword = txbBiosPassword.Text;
+
+                var results = await _biosTools.EnableSecureBootAsync(
+                    computerName, username, password, domain,
+                    biosPassword, _lastBiosResult.HpBiosSettings);
+
+                bool allSuccess = results.All(r => r.Success);
+
+                if (allSuccess && results.Count > 0)
+                {
+                    lblBiosActionStatus.Text = $"Secure Boot enabled on {computerName} \u2014 reboot required";
+                    lblBiosActionStatus.ForeColor = WtGoodGreen;
+                    _consoleForm?.WriteSuccess($"Secure Boot enabled on {computerName}");
+                }
+                else
+                {
+                    string err = results.FirstOrDefault()?.ErrorMessage ?? "Unknown error";
+                    lblBiosActionStatus.Text = $"Failed: {err}";
+                    lblBiosActionStatus.ForeColor = WtWarnRed;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblBiosActionStatus.Text = $"Error: {ex.Message}";
+                lblBiosActionStatus.ForeColor = WtWarnRed;
+                _consoleForm?.WriteError($"Enable Secure Boot error: {ex.Message}");
+            }
+            finally
+            {
+                btnEnableSecureBoot.Text = "Enable Secure Boot";
+                UpdateBiosActionButtons();
+            }
+        }
+
+        /// <summary>
+        /// Enables/disables the TPM and Secure Boot buttons based on the current query result.
+        /// Buttons are only enabled when the machine is HP and the respective setting is currently off.
+        /// </summary>
+        private void UpdateBiosActionButtons()
+        {
+            if (_lastBiosResult == null || !_lastBiosResult.Success || !_lastBiosResult.IsHpMachine)
+            {
+                btnEnableTpm.Enabled = false;
+                btnEnableSecureBoot.Enabled = false;
+
+                if (_lastBiosResult != null && _lastBiosResult.Success && !_lastBiosResult.IsHpMachine)
+                    lblBiosActionStatus.Text = "Non-HP machine \u2014 actions not available";
+                else
+                    lblBiosActionStatus.Text = "";
+
+                return;
+            }
+
+            // TPM: enable button if TPM is not enabled/activated
+            bool tpmNeedsEnable =
+                (_lastBiosResult.TpmEnabled != null &&
+                 !_lastBiosResult.TpmEnabled.Equals("True", StringComparison.OrdinalIgnoreCase)) ||
+                (_lastBiosResult.TpmActivated != null &&
+                 !_lastBiosResult.TpmActivated.Equals("True", StringComparison.OrdinalIgnoreCase)) ||
+                (_lastBiosResult.TpmPresent != null &&
+                 _lastBiosResult.TpmPresent.Equals("No", StringComparison.OrdinalIgnoreCase));
+
+            btnEnableTpm.Enabled = tpmNeedsEnable;
+
+            // Secure Boot: enable button if not currently enabled
+            bool secureBootNeedsEnable =
+                _lastBiosResult.SecureBootEnabled != null &&
+                !_lastBiosResult.SecureBootEnabled.Equals("Enabled", StringComparison.OrdinalIgnoreCase);
+
+            btnEnableSecureBoot.Enabled = secureBootNeedsEnable;
+
+            // Update status to show what's available
+            if (!tpmNeedsEnable && !secureBootNeedsEnable)
+                lblBiosActionStatus.Text = "TPM and Secure Boot are already enabled";
+            else
+                lblBiosActionStatus.Text = "";
         }
 
         private void SetBiosQueryBusy(bool busy, string statusText)

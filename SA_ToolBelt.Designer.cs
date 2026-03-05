@@ -198,7 +198,7 @@ namespace SA_ToolBelt
             lblWinToolsSubtitle = new Label();
             gbxBiosQuery = new GroupBox();
             lblBiosComputerName = new Label();
-            txbBiosComputerName = new TextBox();
+            cbxBiosComputerName = new ComboBox();
             btnQueryBios = new Button();
             btnTestWmiConnection = new Button();
             btnClearBiosResults = new Button();
@@ -206,42 +206,36 @@ namespace SA_ToolBelt
             lblBiosQueryStatus = new Label();
             lblBiosQueryStatusValue = new Label();
             pgbBiosQuery = new ProgressBar();
-            pnlSystemInfo = new Panel();
-            lblSystemInfoHeader = new Label();
-            lblManufacturerTag = new Label();
-            lblManufacturerValue = new Label();
-            lblModelTag = new Label();
-            lblModelValue = new Label();
-            lblSerialTag = new Label();
-            lblSerialValue = new Label();
-            lblBiosVersionTag = new Label();
-            lblBiosVersionValue = new Label();
-            lblBiosDateTag = new Label();
-            lblBiosDateValue = new Label();
-            lblOsNameTag = new Label();
-            lblOsNameValue = new Label();
-            lblOsVersionTag = new Label();
-            lblOsVersionValue = new Label();
-            lblOsArchTag = new Label();
-            lblOsArchValue = new Label();
-            pnlSecurityStatus = new Panel();
-            lblSecurityHeader = new Label();
-            lblTpmPresentTag = new Label();
-            lblTpmPresentValue = new Label();
-            lblTpmVersionTag = new Label();
-            lblTpmVersionValue = new Label();
-            lblTpmEnabledTag = new Label();
-            lblTpmEnabledValue = new Label();
-            lblTpmActivatedTag = new Label();
-            lblTpmActivatedValue = new Label();
-            lblSecureBootTag = new Label();
-            lblSecureBootValue = new Label();
+
+            gbxBiosActions = new GroupBox();
+            lblBiosPasswordTag = new Label();
+            txbBiosPassword = new TextBox();
+            btnEnableTpm = new Button();
+            btnEnableSecureBoot = new Button();
+            lblBiosActionStatus = new Label();
+            lblBiosRebootNote = new Label();
+
             pnlHpBiosSettings = new Panel();
             lblHpBiosHeader = new Label();
             lblBiosFilterTag = new Label();
             txbBiosSettingsFilter = new TextBox();
             lblBiosSettingsCount = new Label();
             dgvHpBiosSettings = new DataGridView();
+            colComputerName = new DataGridViewTextBoxColumn();
+            colAssignedTo = new DataGridViewTextBoxColumn();
+            colBiosManufacturer = new DataGridViewTextBoxColumn();
+            colBiosModel = new DataGridViewTextBoxColumn();
+            colBiosSerialNumber = new DataGridViewTextBoxColumn();
+            colBiosVersion = new DataGridViewTextBoxColumn();
+            colBiosDate = new DataGridViewTextBoxColumn();
+            colBiosOperatingSystem = new DataGridViewTextBoxColumn();
+            colOsVersion = new DataGridViewTextBoxColumn();
+            colBiosArchitecture = new DataGridViewTextBoxColumn();
+            colBiosTpmPresent = new DataGridViewTextBoxColumn();
+            colBiosTpmVersion = new DataGridViewTextBoxColumn();
+            colBiosTpmEnabled = new DataGridViewTextBoxColumn();
+            colBiosTpmActivated = new DataGridViewTextBoxColumn();
+            colBiosSecureBoot = new DataGridViewTextBoxColumn();
             colBiosCategory = new DataGridViewTextBoxColumn();
             colBiosSettingName = new DataGridViewTextBoxColumn();
             colBiosSettingValue = new DataGridViewTextBoxColumn();
@@ -543,8 +537,8 @@ namespace SA_ToolBelt
             tabBiosTools.SuspendLayout();
             pnlWinToolsHeader.SuspendLayout();
             gbxBiosQuery.SuspendLayout();
-            pnlSystemInfo.SuspendLayout();
-            pnlSecurityStatus.SuspendLayout();
+            gbxBiosActions.SuspendLayout();
+
             pnlHpBiosSettings.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).BeginInit();
             tabLinuxTools.SuspendLayout();
@@ -2336,8 +2330,7 @@ namespace SA_ToolBelt
             tabBiosTools.BackColor = Color.FromArgb(245, 247, 250);
             tabBiosTools.Controls.Add(pnlWinToolsHeader);
             tabBiosTools.Controls.Add(gbxBiosQuery);
-            tabBiosTools.Controls.Add(pnlSystemInfo);
-            tabBiosTools.Controls.Add(pnlSecurityStatus);
+            tabBiosTools.Controls.Add(gbxBiosActions);
             tabBiosTools.Controls.Add(pnlHpBiosSettings);
             tabBiosTools.Location = new Point(4, 24);
             tabBiosTools.Name = "tabBiosTools";
@@ -2384,7 +2377,7 @@ namespace SA_ToolBelt
             // 
             gbxBiosQuery.BackColor = Color.White;
             gbxBiosQuery.Controls.Add(lblBiosComputerName);
-            gbxBiosQuery.Controls.Add(txbBiosComputerName);
+            gbxBiosQuery.Controls.Add(cbxBiosComputerName);
             gbxBiosQuery.Controls.Add(btnQueryBios);
             gbxBiosQuery.Controls.Add(btnTestWmiConnection);
             gbxBiosQuery.Controls.Add(btnClearBiosResults);
@@ -2413,15 +2406,14 @@ namespace SA_ToolBelt
             lblBiosComputerName.TabIndex = 0;
             lblBiosComputerName.Text = "Computer Name or IP:";
             // 
-            // txbBiosComputerName
+            // cbxBiosComputerName
             // 
-            txbBiosComputerName.BorderStyle = BorderStyle.FixedSingle;
-            txbBiosComputerName.Font = new Font("Segoe UI", 10F);
-            txbBiosComputerName.Location = new Point(14, 50);
-            txbBiosComputerName.Name = "txbBiosComputerName";
-            txbBiosComputerName.Size = new Size(335, 25);
-            txbBiosComputerName.TabIndex = 1;
-            txbBiosComputerName.KeyDown += txbBiosComputerName_KeyDown;
+            cbxBiosComputerName.Font = new Font("Segoe UI", 10F);
+            cbxBiosComputerName.Location = new Point(14, 50);
+            cbxBiosComputerName.Name = "cbxBiosComputerName";
+            cbxBiosComputerName.Size = new Size(335, 25);
+            cbxBiosComputerName.TabIndex = 1;
+            cbxBiosComputerName.KeyDown += cbxBiosComputerName_KeyDown;
             // 
             // btnQueryBios
             // 
@@ -2522,365 +2514,109 @@ namespace SA_ToolBelt
             pgbBiosQuery.Style = ProgressBarStyle.Marquee;
             pgbBiosQuery.TabIndex = 8;
             pgbBiosQuery.Visible = false;
-            // 
-            // pnlSystemInfo
-            // 
-            pnlSystemInfo.BackColor = Color.White;
-            pnlSystemInfo.BorderStyle = BorderStyle.FixedSingle;
-            pnlSystemInfo.Controls.Add(lblSystemInfoHeader);
-            pnlSystemInfo.Controls.Add(lblManufacturerTag);
-            pnlSystemInfo.Controls.Add(lblManufacturerValue);
-            pnlSystemInfo.Controls.Add(lblModelTag);
-            pnlSystemInfo.Controls.Add(lblModelValue);
-            pnlSystemInfo.Controls.Add(lblSerialTag);
-            pnlSystemInfo.Controls.Add(lblSerialValue);
-            pnlSystemInfo.Controls.Add(lblBiosVersionTag);
-            pnlSystemInfo.Controls.Add(lblBiosVersionValue);
-            pnlSystemInfo.Controls.Add(lblBiosDateTag);
-            pnlSystemInfo.Controls.Add(lblBiosDateValue);
-            pnlSystemInfo.Controls.Add(lblOsNameTag);
-            pnlSystemInfo.Controls.Add(lblOsNameValue);
-            pnlSystemInfo.Controls.Add(lblOsVersionTag);
-            pnlSystemInfo.Controls.Add(lblOsVersionValue);
-            pnlSystemInfo.Controls.Add(lblOsArchTag);
-            pnlSystemInfo.Controls.Add(lblOsArchValue);
-            pnlSystemInfo.Location = new Point(10, 290);
-            pnlSystemInfo.Name = "pnlSystemInfo";
-            pnlSystemInfo.Size = new Size(365, 264);
-            pnlSystemInfo.TabIndex = 2;
-            // 
-            // lblSystemInfoHeader
-            // 
-            lblSystemInfoHeader.BackColor = Color.FromArgb(44, 62, 80);
-            lblSystemInfoHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblSystemInfoHeader.ForeColor = Color.White;
-            lblSystemInfoHeader.Location = new Point(0, 0);
-            lblSystemInfoHeader.Name = "lblSystemInfoHeader";
-            lblSystemInfoHeader.Size = new Size(365, 32);
-            lblSystemInfoHeader.TabIndex = 0;
-            lblSystemInfoHeader.Text = "  SYSTEM INFORMATION";
-            lblSystemInfoHeader.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblManufacturerTag
-            // 
-            lblManufacturerTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblManufacturerTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblManufacturerTag.Location = new Point(14, 40);
-            lblManufacturerTag.Name = "lblManufacturerTag";
-            lblManufacturerTag.Size = new Size(140, 22);
-            lblManufacturerTag.TabIndex = 1;
-            lblManufacturerTag.Text = "Manufacturer:";
-            lblManufacturerTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblManufacturerValue
-            // 
-            lblManufacturerValue.Font = new Font("Segoe UI", 9.5F);
-            lblManufacturerValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblManufacturerValue.Location = new Point(158, 40);
-            lblManufacturerValue.Name = "lblManufacturerValue";
-            lblManufacturerValue.Size = new Size(200, 22);
-            lblManufacturerValue.TabIndex = 2;
-            lblManufacturerValue.Text = "—";
-            lblManufacturerValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblModelTag
-            // 
-            lblModelTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblModelTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblModelTag.Location = new Point(14, 66);
-            lblModelTag.Name = "lblModelTag";
-            lblModelTag.Size = new Size(140, 22);
-            lblModelTag.TabIndex = 3;
-            lblModelTag.Text = "Model:";
-            lblModelTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblModelValue
-            // 
-            lblModelValue.Font = new Font("Segoe UI", 9.5F);
-            lblModelValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblModelValue.Location = new Point(158, 66);
-            lblModelValue.Name = "lblModelValue";
-            lblModelValue.Size = new Size(200, 22);
-            lblModelValue.TabIndex = 4;
-            lblModelValue.Text = "—";
-            lblModelValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblSerialTag
-            // 
-            lblSerialTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblSerialTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblSerialTag.Location = new Point(14, 92);
-            lblSerialTag.Name = "lblSerialTag";
-            lblSerialTag.Size = new Size(140, 22);
-            lblSerialTag.TabIndex = 5;
-            lblSerialTag.Text = "Serial Number:";
-            lblSerialTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblSerialValue
-            // 
-            lblSerialValue.Font = new Font("Segoe UI", 9.5F);
-            lblSerialValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblSerialValue.Location = new Point(158, 92);
-            lblSerialValue.Name = "lblSerialValue";
-            lblSerialValue.Size = new Size(200, 22);
-            lblSerialValue.TabIndex = 6;
-            lblSerialValue.Text = "—";
-            lblSerialValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblBiosVersionTag
-            // 
-            lblBiosVersionTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblBiosVersionTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblBiosVersionTag.Location = new Point(14, 118);
-            lblBiosVersionTag.Name = "lblBiosVersionTag";
-            lblBiosVersionTag.Size = new Size(140, 22);
-            lblBiosVersionTag.TabIndex = 7;
-            lblBiosVersionTag.Text = "BIOS Version:";
-            lblBiosVersionTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblBiosVersionValue
-            // 
-            lblBiosVersionValue.Font = new Font("Segoe UI", 9.5F);
-            lblBiosVersionValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblBiosVersionValue.Location = new Point(158, 118);
-            lblBiosVersionValue.Name = "lblBiosVersionValue";
-            lblBiosVersionValue.Size = new Size(200, 22);
-            lblBiosVersionValue.TabIndex = 8;
-            lblBiosVersionValue.Text = "—";
-            lblBiosVersionValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblBiosDateTag
-            // 
-            lblBiosDateTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblBiosDateTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblBiosDateTag.Location = new Point(14, 144);
-            lblBiosDateTag.Name = "lblBiosDateTag";
-            lblBiosDateTag.Size = new Size(140, 22);
-            lblBiosDateTag.TabIndex = 9;
-            lblBiosDateTag.Text = "BIOS Date:";
-            lblBiosDateTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblBiosDateValue
-            // 
-            lblBiosDateValue.Font = new Font("Segoe UI", 9.5F);
-            lblBiosDateValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblBiosDateValue.Location = new Point(158, 144);
-            lblBiosDateValue.Name = "lblBiosDateValue";
-            lblBiosDateValue.Size = new Size(200, 22);
-            lblBiosDateValue.TabIndex = 10;
-            lblBiosDateValue.Text = "—";
-            lblBiosDateValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblOsNameTag
-            // 
-            lblOsNameTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblOsNameTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblOsNameTag.Location = new Point(14, 170);
-            lblOsNameTag.Name = "lblOsNameTag";
-            lblOsNameTag.Size = new Size(140, 22);
-            lblOsNameTag.TabIndex = 11;
-            lblOsNameTag.Text = "Operating System:";
-            lblOsNameTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblOsNameValue
-            // 
-            lblOsNameValue.Font = new Font("Segoe UI", 9.5F);
-            lblOsNameValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblOsNameValue.Location = new Point(158, 170);
-            lblOsNameValue.Name = "lblOsNameValue";
-            lblOsNameValue.Size = new Size(200, 22);
-            lblOsNameValue.TabIndex = 12;
-            lblOsNameValue.Text = "—";
-            lblOsNameValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblOsVersionTag
-            // 
-            lblOsVersionTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblOsVersionTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblOsVersionTag.Location = new Point(14, 196);
-            lblOsVersionTag.Name = "lblOsVersionTag";
-            lblOsVersionTag.Size = new Size(140, 22);
-            lblOsVersionTag.TabIndex = 13;
-            lblOsVersionTag.Text = "OS Version:";
-            lblOsVersionTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblOsVersionValue
-            // 
-            lblOsVersionValue.Font = new Font("Segoe UI", 9.5F);
-            lblOsVersionValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblOsVersionValue.Location = new Point(158, 196);
-            lblOsVersionValue.Name = "lblOsVersionValue";
-            lblOsVersionValue.Size = new Size(200, 22);
-            lblOsVersionValue.TabIndex = 14;
-            lblOsVersionValue.Text = "—";
-            lblOsVersionValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblOsArchTag
-            // 
-            lblOsArchTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblOsArchTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblOsArchTag.Location = new Point(14, 222);
-            lblOsArchTag.Name = "lblOsArchTag";
-            lblOsArchTag.Size = new Size(140, 22);
-            lblOsArchTag.TabIndex = 15;
-            lblOsArchTag.Text = "Architecture:";
-            lblOsArchTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblOsArchValue
-            // 
-            lblOsArchValue.Font = new Font("Segoe UI", 9.5F);
-            lblOsArchValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblOsArchValue.Location = new Point(158, 222);
-            lblOsArchValue.Name = "lblOsArchValue";
-            lblOsArchValue.Size = new Size(200, 22);
-            lblOsArchValue.TabIndex = 16;
-            lblOsArchValue.Text = "—";
-            lblOsArchValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // pnlSecurityStatus
-            // 
-            pnlSecurityStatus.BackColor = Color.White;
-            pnlSecurityStatus.BorderStyle = BorderStyle.FixedSingle;
-            pnlSecurityStatus.Controls.Add(lblSecurityHeader);
-            pnlSecurityStatus.Controls.Add(lblTpmPresentTag);
-            pnlSecurityStatus.Controls.Add(lblTpmPresentValue);
-            pnlSecurityStatus.Controls.Add(lblTpmVersionTag);
-            pnlSecurityStatus.Controls.Add(lblTpmVersionValue);
-            pnlSecurityStatus.Controls.Add(lblTpmEnabledTag);
-            pnlSecurityStatus.Controls.Add(lblTpmEnabledValue);
-            pnlSecurityStatus.Controls.Add(lblTpmActivatedTag);
-            pnlSecurityStatus.Controls.Add(lblTpmActivatedValue);
-            pnlSecurityStatus.Controls.Add(lblSecureBootTag);
-            pnlSecurityStatus.Controls.Add(lblSecureBootValue);
-            pnlSecurityStatus.Location = new Point(10, 562);
-            pnlSecurityStatus.Name = "pnlSecurityStatus";
-            pnlSecurityStatus.Size = new Size(365, 194);
-            pnlSecurityStatus.TabIndex = 3;
-            // 
-            // lblSecurityHeader
-            // 
-            lblSecurityHeader.BackColor = Color.FromArgb(44, 62, 80);
-            lblSecurityHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblSecurityHeader.ForeColor = Color.White;
-            lblSecurityHeader.Location = new Point(0, 0);
-            lblSecurityHeader.Name = "lblSecurityHeader";
-            lblSecurityHeader.Size = new Size(365, 32);
-            lblSecurityHeader.TabIndex = 0;
-            lblSecurityHeader.Text = "  SECURITY STATUS";
-            lblSecurityHeader.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmPresentTag
-            // 
-            lblTpmPresentTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblTpmPresentTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblTpmPresentTag.Location = new Point(14, 40);
-            lblTpmPresentTag.Name = "lblTpmPresentTag";
-            lblTpmPresentTag.Size = new Size(140, 22);
-            lblTpmPresentTag.TabIndex = 1;
-            lblTpmPresentTag.Text = "TPM Present:";
-            lblTpmPresentTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmPresentValue
-            // 
-            lblTpmPresentValue.Font = new Font("Segoe UI", 9.5F);
-            lblTpmPresentValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblTpmPresentValue.Location = new Point(158, 40);
-            lblTpmPresentValue.Name = "lblTpmPresentValue";
-            lblTpmPresentValue.Size = new Size(200, 22);
-            lblTpmPresentValue.TabIndex = 2;
-            lblTpmPresentValue.Text = "—";
-            lblTpmPresentValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmVersionTag
-            // 
-            lblTpmVersionTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblTpmVersionTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblTpmVersionTag.Location = new Point(14, 68);
-            lblTpmVersionTag.Name = "lblTpmVersionTag";
-            lblTpmVersionTag.Size = new Size(140, 22);
-            lblTpmVersionTag.TabIndex = 3;
-            lblTpmVersionTag.Text = "TPM Version:";
-            lblTpmVersionTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmVersionValue
-            // 
-            lblTpmVersionValue.Font = new Font("Segoe UI", 9.5F);
-            lblTpmVersionValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblTpmVersionValue.Location = new Point(158, 68);
-            lblTpmVersionValue.Name = "lblTpmVersionValue";
-            lblTpmVersionValue.Size = new Size(200, 22);
-            lblTpmVersionValue.TabIndex = 4;
-            lblTpmVersionValue.Text = "—";
-            lblTpmVersionValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmEnabledTag
-            // 
-            lblTpmEnabledTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblTpmEnabledTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblTpmEnabledTag.Location = new Point(14, 96);
-            lblTpmEnabledTag.Name = "lblTpmEnabledTag";
-            lblTpmEnabledTag.Size = new Size(140, 22);
-            lblTpmEnabledTag.TabIndex = 5;
-            lblTpmEnabledTag.Text = "TPM Enabled:";
-            lblTpmEnabledTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmEnabledValue
-            // 
-            lblTpmEnabledValue.Font = new Font("Segoe UI", 9.5F);
-            lblTpmEnabledValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblTpmEnabledValue.Location = new Point(158, 96);
-            lblTpmEnabledValue.Name = "lblTpmEnabledValue";
-            lblTpmEnabledValue.Size = new Size(200, 22);
-            lblTpmEnabledValue.TabIndex = 6;
-            lblTpmEnabledValue.Text = "—";
-            lblTpmEnabledValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmActivatedTag
-            // 
-            lblTpmActivatedTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblTpmActivatedTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblTpmActivatedTag.Location = new Point(14, 124);
-            lblTpmActivatedTag.Name = "lblTpmActivatedTag";
-            lblTpmActivatedTag.Size = new Size(140, 22);
-            lblTpmActivatedTag.TabIndex = 7;
-            lblTpmActivatedTag.Text = "TPM Activated:";
-            lblTpmActivatedTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblTpmActivatedValue
-            // 
-            lblTpmActivatedValue.Font = new Font("Segoe UI", 9.5F);
-            lblTpmActivatedValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblTpmActivatedValue.Location = new Point(158, 124);
-            lblTpmActivatedValue.Name = "lblTpmActivatedValue";
-            lblTpmActivatedValue.Size = new Size(200, 22);
-            lblTpmActivatedValue.TabIndex = 8;
-            lblTpmActivatedValue.Text = "—";
-            lblTpmActivatedValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblSecureBootTag
-            // 
-            lblSecureBootTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblSecureBootTag.ForeColor = Color.FromArgb(108, 117, 125);
-            lblSecureBootTag.Location = new Point(14, 152);
-            lblSecureBootTag.Name = "lblSecureBootTag";
-            lblSecureBootTag.Size = new Size(140, 22);
-            lblSecureBootTag.TabIndex = 9;
-            lblSecureBootTag.Text = "Secure Boot:";
-            lblSecureBootTag.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblSecureBootValue
-            // 
-            lblSecureBootValue.Font = new Font("Segoe UI", 9.5F);
-            lblSecureBootValue.ForeColor = Color.FromArgb(33, 37, 41);
-            lblSecureBootValue.Location = new Point(158, 152);
-            lblSecureBootValue.Name = "lblSecureBootValue";
-            lblSecureBootValue.Size = new Size(200, 22);
-            lblSecureBootValue.TabIndex = 10;
-            lblSecureBootValue.Text = "—";
-            lblSecureBootValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
+
+            //
+            // gbxBiosActions
+            //
+            gbxBiosActions.BackColor = Color.FromArgb(245, 247, 250);
+            gbxBiosActions.Controls.Add(lblBiosPasswordTag);
+            gbxBiosActions.Controls.Add(txbBiosPassword);
+            gbxBiosActions.Controls.Add(btnEnableTpm);
+            gbxBiosActions.Controls.Add(btnEnableSecureBoot);
+            gbxBiosActions.Controls.Add(lblBiosActionStatus);
+            gbxBiosActions.Controls.Add(lblBiosRebootNote);
+            gbxBiosActions.FlatStyle = FlatStyle.Flat;
+            gbxBiosActions.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            gbxBiosActions.ForeColor = Color.FromArgb(30, 58, 95);
+            gbxBiosActions.Location = new Point(383, 72);
+            gbxBiosActions.Name = "gbxBiosActions";
+            gbxBiosActions.Size = new Size(400, 210);
+            gbxBiosActions.TabIndex = 5;
+            gbxBiosActions.TabStop = false;
+            gbxBiosActions.Text = "BIOS Actions (HP Only)";
+            //
+            // lblBiosPasswordTag
+            //
+            lblBiosPasswordTag.AutoSize = true;
+            lblBiosPasswordTag.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblBiosPasswordTag.ForeColor = Color.FromArgb(33, 37, 41);
+            lblBiosPasswordTag.Location = new Point(14, 30);
+            lblBiosPasswordTag.Name = "lblBiosPasswordTag";
+            lblBiosPasswordTag.Size = new Size(131, 15);
+            lblBiosPasswordTag.TabIndex = 0;
+            lblBiosPasswordTag.Text = "BIOS Setup Password:";
+            //
+            // txbBiosPassword
+            //
+            txbBiosPassword.BorderStyle = BorderStyle.FixedSingle;
+            txbBiosPassword.Font = new Font("Segoe UI", 10F);
+            txbBiosPassword.Location = new Point(14, 50);
+            txbBiosPassword.Name = "txbBiosPassword";
+            txbBiosPassword.PasswordChar = '\u25CF';
+            txbBiosPassword.PlaceholderText = "Leave blank if none set";
+            txbBiosPassword.Size = new Size(370, 25);
+            txbBiosPassword.TabIndex = 1;
+            //
+            // btnEnableTpm
+            //
+            btnEnableTpm.BackColor = Color.FromArgb(40, 167, 69);
+            btnEnableTpm.Cursor = Cursors.Hand;
+            btnEnableTpm.Enabled = false;
+            btnEnableTpm.FlatAppearance.BorderSize = 0;
+            btnEnableTpm.FlatAppearance.MouseOverBackColor = Color.FromArgb(55, 185, 88);
+            btnEnableTpm.FlatStyle = FlatStyle.Flat;
+            btnEnableTpm.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            btnEnableTpm.ForeColor = Color.White;
+            btnEnableTpm.Location = new Point(14, 90);
+            btnEnableTpm.Name = "btnEnableTpm";
+            btnEnableTpm.Size = new Size(180, 36);
+            btnEnableTpm.TabIndex = 2;
+            btnEnableTpm.Text = "Enable TPM";
+            btnEnableTpm.UseVisualStyleBackColor = false;
+            btnEnableTpm.Click += btnEnableTpm_Click;
+            //
+            // btnEnableSecureBoot
+            //
+            btnEnableSecureBoot.BackColor = Color.FromArgb(40, 167, 69);
+            btnEnableSecureBoot.Cursor = Cursors.Hand;
+            btnEnableSecureBoot.Enabled = false;
+            btnEnableSecureBoot.FlatAppearance.BorderSize = 0;
+            btnEnableSecureBoot.FlatAppearance.MouseOverBackColor = Color.FromArgb(55, 185, 88);
+            btnEnableSecureBoot.FlatStyle = FlatStyle.Flat;
+            btnEnableSecureBoot.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            btnEnableSecureBoot.ForeColor = Color.White;
+            btnEnableSecureBoot.Location = new Point(204, 90);
+            btnEnableSecureBoot.Name = "btnEnableSecureBoot";
+            btnEnableSecureBoot.Size = new Size(180, 36);
+            btnEnableSecureBoot.TabIndex = 3;
+            btnEnableSecureBoot.Text = "Enable Secure Boot";
+            btnEnableSecureBoot.UseVisualStyleBackColor = false;
+            btnEnableSecureBoot.Click += btnEnableSecureBoot_Click;
+            //
+            // lblBiosActionStatus
+            //
+            lblBiosActionStatus.Font = new Font("Segoe UI", 8.5F);
+            lblBiosActionStatus.ForeColor = Color.FromArgb(108, 117, 125);
+            lblBiosActionStatus.Location = new Point(14, 135);
+            lblBiosActionStatus.Name = "lblBiosActionStatus";
+            lblBiosActionStatus.Size = new Size(370, 40);
+            lblBiosActionStatus.TabIndex = 4;
+            lblBiosActionStatus.Text = "";
+            //
+            // lblBiosRebootNote
+            //
+            lblBiosRebootNote.AutoSize = true;
+            lblBiosRebootNote.Font = new Font("Segoe UI", 8F, FontStyle.Italic);
+            lblBiosRebootNote.ForeColor = Color.FromArgb(108, 117, 125);
+            lblBiosRebootNote.Location = new Point(14, 185);
+            lblBiosRebootNote.Name = "lblBiosRebootNote";
+            lblBiosRebootNote.Size = new Size(275, 13);
+            lblBiosRebootNote.TabIndex = 5;
+            lblBiosRebootNote.Text = "* BIOS changes require a reboot to take effect";
+
+            //
             // pnlHpBiosSettings
-            // 
+            //
             pnlHpBiosSettings.BackColor = Color.White;
             pnlHpBiosSettings.BorderStyle = BorderStyle.FixedSingle;
             pnlHpBiosSettings.Controls.Add(lblHpBiosHeader);
@@ -2888,9 +2624,9 @@ namespace SA_ToolBelt
             pnlHpBiosSettings.Controls.Add(txbBiosSettingsFilter);
             pnlHpBiosSettings.Controls.Add(lblBiosSettingsCount);
             pnlHpBiosSettings.Controls.Add(dgvHpBiosSettings);
-            pnlHpBiosSettings.Location = new Point(383, 72);
+            pnlHpBiosSettings.Location = new Point(10, 290);
             pnlHpBiosSettings.Name = "pnlHpBiosSettings";
-            pnlHpBiosSettings.Size = new Size(1258, 684);
+            pnlHpBiosSettings.Size = new Size(1631, 547);
             pnlHpBiosSettings.TabIndex = 4;
             // 
             // lblHpBiosHeader
@@ -2900,7 +2636,7 @@ namespace SA_ToolBelt
             lblHpBiosHeader.ForeColor = Color.White;
             lblHpBiosHeader.Location = new Point(0, 0);
             lblHpBiosHeader.Name = "lblHpBiosHeader";
-            lblHpBiosHeader.Size = new Size(1258, 32);
+            lblHpBiosHeader.Size = new Size(1629, 32);
             lblHpBiosHeader.TabIndex = 0;
             lblHpBiosHeader.Text = "  HP BIOS SETTINGS";
             lblHpBiosHeader.TextAlign = ContentAlignment.MiddleLeft;
@@ -2958,6 +2694,16 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle11;
             dgvHpBiosSettings.ColumnHeadersHeight = 36;
             dgvHpBiosSettings.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colComputerName, colAssignedTo, colBiosManufacturer, colBiosModel, colBiosSerialNumber, colBiosVersion, colBiosDate, colBiosOperatingSystem, colOsVersion, colBiosArchitecture, colBiosTpmPresent, colBiosTpmVersion, colBiosTpmEnabled, colBiosTpmActivated, colBiosSecureBoot, colBiosCategory, colBiosSettingName, colBiosSettingValue });
+            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = Color.White;
+            dataGridViewCellStyle6.Font = new Font("Segoe UI", 9.5F);
+            dataGridViewCellStyle6.ForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle6.Padding = new Padding(6, 2, 6, 2);
+            dataGridViewCellStyle6.SelectionBackColor = Color.FromArgb(220, 235, 252);
+            dataGridViewCellStyle6.SelectionForeColor = Color.FromArgb(33, 37, 41);
+            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.False;
+            dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle6;
             dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colBiosCategory, colBiosSettingName, colBiosSettingValue });
             dataGridViewCellStyle12.Alignment = DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle12.BackColor = Color.White;
@@ -2978,11 +2724,116 @@ namespace SA_ToolBelt
             dgvHpBiosSettings.RowHeadersVisible = false;
             dgvHpBiosSettings.RowTemplate.Height = 30;
             dgvHpBiosSettings.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvHpBiosSettings.Size = new Size(1242, 608);
+            dgvHpBiosSettings.Size = new Size(1613, 469);
             dgvHpBiosSettings.TabIndex = 4;
-            // 
+            //
+            // colComputerName
+            //
+            colComputerName.HeaderText = "Computer Name";
+            colComputerName.Name = "colComputerName";
+            colComputerName.ReadOnly = true;
+            colComputerName.Width = 150;
+            //
+            // colAssignedTo
+            //
+            colAssignedTo.HeaderText = "Assigned To";
+            colAssignedTo.Name = "colAssignedTo";
+            colAssignedTo.ReadOnly = true;
+            colAssignedTo.Width = 150;
+            //
+            // colBiosManufacturer
+            //
+            colBiosManufacturer.HeaderText = "Manufacturer";
+            colBiosManufacturer.Name = "colBiosManufacturer";
+            colBiosManufacturer.ReadOnly = true;
+            colBiosManufacturer.Width = 150;
+            //
+            // colBiosModel
+            //
+            colBiosModel.HeaderText = "Model";
+            colBiosModel.Name = "colBiosModel";
+            colBiosModel.ReadOnly = true;
+            colBiosModel.Width = 150;
+            //
+            // colBiosSerialNumber
+            //
+            colBiosSerialNumber.HeaderText = "Serial Number";
+            colBiosSerialNumber.Name = "colBiosSerialNumber";
+            colBiosSerialNumber.ReadOnly = true;
+            colBiosSerialNumber.Width = 150;
+            //
+            // colBiosVersion
+            //
+            colBiosVersion.HeaderText = "BIOS Version";
+            colBiosVersion.Name = "colBiosVersion";
+            colBiosVersion.ReadOnly = true;
+            colBiosVersion.Width = 150;
+            //
+            // colBiosDate
+            //
+            colBiosDate.HeaderText = "BIOS Date";
+            colBiosDate.Name = "colBiosDate";
+            colBiosDate.ReadOnly = true;
+            colBiosDate.Width = 120;
+            //
+            // colBiosOperatingSystem
+            //
+            colBiosOperatingSystem.HeaderText = "Operating System";
+            colBiosOperatingSystem.Name = "colBiosOperatingSystem";
+            colBiosOperatingSystem.ReadOnly = true;
+            colBiosOperatingSystem.Width = 200;
+            //
+            // colOsVersion
+            //
+            colOsVersion.HeaderText = "OS Version";
+            colOsVersion.Name = "colOsVersion";
+            colOsVersion.ReadOnly = true;
+            colOsVersion.Width = 120;
+            //
+            // colBiosArchitecture
+            //
+            colBiosArchitecture.HeaderText = "Architecture";
+            colBiosArchitecture.Name = "colBiosArchitecture";
+            colBiosArchitecture.ReadOnly = true;
+            colBiosArchitecture.Width = 100;
+            //
+            // colBiosTpmPresent
+            //
+            colBiosTpmPresent.HeaderText = "TPM Present";
+            colBiosTpmPresent.Name = "colBiosTpmPresent";
+            colBiosTpmPresent.ReadOnly = true;
+            colBiosTpmPresent.Width = 100;
+            //
+            // colBiosTpmVersion
+            //
+            colBiosTpmVersion.HeaderText = "TPM Version";
+            colBiosTpmVersion.Name = "colBiosTpmVersion";
+            colBiosTpmVersion.ReadOnly = true;
+            colBiosTpmVersion.Width = 110;
+            //
+            // colBiosTpmEnabled
+            //
+            colBiosTpmEnabled.HeaderText = "TPM Enabled";
+            colBiosTpmEnabled.Name = "colBiosTpmEnabled";
+            colBiosTpmEnabled.ReadOnly = true;
+            colBiosTpmEnabled.Width = 100;
+            //
+            // colBiosTpmActivated
+            //
+            colBiosTpmActivated.HeaderText = "TPM Activated";
+            colBiosTpmActivated.Name = "colBiosTpmActivated";
+            colBiosTpmActivated.ReadOnly = true;
+            colBiosTpmActivated.Width = 110;
+            //
+            // colBiosSecureBoot
+            //
+            colBiosSecureBoot.HeaderText = "Secure Boot";
+            colBiosSecureBoot.Name = "colBiosSecureBoot";
+            colBiosSecureBoot.ReadOnly = true;
+            colBiosSecureBoot.Width = 100;
+            //
             // colBiosCategory
-            // 
+            //
             colBiosCategory.HeaderText = "Category";
             colBiosCategory.Name = "colBiosCategory";
             colBiosCategory.ReadOnly = true;
@@ -5560,8 +5411,9 @@ namespace SA_ToolBelt
             pnlWinToolsHeader.PerformLayout();
             gbxBiosQuery.ResumeLayout(false);
             gbxBiosQuery.PerformLayout();
-            pnlSystemInfo.ResumeLayout(false);
-            pnlSecurityStatus.ResumeLayout(false);
+            gbxBiosActions.ResumeLayout(false);
+            gbxBiosActions.PerformLayout();
+
             pnlHpBiosSettings.ResumeLayout(false);
             pnlHpBiosSettings.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).EndInit();
@@ -5722,7 +5574,7 @@ namespace SA_ToolBelt
         private Label lblWinToolsSubtitle;
         private GroupBox gbxBiosQuery;
         private Label lblBiosComputerName;
-        private TextBox txbBiosComputerName;
+        private ComboBox cbxBiosComputerName;
         private Button btnQueryBios;
         private Button btnTestWmiConnection;
         private Button btnClearBiosResults;
@@ -5730,41 +5582,35 @@ namespace SA_ToolBelt
         private Label lblBiosQueryStatus;
         private Label lblBiosQueryStatusValue;
         private ProgressBar pgbBiosQuery;
-        private Panel pnlSystemInfo;
-        private Label lblSystemInfoHeader;
-        private Label lblManufacturerTag;
-        private Label lblManufacturerValue;
-        private Label lblModelTag;
-        private Label lblModelValue;
-        private Label lblSerialTag;
-        private Label lblSerialValue;
-        private Label lblBiosVersionTag;
-        private Label lblBiosVersionValue;
-        private Label lblBiosDateTag;
-        private Label lblBiosDateValue;
-        private Label lblOsNameTag;
-        private Label lblOsNameValue;
-        private Label lblOsVersionTag;
-        private Label lblOsVersionValue;
-        private Label lblOsArchTag;
-        private Label lblOsArchValue;
-        private Panel pnlSecurityStatus;
-        private Label lblSecurityHeader;
-        private Label lblTpmPresentTag;
-        private Label lblTpmPresentValue;
-        private Label lblTpmVersionTag;
-        private Label lblTpmVersionValue;
-        private Label lblTpmEnabledTag;
-        private Label lblTpmEnabledValue;
-        private Label lblTpmActivatedTag;
-        private Label lblTpmActivatedValue;
-        private Label lblSecureBootTag;
-        private Label lblSecureBootValue;
+
+        private GroupBox gbxBiosActions;
+        private Label lblBiosPasswordTag;
+        private TextBox txbBiosPassword;
+        private Button btnEnableTpm;
+        private Button btnEnableSecureBoot;
+        private Label lblBiosActionStatus;
+        private Label lblBiosRebootNote;
+
         private Panel pnlHpBiosSettings;
         private Label lblHpBiosHeader;
         private Label lblBiosFilterTag;
         private TextBox txbBiosSettingsFilter;
         private DataGridView dgvHpBiosSettings;
+        private DataGridViewTextBoxColumn colComputerName;
+        private DataGridViewTextBoxColumn colAssignedTo;
+        private DataGridViewTextBoxColumn colBiosManufacturer;
+        private DataGridViewTextBoxColumn colBiosModel;
+        private DataGridViewTextBoxColumn colBiosSerialNumber;
+        private DataGridViewTextBoxColumn colBiosVersion;
+        private DataGridViewTextBoxColumn colBiosDate;
+        private DataGridViewTextBoxColumn colBiosOperatingSystem;
+        private DataGridViewTextBoxColumn colOsVersion;
+        private DataGridViewTextBoxColumn colBiosArchitecture;
+        private DataGridViewTextBoxColumn colBiosTpmPresent;
+        private DataGridViewTextBoxColumn colBiosTpmVersion;
+        private DataGridViewTextBoxColumn colBiosTpmEnabled;
+        private DataGridViewTextBoxColumn colBiosTpmActivated;
+        private DataGridViewTextBoxColumn colBiosSecureBoot;
         private DataGridViewTextBoxColumn colBiosCategory;
         private DataGridViewTextBoxColumn colBiosSettingName;
         private DataGridViewTextBoxColumn colBiosSettingValue;
