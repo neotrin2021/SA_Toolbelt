@@ -1055,6 +1055,7 @@ namespace SA_ToolBelt
 
                             await UpdateRadioButtonCounters();
                             StartBackgroundPowerCLILoadingAsync();
+                            StartBackgroundCmslLoadingAsync();
                             await PopulateDefaultSecurityGroupsAsync();
                             await LoadOnlineOfflineTabAsync();
                             await CheckAllOnlineOfflineStatusAsync();
@@ -3851,6 +3852,41 @@ namespace SA_ToolBelt
             {
                 _consoleForm.WriteError($"Failed to load PowerCLI in background: {ex.Message}");
                 _consoleForm.WriteWarning("VMware features may not be available. Please check the PowerCLI module path.");
+            }
+        }
+
+        /// <summary>
+        /// Start loading HP CMSL in the background after login.
+        /// CMSL is installed system-wide via the HP CMSL installer (hp-cmsl-x.x.x.exe),
+        /// so no module path configuration is required — Import-Module HP.ClientManagement
+        /// resolves automatically from the standard PowerShell module path.
+        /// </summary>
+        private async void StartBackgroundCmslLoadingAsync()
+        {
+            try
+            {
+                _consoleForm.WriteInfo("Starting HP CMSL background loading...");
+                _consoleForm.WriteInfo("You can continue working while CMSL loads. HP BIOS features will use CMSL when loading completes.");
+
+                bool loaded = await _biosTools.InitializeCmslAsync();
+
+                if (loaded)
+                {
+                    _consoleForm.WriteSuccess("========================================");
+                    _consoleForm.WriteSuccess("HP CMSL is now loaded and ready!");
+                    _consoleForm.WriteSuccess("HP BIOS operations will use CMSL.");
+                    _consoleForm.WriteSuccess("========================================");
+                }
+                else
+                {
+                    _consoleForm.WriteWarning("HP CMSL not available — HP BIOS operations will use WMI fallback.");
+                    _consoleForm.WriteWarning("Install HP CMSL (hp-cmsl-x.x.x.exe) to enable full CMSL support.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to load HP CMSL in background: {ex.Message}");
+                _consoleForm.WriteWarning("HP BIOS operations will fall back to WMI.");
             }
         }
 
