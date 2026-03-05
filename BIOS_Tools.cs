@@ -33,9 +33,11 @@ namespace SA_ToolBelt
 
         /// <summary>
         /// Loads the HP.ClientManagement (CMSL) module into the persistent runspace.
+        /// <paramref name="cmslModulePath"/> should be the full path to the HP.ClientManagement
+        /// folder (e.g. \\share\CMSL\HP.ClientManagement), matching the PowerCLI pattern.
         /// Returns true if CMSL loaded successfully. On failure, WMI fallbacks remain active.
         /// </summary>
-        public async Task<bool> InitializeCmslAsync()
+        public async Task<bool> InitializeCmslAsync(string cmslModulePath = null)
         {
             return await Task.Run(() =>
             {
@@ -49,8 +51,17 @@ namespace SA_ToolBelt
                     _psRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
                     _psRunspace.Invoke();
 
+                    // Load from configured path if provided, otherwise try system-installed module
+                    string importScript = !string.IsNullOrWhiteSpace(cmslModulePath)
+                        ? $"Import-Module '{cmslModulePath.Replace("'", "''")}' -ErrorAction Stop"
+                        : "Import-Module HP.ClientManagement -ErrorAction Stop";
+
+                    _consoleForm?.WriteInfo(!string.IsNullOrWhiteSpace(cmslModulePath)
+                        ? $"  Loading HP CMSL from: {cmslModulePath}"
+                        : "  Loading HP CMSL from system module path");
+
                     _psRunspace.Commands.Clear();
-                    _psRunspace.AddScript("Import-Module HP.ClientManagement -ErrorAction Stop");
+                    _psRunspace.AddScript(importScript);
                     _psRunspace.Invoke();
 
                     if (_psRunspace.HadErrors)
