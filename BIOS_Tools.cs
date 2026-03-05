@@ -32,7 +32,14 @@ namespace SA_ToolBelt
                 return true;
 
             string name = computerName.Trim();
+
+            // Strip domain suffix so FQDNs like MYPC.domain.com match the local machine name
+            string shortName = name.Contains('.')
+                ? name.Substring(0, name.IndexOf('.'))
+                : name;
+
             return string.Equals(name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(shortName, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(name, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(name, ".", StringComparison.OrdinalIgnoreCase);
