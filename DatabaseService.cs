@@ -159,7 +159,8 @@ namespace SA_ToolBelt
                     Excluded_OU TEXT NOT NULL DEFAULT '',
                     Disabled_Users_Ou TEXT NOT NULL DEFAULT '',
                     HomeDirectory TEXT NOT NULL DEFAULT '',
-                    Linux_Ds TEXT NOT NULL DEFAULT ''
+                    Linux_Ds TEXT NOT NULL DEFAULT '',
+                    HPCMSL_Location TEXT NOT NULL DEFAULT ''
                 )",
                 @"CREATE TABLE IF NOT EXISTS ComputerList (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -200,6 +201,8 @@ namespace SA_ToolBelt
 
             // Migration: Add Linux_Ds column to existing Toolbelt_Config tables
             MigrateToolbeltConfigLinuxDs(connection);
+            // Migration: Add HPCMSL_Location column to existing Toolbelt_Config tables
+            MigrateToolbeltConfigHpCmslLocation(connection);
 
             _consoleForm?.WriteInfo("All database tables verified/created.");
         }
@@ -224,6 +227,25 @@ namespace SA_ToolBelt
                     cmd.ExecuteNonQuery();
                 }
                 _consoleForm?.WriteInfo("Migrated Toolbelt_Config: added Linux_Ds column.");
+            }
+        }
+
+        private void MigrateToolbeltConfigHpCmslLocation(SqliteConnection connection)
+        {
+            try
+            {
+                using (var cmd = new SqliteCommand("SELECT HPCMSL_Location FROM Toolbelt_Config LIMIT 1", connection))
+                {
+                    cmd.ExecuteScalar();
+                }
+            }
+            catch (SqliteException)
+            {
+                using (var cmd = new SqliteCommand("ALTER TABLE Toolbelt_Config ADD COLUMN HPCMSL_Location TEXT NOT NULL DEFAULT ''", connection))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+                _consoleForm?.WriteInfo("Migrated Toolbelt_Config: added HPCMSL_Location column.");
             }
         }
 
@@ -703,7 +725,8 @@ namespace SA_ToolBelt
         /// Saves or updates the toolbelt configuration (single-row table).
         /// </summary>
         public void SaveToolbeltConfig(string vCenterServer, string powerCliLocation, string sqlPath,
-            string excludedOu, string disabledUsersOu, string homeDirectory, string linuxDs)
+            string excludedOu, string disabledUsersOu, string homeDirectory, string linuxDs,
+            string hpCmslLocation = "")
         {
             try
             {
@@ -726,7 +749,8 @@ namespace SA_ToolBelt
                                 Excluded_OU = @excludedOu,
                                 Disabled_Users_Ou = @disabledUsers,
                                 HomeDirectory = @homeDir,
-                                Linux_Ds = @linuxDs
+                                Linux_Ds = @linuxDs,
+                                HPCMSL_Location = @hpCmsl
                                 WHERE Id = (SELECT MIN(Id) FROM Toolbelt_Config)";
 
                             using (var cmd = new SqliteCommand(updateSql, connection))
@@ -738,6 +762,7 @@ namespace SA_ToolBelt
                                 cmd.Parameters.AddWithValue("@disabledUsers", disabledUsersOu ?? "");
                                 cmd.Parameters.AddWithValue("@homeDir", homeDirectory ?? "");
                                 cmd.Parameters.AddWithValue("@linuxDs", linuxDs ?? "");
+                                cmd.Parameters.AddWithValue("@hpCmsl", hpCmslLocation ?? "");
                                 cmd.ExecuteNonQuery();
                             }
                         }
@@ -745,8 +770,8 @@ namespace SA_ToolBelt
                         {
                             // Insert new row
                             string insertSql = @"INSERT INTO Toolbelt_Config
-                                (VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds)
-                                VALUES (@vCenter, @powerCli, @sqlPath, @excludedOu, @disabledUsers, @homeDir, @linuxDs)";
+                                (VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds, HPCMSL_Location)
+                                VALUES (@vCenter, @powerCli, @sqlPath, @excludedOu, @disabledUsers, @homeDir, @linuxDs, @hpCmsl)";
 
                             using (var cmd = new SqliteCommand(insertSql, connection))
                             {
@@ -757,6 +782,7 @@ namespace SA_ToolBelt
                                 cmd.Parameters.AddWithValue("@disabledUsers", disabledUsersOu ?? "");
                                 cmd.Parameters.AddWithValue("@homeDir", homeDirectory ?? "");
                                 cmd.Parameters.AddWithValue("@linuxDs", linuxDs ?? "");
+                                cmd.Parameters.AddWithValue("@hpCmsl", hpCmslLocation ?? "");
                                 cmd.ExecuteNonQuery();
                             }
                         }
@@ -783,7 +809,7 @@ namespace SA_ToolBelt
             var allowedColumns = new HashSet<string>
             {
                 "VCenter_Server", "PowerCLI_Location", "Sql_Path",
-                "Excluded_OU", "Disabled_Users_Ou", "HomeDirectory", "Linux_Ds"
+                "Excluded_OU", "Disabled_Users_Ou", "HomeDirectory", "Linux_Ds", "HPCMSL_Location"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -837,9 +863,9 @@ namespace SA_ToolBelt
 
                 using (var connection = GetConnection())
                 {
-                    string sql = "SELECT VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds FROM Toolbelt_Config LIMIT 1";
+                    string sql = "SELECT VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds, HPCMSL_Location FROM Toolbelt_Config LIMIT 1";
 
-                    _consoleForm?.WriteInfo($"[Config Debug] Querying table \"Toolbelt_Config\" — columns: VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds");
+                    _consoleForm?.WriteInfo($"[Config Debug] Querying table \"Toolbelt_Config\" — columns: VCenter_Server, PowerCLI_Location, Sql_Path, Excluded_OU, Disabled_Users_Ou, HomeDirectory, Linux_Ds, HPCMSL_Location");
 
                     using (var cmd = new SqliteCommand(sql, connection))
                     using (var reader = cmd.ExecuteReader())
@@ -862,7 +888,8 @@ namespace SA_ToolBelt
                                 ExcludedOU = reader.GetString(3),
                                 DisabledUsersOu = reader.GetString(4),
                                 HomeDirectory = reader.GetString(5),
-                                LinuxDs = reader.IsDBNull(6) ? string.Empty : reader.GetString(6)
+                                LinuxDs = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+                                HpCmslLocation = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
                             };
                         }
                         else
@@ -1333,6 +1360,7 @@ namespace SA_ToolBelt
         public string DisabledUsersOu { get; set; } = string.Empty;
         public string HomeDirectory { get; set; } = string.Empty;
         public string LinuxDs { get; set; } = string.Empty;
+        public string HpCmslLocation { get; set; } = string.Empty;
     }
 
     public class ComputerListEntry

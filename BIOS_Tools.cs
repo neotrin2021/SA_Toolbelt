@@ -9,17 +9,115 @@ using System.Threading.Tasks;
 
 namespace SA_ToolBelt
 {
-    public class BIOS_Tools
+    public class BIOS_Tools : IDisposable
     {
         private readonly ConsoleForm _consoleForm;
+
+        // In-process PowerShell runspace for CMSL operations (mirrors VMwareManager pattern)
+        private PowerShell _psRunspace;
+        private bool _isCmslLoaded = false;
+        private bool _disposed = false;
 
         // Caches Secure Boot result from elevated TPM query so we don't trigger a second UAC prompt
         private string _tpmFallbackSecureBoot;
 
+        public bool IsCmslLoaded => _isCmslLoaded;
+
         public BIOS_Tools(ConsoleForm consoleForm = null)
         {
             _consoleForm = consoleForm;
+            _psRunspace = PowerShell.Create();
         }
+
+        #region CMSL Initialization
+
+        /// <summary>
+        /// Loads the HP.ClientManagement (CMSL) module into the persistent runspace.
+        /// <paramref name="cmslModulePath"/> should be the full path to the HP.ClientManagement
+        /// folder (e.g. \\share\CMSL\HP.ClientManagement), matching the PowerCLI pattern.
+        /// Returns true if CMSL loaded successfully. On failure, WMI fallbacks remain active.
+        /// </summary>
+        public async Task<bool> InitializeCmslAsync(string cmslModulePath = null)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    EnsureRunspaceValid();
+
+                    _consoleForm?.WriteInfo("Initializing HP CMSL module...");
+
+                    _psRunspace.Commands.Clear();
+                    _psRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
+                    _psRunspace.Invoke();
+
+                    // Load from configured path if provided, otherwise try system-installed module
+                    string importScript = !string.IsNullOrWhiteSpace(cmslModulePath)
+                        ? $"Import-Module '{cmslModulePath.Replace("'", "''")}' -ErrorAction Stop"
+                        : "Import-Module HP.ClientManagement -ErrorAction Stop";
+
+                    _consoleForm?.WriteInfo(!string.IsNullOrWhiteSpace(cmslModulePath)
+                        ? $"  Loading HP CMSL from: {cmslModulePath}"
+                        : "  Loading HP CMSL from system module path");
+
+                    _psRunspace.Commands.Clear();
+                    _psRunspace.AddScript(importScript);
+                    _psRunspace.Invoke();
+
+                    if (_psRunspace.HadErrors)
+                    {
+                        var errors = string.Join("; ", _psRunspace.Streams.Error
+                            .Select(e => e.Exception?.Message ?? e.ToString()));
+                        _consoleForm?.WriteWarning($"HP CMSL load warning: {errors}");
+
+                        // Verify module actually loaded despite errors
+                        _psRunspace.Commands.Clear();
+                        _psRunspace.AddScript("($null -ne (Get-Module -Name HP.ClientManagement))");
+                        var check = _psRunspace.Invoke();
+                        _isCmslLoaded = check.Count > 0 &&
+                                        check[0]?.BaseObject is bool loaded && loaded;
+                    }
+                    else
+                    {
+                        _isCmslLoaded = true;
+                    }
+
+                    if (_isCmslLoaded)
+                        _consoleForm?.WriteSuccess("HP CMSL module loaded — CMSL features enabled");
+                    else
+                        _consoleForm?.WriteWarning("HP CMSL not available — falling back to WMI for HP BIOS operations");
+                }
+                catch (Exception ex)
+                {
+                    _consoleForm?.WriteWarning($"HP CMSL not available ({ex.Message}) — falling back to WMI");
+                    _isCmslLoaded = false;
+                }
+
+                return _isCmslLoaded;
+            });
+        }
+
+        /// <summary>
+        /// Verifies the runspace is still usable and recreates it if stale.
+        /// </summary>
+        private void EnsureRunspaceValid()
+        {
+            try
+            {
+                _psRunspace.Commands.Clear();
+                _psRunspace.AddScript("$null");
+                _psRunspace.Invoke();
+            }
+            catch
+            {
+                _psRunspace?.Dispose();
+                _psRunspace = PowerShell.Create();
+                _isCmslLoaded = false;
+                _consoleForm?.WriteWarning("BIOS_Tools PowerShell runspace recreated");
+            }
+        }
+
+        #endregion
 
         #region WMI Connection Helpers
 
@@ -32,7 +130,14 @@ namespace SA_ToolBelt
                 return true;
 
             string name = computerName.Trim();
+
+            // Strip domain suffix so FQDNs like MYPC.domain.com match the local machine name
+            string shortName = name.Contains('.')
+                ? name.Substring(0, name.IndexOf('.'))
+                : name;
+
             return string.Equals(name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(shortName, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(name, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(name, ".", StringComparison.OrdinalIgnoreCase);
@@ -135,7 +240,9 @@ namespace SA_ToolBelt
         #region Remote BIOS Query
 
         /// <summary>
-        /// Query a remote computer for BIOS, hardware, TPM, and HP-specific settings
+        /// Query a remote computer for BIOS, hardware, TPM, and HP-specific settings.
+        /// Uses WMI for standard queries. HP BIOS settings use CMSL (PSRemoting) when
+        /// available, falling back to the HP WMI provider.
         /// </summary>
         public async Task<BiosQueryResult> QueryRemoteBiosAsync(string computerName, string username, string password, string domain)
         {
@@ -147,32 +254,41 @@ namespace SA_ToolBelt
                 {
                     _consoleForm?.WriteInfo($"Connecting to {computerName} via WMI...");
 
-                    // Build connection options (omits credentials for local machine)
                     var connOptions = BuildConnectionOptions(computerName, username, password, domain);
 
-                    // --- Standard Hardware Info (Win32_ComputerSystem) ---
+                    // Standard WMI queries (manufacturer-agnostic)
                     QueryHardwareInfo(computerName, connOptions, result);
-
-                    // --- BIOS Info (Win32_BIOS) ---
                     QueryBiosInfo(computerName, connOptions, result);
-
-                    // --- OS Info (Win32_OperatingSystem) ---
                     QueryOsInfo(computerName, connOptions, result);
-
-                    // --- TPM Info (Win32_Tpm) ---
                     QueryTpmInfo(computerName, connOptions, result, username, password, domain);
-
-                    // --- Secure Boot ---
                     QuerySecureBoot(computerName, connOptions, result);
 
-                    // --- HP-specific BIOS settings ---
-                    if (result.Manufacturer != null &&
+                    // HP-specific BIOS settings
+                    bool isHp = result.Manufacturer != null && (
                         result.Manufacturer.IndexOf("HP", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        result.Manufacturer != null &&
-                        result.Manufacturer.IndexOf("Hewlett", StringComparison.OrdinalIgnoreCase) >= 0)
+                        result.Manufacturer.IndexOf("Hewlett", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                    if (isHp)
                     {
                         result.IsHpMachine = true;
-                        QueryHpBiosSettings(computerName, connOptions, result);
+
+                        // Try CMSL first; fall back to WMI HP provider
+                        bool cmslSucceeded = false;
+                        if (_isCmslLoaded)
+                        {
+                            try
+                            {
+                                QueryHpBiosSettingsViaCmsl(computerName, username, password, domain, result);
+                                cmslSucceeded = true;
+                            }
+                            catch (Exception cmslEx)
+                            {
+                                _consoleForm?.WriteWarning($"  CMSL HP BIOS query failed ({cmslEx.Message}), falling back to WMI...");
+                            }
+                        }
+
+                        if (!cmslSucceeded)
+                            QueryHpBiosSettingsViaWmi(computerName, connOptions, result);
                     }
 
                     result.Success = true;
@@ -336,12 +452,10 @@ namespace SA_ToolBelt
         {
             if (IsLocalComputer(computerName))
             {
-                // Local: must use elevated external powershell.exe because in-process PS Core doesn't support Get-Tpm
                 QueryLocalTpmViaElevatedPowerShell(result);
             }
             else
             {
-                // Remote: no UAC needed, supplied credentials handle authorization on the remote end
                 QueryRemoteTpmViaPowerShell(computerName, result, username, password, domain);
             }
         }
@@ -415,34 +529,31 @@ try {{
         }
 
         /// <summary>
-        /// Queries TPM info on a remote machine by launching powershell.exe (Windows PowerShell 5.1) externally.
+        /// Queries TPM info on a remote machine using the in-process PowerShell runspace.
+        /// No temp files needed — stdout is captured directly through the runspace.
         /// No elevation needed — the supplied credentials handle authorization on the remote end.
-        /// Stdout is redirected directly since no UAC/RunAs is involved.
         /// </summary>
         private void QueryRemoteTpmViaPowerShell(string computerName, BiosQueryResult result, string username, string password, string domain)
         {
-            string tempScript = Path.Combine(Path.GetTempPath(), $"sa_tpm_{Guid.NewGuid():N}.ps1");
-
-            try
-            {
-                string script = $@"
+            string escapedPass = password?.Replace("'", "''") ?? string.Empty;
+            string script = $@"
 try {{
-    $secPass = ConvertTo-SecureString '{password}' -AsPlainText -Force
+    $secPass = ConvertTo-SecureString '{escapedPass}' -AsPlainText -Force
     $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
-    $tpmData = Invoke-Command -ComputerName '{computerName}' -Credential $cred -ScriptBlock {{
+    $tpmData = Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
         $tpm = Get-Tpm -ErrorAction Stop
         $tpmDetails = Get-CimInstance -Namespace root/CIMV2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
         $specVersion = if ($tpmDetails) {{ $tpmDetails.SpecVersion }} else {{ 'Unknown' }}
         try {{ $sb = Confirm-SecureBootUEFI -ErrorAction Stop }} catch {{ $sb = 'Unsupported' }}
         [PSCustomObject]@{{
-            TpmPresent = $tpm.TpmPresent
-            TpmReady = $tpm.TpmReady
-            TpmEnabled = $tpm.TpmEnabled
+            TpmPresent  = $tpm.TpmPresent
+            TpmReady    = $tpm.TpmReady
+            TpmEnabled  = $tpm.TpmEnabled
             TpmActivated = $tpm.TpmActivated
             SpecVersion = $specVersion
-            SecureBoot = $sb
+            SecureBoot  = $sb
         }}
-    }} -ErrorAction Stop
+    }}
     Write-Output ""TpmPresent=$($tpmData.TpmPresent)""
     Write-Output ""TpmReady=$($tpmData.TpmReady)""
     Write-Output ""TpmEnabled=$($tpmData.TpmEnabled)""
@@ -453,43 +564,27 @@ try {{
     Write-Output ""ERROR=$($_.Exception.Message)""
 }}";
 
-                File.WriteAllText(tempScript, script);
+            EnsureRunspaceValid();
+            _psRunspace.Commands.Clear();
+            _psRunspace.AddScript(script);
+            var psResults = _psRunspace.Invoke();
 
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-ExecutionPolicy Bypass -NoProfile -File \"{tempScript}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                string output;
-                using (var proc = Process.Start(psi))
-                {
-                    if (proc == null)
-                        throw new Exception("Failed to start PowerShell process for remote TPM query");
-
-                    output = proc.StandardOutput.ReadToEnd();
-                    proc.WaitForExit(30000);
-
-                    if (!proc.HasExited)
-                    {
-                        proc.Kill();
-                        throw new Exception("PowerShell remote TPM query timed out");
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(output))
-                    throw new Exception("PowerShell remote TPM query produced no output");
-
-                ParseTpmOutput(output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries), result);
-            }
-            finally
+            if (_psRunspace.HadErrors && psResults.Count == 0)
             {
-                try { if (File.Exists(tempScript)) File.Delete(tempScript); } catch { }
+                var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                    .Select(e => e.Exception?.Message ?? e.ToString()));
+                throw new Exception($"PowerShell remote TPM query failed: {errorMsg}");
             }
+
+            var lines = psResults
+                .Where(r => r != null)
+                .Select(r => r.ToString())
+                .ToArray();
+
+            if (lines.Length == 0)
+                throw new Exception("PowerShell remote TPM query produced no output");
+
+            ParseTpmOutput(lines, result);
         }
 
         /// <summary>
@@ -550,14 +645,14 @@ try {{
             if (!string.IsNullOrEmpty(_tpmFallbackSecureBoot))
             {
                 result.SecureBootEnabled = _tpmFallbackSecureBoot;
-                _consoleForm?.WriteInfo($"  Secure Boot: {result.SecureBootEnabled} (from elevated PowerShell)");
+                _consoleForm?.WriteInfo($"  Secure Boot: {result.SecureBootEnabled} (from PowerShell)");
                 return;
             }
 
-            // Otherwise try Confirm-SecureBootUEFI via an external powershell.exe process.
+            // Otherwise try Confirm-SecureBootUEFI via the in-process runspace.
             try
             {
-                QuerySecureBootViaPowerShell(computerName, result);
+                QuerySecureBootViaRunspace(computerName, result);
             }
             catch (Exception ex)
             {
@@ -566,45 +661,115 @@ try {{
             }
         }
 
-        private void QuerySecureBootViaPowerShell(string computerName, BiosQueryResult result)
+        private void QuerySecureBootViaRunspace(string computerName, BiosQueryResult result)
         {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = "-ExecutionPolicy Bypass -NoProfile -Command \"try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }\"",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            };
+            EnsureRunspaceValid();
+            _psRunspace.Commands.Clear();
+            _psRunspace.AddScript(
+                "try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }");
+            var psResults = _psRunspace.Invoke();
 
-            string output;
-            using (var proc = Process.Start(psi))
-            {
-                if (proc == null)
-                    throw new Exception("Failed to start PowerShell process");
-
-                output = proc.StandardOutput.ReadToEnd().Trim();
-                proc.WaitForExit(15000);
-
-                if (!proc.HasExited)
-                {
-                    proc.Kill();
-                    throw new Exception("Secure Boot query timed out");
-                }
-            }
+            string output = psResults.Count > 0 ? psResults[0]?.ToString()?.Trim() : string.Empty;
 
             if (string.Equals(output, "True", StringComparison.OrdinalIgnoreCase))
                 result.SecureBootEnabled = "Enabled";
             else if (string.Equals(output, "False", StringComparison.OrdinalIgnoreCase))
                 result.SecureBootEnabled = "Disabled";
             else
-                result.SecureBootEnabled = output;
+                result.SecureBootEnabled = string.IsNullOrEmpty(output) ? "Unable to determine" : output;
         }
 
-        private void QueryHpBiosSettings(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
+        #endregion
+
+        #region HP BIOS Settings — CMSL Path
+
+        /// <summary>
+        /// Retrieves all HP BIOS settings using HP CMSL (HP.ClientManagement module).
+        /// For local machine: calls Get-HPBIOSSettingsList directly in the persistent runspace.
+        /// For remote machine: uses PSRemoting (Invoke-Command) with CMSL on the target.
+        /// Requires WinRM enabled on the target for remote queries.
+        /// </summary>
+        private void QueryHpBiosSettingsViaCmsl(string computerName, string username, string password, string domain, BiosQueryResult result)
+        {
+            string script;
+
+            if (IsLocalComputer(computerName))
+            {
+                _consoleForm?.WriteInfo("  Querying HP BIOS settings via CMSL (local)...");
+                script = @"
+Get-HPBIOSSettingsList | ForEach-Object {
+    [PSCustomObject]@{
+        Name  = $_.Name
+        Value = if ($_.Value) { $_.Value } else { '(not set)' }
+    }
+}";
+            }
+            else
+            {
+                _consoleForm?.WriteInfo($"  Querying HP BIOS settings via CMSL (remote PSRemoting to {computerName})...");
+                string escapedPass = password?.Replace("'", "''") ?? string.Empty;
+                script = $@"
+$secPass = ConvertTo-SecureString '{escapedPass}' -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
+    Import-Module HP.ClientManagement -ErrorAction Stop
+    Get-HPBIOSSettingsList | ForEach-Object {{
+        [PSCustomObject]@{{
+            Name  = $_.Name
+            Value = if ($_.Value) {{ $_.Value }} else {{ '(not set)' }}
+        }}
+    }}
+}}";
+            }
+
+            EnsureRunspaceValid();
+            _psRunspace.Commands.Clear();
+            _psRunspace.AddScript(script);
+            var psResults = _psRunspace.Invoke();
+
+            if (_psRunspace.HadErrors && psResults.Count == 0)
+            {
+                var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                    .Select(e => e.Exception?.Message ?? e.ToString()));
+                throw new Exception($"CMSL HP BIOS settings query failed: {errorMsg}");
+            }
+
+            foreach (var obj in psResults)
+            {
+                if (obj == null) continue;
+
+                string name = obj.Properties["Name"]?.Value?.ToString()?.Trim();
+                string value = obj.Properties["Value"]?.Value?.ToString()?.Trim() ?? "(not set)";
+
+                if (!string.IsNullOrEmpty(name))
+                {
+                    result.HpBiosSettings.Add(new BiosSetting
+                    {
+                        Name = name,
+                        CurrentValue = value,
+                        Category = CategorizeBiosSetting(name)
+                    });
+                }
+            }
+
+            _consoleForm?.WriteInfo($"  Retrieved {result.HpBiosSettings.Count} HP BIOS settings via CMSL");
+        }
+
+        #endregion
+
+        #region HP BIOS Settings — WMI Fallback
+
+        /// <summary>
+        /// Retrieves HP BIOS settings via the HP WMI provider (root\HP\InstrumentedBIOS).
+        /// Used as fallback when CMSL is not available or PSRemoting fails.
+        /// Does not require WinRM — uses standard WMI remoting.
+        /// </summary>
+        private void QueryHpBiosSettingsViaWmi(string computerName, ConnectionOptions connOptions, BiosQueryResult result)
         {
             try
             {
+                _consoleForm?.WriteInfo("  Querying HP BIOS settings via WMI (HP provider)...");
+
                 var scope = new ManagementScope($"\\\\{computerName}\\root\\HP\\InstrumentedBIOS", connOptions);
                 scope.Connect();
 
@@ -618,20 +783,17 @@ try {{
 
                         if (!string.IsNullOrEmpty(name))
                         {
-                            // Categorize the setting
-                            string category = CategorizeBiosSetting(name);
-
                             result.HpBiosSettings.Add(new BiosSetting
                             {
                                 Name = name,
                                 CurrentValue = string.IsNullOrEmpty(value) ? "(not set)" : value,
-                                Category = category
+                                Category = CategorizeBiosSetting(name)
                             });
                         }
                     }
                 }
 
-                _consoleForm?.WriteInfo($"  Retrieved {result.HpBiosSettings.Count} HP BIOS settings");
+                _consoleForm?.WriteInfo($"  Retrieved {result.HpBiosSettings.Count} HP BIOS settings via WMI");
             }
             catch (ManagementException ex)
             {
@@ -662,9 +824,36 @@ try {{
         };
 
         /// <summary>
-        /// Sets a single HP BIOS setting via the HP_BIOSSettingInterface WMI class.
+        /// Sets a single HP BIOS setting.
+        /// Uses CMSL (Set-HPBIOSSettingValue) when available; falls back to WMI HP_BIOSSettingInterface.
         /// </summary>
         public async Task<BiosSetResult> SetHpBiosSettingAsync(
+            string computerName, string username, string password, string domain,
+            string settingName, string newValue, string biosPassword)
+        {
+            if (_isCmslLoaded)
+            {
+                try
+                {
+                    return await SetHpBiosSettingViaCmslAsync(computerName, username, password, domain,
+                        settingName, newValue, biosPassword);
+                }
+                catch (Exception cmslEx)
+                {
+                    _consoleForm?.WriteWarning($"  CMSL set failed ({cmslEx.Message}), falling back to WMI...");
+                }
+            }
+
+            return await SetHpBiosSettingViaWmiAsync(computerName, username, password, domain,
+                settingName, newValue, biosPassword);
+        }
+
+        /// <summary>
+        /// Sets a HP BIOS setting using CMSL (Set-HPBIOSSettingValue).
+        /// For local machine: runs in the persistent runspace directly.
+        /// For remote machine: uses PSRemoting (Invoke-Command).
+        /// </summary>
+        private async Task<BiosSetResult> SetHpBiosSettingViaCmslAsync(
             string computerName, string username, string password, string domain,
             string settingName, string newValue, string biosPassword)
         {
@@ -674,7 +863,76 @@ try {{
 
                 try
                 {
-                    _consoleForm?.WriteInfo($"Setting '{settingName}' to '{newValue}' on {computerName}...");
+                    _consoleForm?.WriteInfo($"  Setting '{settingName}' to '{newValue}' on {computerName} via CMSL...");
+
+                    string escapedPass = password?.Replace("'", "''") ?? string.Empty;
+                    string escapedBiosPass = biosPassword?.Replace("'", "''") ?? string.Empty;
+                    string escapedSettingName = settingName?.Replace("'", "''") ?? string.Empty;
+                    string escapedNewValue = newValue?.Replace("'", "''") ?? string.Empty;
+
+                    string biosPasswordParam = string.IsNullOrEmpty(biosPassword)
+                        ? string.Empty
+                        : $" -Password '{escapedBiosPass}'";
+
+                    string script;
+                    if (IsLocalComputer(computerName))
+                    {
+                        script = $"Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop";
+                    }
+                    else
+                    {
+                        script = $@"
+$secPass = ConvertTo-SecureString '{escapedPass}' -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
+    Import-Module HP.ClientManagement -ErrorAction Stop
+    Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
+}}";
+                    }
+
+                    EnsureRunspaceValid();
+                    _psRunspace.Commands.Clear();
+                    _psRunspace.AddScript(script);
+                    _psRunspace.Invoke();
+
+                    if (_psRunspace.HadErrors)
+                    {
+                        var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                            .Select(e => e.Exception?.Message ?? e.ToString()));
+                        throw new Exception(errorMsg);
+                    }
+
+                    result.Success = true;
+                    result.ReturnCode = 0;
+                    _consoleForm?.WriteSuccess($"  '{settingName}' set to '{newValue}' via CMSL — reboot required to take effect");
+                }
+                catch (Exception ex)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = ex.Message;
+                    _consoleForm?.WriteError($"  CMSL error setting '{settingName}': {ex.Message}");
+                    throw; // Re-throw so caller can fall back to WMI
+                }
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Sets a HP BIOS setting via the HP_BIOSSettingInterface WMI class.
+        /// Used as fallback when CMSL is not available or fails.
+        /// </summary>
+        private async Task<BiosSetResult> SetHpBiosSettingViaWmiAsync(
+            string computerName, string username, string password, string domain,
+            string settingName, string newValue, string biosPassword)
+        {
+            return await Task.Run(() =>
+            {
+                var result = new BiosSetResult { SettingName = settingName, NewValue = newValue };
+
+                try
+                {
+                    _consoleForm?.WriteInfo($"  Setting '{settingName}' to '{newValue}' on {computerName} via WMI...");
 
                     var connOptions = BuildConnectionOptions(computerName, username, password, domain);
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\HP\\InstrumentedBIOS", connOptions);
@@ -696,7 +954,7 @@ try {{
                         result.Success = returnCode == 0;
 
                         if (result.Success)
-                            _consoleForm?.WriteSuccess($"  '{settingName}' set to '{newValue}' — reboot required to take effect");
+                            _consoleForm?.WriteSuccess($"  '{settingName}' set to '{newValue}' via WMI — reboot required to take effect");
                         else
                         {
                             result.ErrorMessage = GetHpReturnCodeMessage(returnCode);
@@ -731,7 +989,6 @@ try {{
         {
             var results = new List<BiosSetResult>();
 
-            // Find matching TPM settings from the machine's queried settings
             foreach (var (name, enableValue) in KnownTpmSettings)
             {
                 var match = currentSettings.FirstOrDefault(s =>
@@ -745,7 +1002,6 @@ try {{
                 }
             }
 
-            // If no known settings matched, try the most common one as a fallback
             if (results.Count == 0)
             {
                 _consoleForm?.WriteWarning("No known TPM settings found in queried data, trying 'TPM State'...");
@@ -853,7 +1109,6 @@ try {{
                 try
                 {
                     var connOptions = BuildConnectionOptions(computerName, username, password, domain, timeoutSeconds: 10);
-
                     var scope = new ManagementScope($"\\\\{computerName}\\root\\CIMV2", connOptions);
                     scope.Connect();
                     return scope.IsConnected;
@@ -863,6 +1118,20 @@ try {{
                     return false;
                 }
             });
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _psRunspace?.Dispose();
+                _psRunspace = null;
+                _disposed = true;
+            }
         }
 
         #endregion

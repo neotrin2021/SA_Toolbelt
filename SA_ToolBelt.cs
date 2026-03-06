@@ -43,6 +43,7 @@ namespace SA_ToolBelt
         // Configuration values - now populated from SQLite database
         private string _vCenterServer = string.Empty;
         private string POWERCLI_MODULE_PATH = string.Empty;
+        private string HPCMSL_MODULE_PATH = string.Empty;
         private string _disabledUsersOu = string.Empty;
         private string _homeDirectoryPath = string.Empty;
         private string _excludedOUs = string.Empty;
@@ -335,6 +336,9 @@ namespace SA_ToolBelt
             POWERCLI_MODULE_PATH = !string.IsNullOrEmpty(config.PowerCLILocation)
                 ? Path.Combine(config.PowerCLILocation, "VMware.PowerCLI")
                 : string.Empty;
+            HPCMSL_MODULE_PATH = !string.IsNullOrEmpty(config.HpCmslLocation)
+                ? Path.Combine(config.HpCmslLocation, "HP.ClientManagement")
+                : string.Empty;
             _disabledUsersOu = config.DisabledUsersOu;
             _homeDirectoryPath = config.HomeDirectory;
             _excludedOUs = config.ExcludedOU;
@@ -406,6 +410,7 @@ namespace SA_ToolBelt
                 txbVCenterServer.Text = config.VCenterServer;
                 txbSqlPath.Text = config.SqlPath;
                 txbPowerCliModuleLocation.Text = config.PowerCLILocation;
+                txbCmslModuleLocation.Text = config.HpCmslLocation;
                 txbDisabledUsersLocation.Text = config.DisabledUsersOu;
                 txbHomeDirectoryLocation.Text = config.HomeDirectory;
                 txbLinuxDs.Text = config.LinuxDs;
@@ -532,6 +537,15 @@ namespace SA_ToolBelt
             }
         }
 
+        private void btnBrowseCmslModuleLocation_Click(object sender, EventArgs e)
+        {
+            string path = _preCheck.BrowseForFolder("Select the folder containing HP.ClientManagement module");
+            if (!string.IsNullOrEmpty(path))
+            {
+                txbCmslModuleLocation.Text = path;
+            }
+        }
+
         private void btnBrowseDisabledUsersLocation_Click(object sender, EventArgs e)
         {
             try
@@ -566,6 +580,7 @@ namespace SA_ToolBelt
                 string vCenterServer = txbVCenterServer.Text.Trim();
                 string sqlPath = txbSqlPath.Text.Trim();
                 string powerCliLocation = txbPowerCliModuleLocation.Text.Trim();
+                string cmslLocation = txbCmslModuleLocation.Text.Trim();
                 string excludedOu = cbxExcludeOu.Text.Trim();
                 string disabledUsersOu = txbDisabledUsersLocation.Text.Trim();
                 string homeDirectory = txbHomeDirectoryLocation.Text.Trim();
@@ -579,6 +594,11 @@ namespace SA_ToolBelt
                 bool powerCliValid = !string.IsNullOrEmpty(powerCliLocation) && Directory.Exists(Path.Combine(powerCliLocation, "VMware.PowerCLI"));
                 txbPowerCliModuleLocation.BackColor = powerCliValid ? Color.White : Color.LightCoral;
 
+                // Validate CMSL path (optional — blank is allowed if not using HP BIOS features)
+                bool cmslValid = string.IsNullOrEmpty(cmslLocation) ||
+                                 Directory.Exists(Path.Combine(cmslLocation, "HP.ClientManagement"));
+                txbCmslModuleLocation.BackColor = cmslValid ? Color.White : Color.LightCoral;
+
                 // Validate SQL path (must be a valid directory or we can create it)
                 bool sqlPathValid = !string.IsNullOrEmpty(sqlPath);
                 if (sqlPathValid && !Directory.Exists(sqlPath))
@@ -588,12 +608,13 @@ namespace SA_ToolBelt
                 }
                 txbSqlPath.BackColor = sqlPathValid ? Color.White : Color.LightCoral;
 
-                if (!vCenterValid || !powerCliValid || !sqlPathValid)
+                if (!vCenterValid || !powerCliValid || !sqlPathValid || !cmslValid)
                 {
                     var errors = new List<string>();
                     if (!vCenterValid) errors.Add("- VCenter Server is invalid or unreachable");
                     if (!powerCliValid) errors.Add("- PowerCLI Module path is invalid or VMware.PowerCLI folder not found");
                     if (!sqlPathValid) errors.Add("- SQL Path is empty or invalid");
+                    if (!cmslValid) errors.Add("- HP CMSL Location is invalid or HP.ClientManagement folder not found");
 
                     MessageBox.Show($"The following settings need to be corrected:\n\n{string.Join("\n", errors)}",
                         "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -624,7 +645,8 @@ namespace SA_ToolBelt
                     excludedOuCombined,
                     disabledUsersOu,
                     homeDirectory,
-                    linuxDs
+                    linuxDs,
+                    cmslLocation
                 );
 
                 // Move database to the user-specified SQL path
@@ -1055,6 +1077,7 @@ namespace SA_ToolBelt
 
                             await UpdateRadioButtonCounters();
                             StartBackgroundPowerCLILoadingAsync();
+                            StartBackgroundCmslLoadingAsync();
                             await PopulateDefaultSecurityGroupsAsync();
                             await LoadOnlineOfflineTabAsync();
                             await CheckAllOnlineOfflineStatusAsync();
@@ -3854,6 +3877,48 @@ namespace SA_ToolBelt
             }
         }
 
+        /// <summary>
+        /// Start loading HP CMSL in the background after login.
+        /// CMSL is installed system-wide via the HP CMSL installer (hp-cmsl-x.x.x.exe),
+        /// so no module path configuration is required — Import-Module HP.ClientManagement
+        /// resolves automatically from the standard PowerShell module path.
+        /// </summary>
+        private async void StartBackgroundCmslLoadingAsync()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(HPCMSL_MODULE_PATH))
+                {
+                    _consoleForm.WriteWarning("HP CMSL module path is not configured. Skipping CMSL background loading.");
+                    _consoleForm.WriteWarning("Set the HP CMSL Location in the Configuration tab to enable HP BIOS CMSL features.");
+                    return;
+                }
+
+                _consoleForm.WriteInfo("Starting HP CMSL background loading...");
+                _consoleForm.WriteInfo("You can continue working while CMSL loads. HP BIOS features will use CMSL when loading completes.");
+
+                bool loaded = await _biosTools.InitializeCmslAsync(HPCMSL_MODULE_PATH);
+
+                if (loaded)
+                {
+                    _consoleForm.WriteSuccess("========================================");
+                    _consoleForm.WriteSuccess("HP CMSL is now loaded and ready!");
+                    _consoleForm.WriteSuccess("HP BIOS operations will use CMSL.");
+                    _consoleForm.WriteSuccess("========================================");
+                }
+                else
+                {
+                    _consoleForm.WriteWarning("HP CMSL failed to load — HP BIOS operations will use WMI fallback.");
+                    _consoleForm.WriteWarning("Verify the HP CMSL Location path in the Configuration tab.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Failed to load HP CMSL in background: {ex.Message}");
+                _consoleForm.WriteWarning("HP BIOS operations will fall back to WMI.");
+            }
+        }
+
         private async Task LoadESXiHostHealthAsync()
         {
             try
@@ -6572,6 +6637,36 @@ namespace SA_ToolBelt
             {
                 _consoleForm.WriteError($"Error setting PowerCLI Module Location: {ex.Message}");
                 MessageBox.Show($"Error setting PowerCLI Module Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnSetCmslModuleLocation_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string value = txbCmslModuleLocation.Text.Trim();
+                if (string.IsNullOrEmpty(value))
+                {
+                    MessageBox.Show("HP CMSL Location cannot be empty.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                bool valid = Directory.Exists(Path.Combine(value, "HP.ClientManagement"));
+                txbCmslModuleLocation.BackColor = valid ? Color.White : Color.LightCoral;
+                if (!valid)
+                {
+                    MessageBox.Show("HP.ClientManagement folder not found at the specified path.", "Validation Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _databaseService.UpdateToolbeltConfigField("HPCMSL_Location", value);
+                HPCMSL_MODULE_PATH = Path.Combine(value, "HP.ClientManagement");
+                _consoleForm.WriteSuccess($"HP CMSL Location set to: {value}");
+            }
+            catch (Exception ex)
+            {
+                _consoleForm.WriteError($"Error setting HP CMSL Location: {ex.Message}");
+                MessageBox.Show($"Error setting HP CMSL Location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
