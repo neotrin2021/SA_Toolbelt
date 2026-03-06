@@ -1071,6 +1071,7 @@ namespace SA_ToolBelt
                                 break;
                             }
 
+                            _databaseService.InitializeDatabase();
                             ApplyDatabaseSettings();
                             PopulateMandatorySettingsUI();
                             ShowAllTabs();
