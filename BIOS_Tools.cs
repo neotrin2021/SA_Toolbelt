@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Management;
 using System.Management.Automation;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace SA_ToolBelt
@@ -216,6 +217,7 @@ namespace SA_ToolBelt
             // HP-specific BIOS settings (only populated on HP machines)
             public List<BiosSetting> HpBiosSettings { get; set; } = new List<BiosSetting>();
             public bool IsHpMachine { get; set; }
+            public bool IsRpcDisabled { get; set; }
 
             public BiosQueryResult() { }
         }
@@ -244,6 +246,32 @@ namespace SA_ToolBelt
         /// Uses WMI for standard queries. HP BIOS settings use CMSL (PSRemoting) when
         /// available, falling back to the HP WMI provider.
         /// </summary>
+        /// <summary>
+        /// Tests whether TCP port 135 (RPC Endpoint Mapper) is reachable on the remote computer.
+        /// A fast pre-check that avoids long WMI timeouts when RPC is disabled or blocked.
+        /// </summary>
+        private static bool IsRpcAvailable(string computerName, int timeoutMs = 2000)
+        {
+            try
+            {
+                using (var client = new TcpClient())
+                {
+                    var ar = client.BeginConnect(computerName, 135, null, null);
+                    bool success = ar.AsyncWaitHandle.WaitOne(timeoutMs);
+                    if (success && client.Connected)
+                    {
+                        client.EndConnect(ar);
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public async Task<BiosQueryResult> QueryRemoteBiosAsync(string computerName, string username, string password, string domain)
         {
             return await Task.Run(() =>
@@ -252,6 +280,17 @@ namespace SA_ToolBelt
 
                 try
                 {
+                    // Pre-check: verify RPC port 135 is reachable before attempting WMI connections.
+                    // WMI relies on RPC; if it's blocked the connection will hang then fail anyway.
+                    if (!IsRpcAvailable(computerName))
+                    {
+                        result.Success = false;
+                        result.IsRpcDisabled = true;
+                        result.ErrorMessage = "RPC Disabled";
+                        _consoleForm?.WriteWarning($"{computerName}: RPC port 135 unreachable — skipping WMI query.");
+                        return result;
+                    }
+
                     _consoleForm?.WriteInfo($"Connecting to {computerName} via WMI...");
 
                     var connOptions = BuildConnectionOptions(computerName, username, password, domain);

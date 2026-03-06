@@ -6012,6 +6012,12 @@ namespace SA_ToolBelt
                 }
                 else
                 {
+                    if (result.IsRpcDisabled)
+                    {
+                        dgvHpBiosSettings.Rows.Clear();
+                        AddRpcDisabledBiosRow(result.ComputerName);
+                        lblBiosSettingsCount.Text = "RPC Disabled — no data available";
+                    }
                     SetBiosQueryBusy(false, result.ErrorMessage);
                     lblBiosQueryStatusValue.ForeColor = WtWarnRed;
                     _consoleForm?.WriteError($"BIOS query failed: {result.ErrorMessage}");
@@ -6123,6 +6129,8 @@ namespace SA_ToolBelt
                         else
                         {
                             Interlocked.Increment(ref failed);
+                            if (result.IsRpcDisabled)
+                                AddRpcDisabledBiosRow(result.ComputerName);
                         }
 
                         int done = Interlocked.Increment(ref completed);
@@ -6410,6 +6418,31 @@ namespace SA_ToolBelt
                 category,
                 settingName,
                 settingValue
+            );
+        }
+
+        private void AddRpcDisabledBiosRow(string computerName)
+        {
+            string assignedTo = LookupAssignedTo(computerName);
+            dgvHpBiosSettings.Rows.Add(
+                computerName,
+                assignedTo,
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "RPC Disabled",
+                "\u2014",
+                "\u2014",
+                "\u2014"
             );
         }
 
