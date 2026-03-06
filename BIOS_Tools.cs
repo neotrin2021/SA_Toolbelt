@@ -19,6 +19,10 @@ namespace SA_ToolBelt
         private bool _isCmslLoaded = false;
         private bool _disposed = false;
 
+        // Serializes all _psRunspace operations — concurrent BIOS queries share this instance
+        // and racing on Commands.Clear/AddScript/Invoke causes PSInvalidOperationException.
+        private readonly object _psLock = new object();
+
         // Caches Secure Boot result from elevated TPM query so we don't trigger a second UAC prompt
         private string _tpmFallbackSecureBoot;
 
@@ -44,49 +48,52 @@ namespace SA_ToolBelt
             {
                 try
                 {
-                    EnsureRunspaceValid();
-
-                    _consoleForm?.WriteInfo("Initializing HP CMSL module...");
-
-                    _psRunspace.Commands.Clear();
-                    _psRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
-                    _psRunspace.Invoke();
-
-                    // Load from configured path if provided, otherwise try system-installed module
-                    string importScript = !string.IsNullOrWhiteSpace(cmslModulePath)
-                        ? $"Import-Module '{cmslModulePath.Replace("'", "''")}' -ErrorAction Stop"
-                        : "Import-Module HP.ClientManagement -ErrorAction Stop";
-
-                    _consoleForm?.WriteInfo(!string.IsNullOrWhiteSpace(cmslModulePath)
-                        ? $"  Loading HP CMSL from: {cmslModulePath}"
-                        : "  Loading HP CMSL from system module path");
-
-                    _psRunspace.Commands.Clear();
-                    _psRunspace.AddScript(importScript);
-                    _psRunspace.Invoke();
-
-                    if (_psRunspace.HadErrors)
+                    lock (_psLock)
                     {
-                        var errors = string.Join("; ", _psRunspace.Streams.Error
-                            .Select(e => e.Exception?.Message ?? e.ToString()));
-                        _consoleForm?.WriteWarning($"HP CMSL load warning: {errors}");
+                        EnsureRunspaceValid();
 
-                        // Verify module actually loaded despite errors
+                        _consoleForm?.WriteInfo("Initializing HP CMSL module...");
+
                         _psRunspace.Commands.Clear();
-                        _psRunspace.AddScript("($null -ne (Get-Module -Name HP.ClientManagement))");
-                        var check = _psRunspace.Invoke();
-                        _isCmslLoaded = check.Count > 0 &&
-                                        check[0]?.BaseObject is bool loaded && loaded;
-                    }
-                    else
-                    {
-                        _isCmslLoaded = true;
-                    }
+                        _psRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
+                        _psRunspace.Invoke();
 
-                    if (_isCmslLoaded)
-                        _consoleForm?.WriteSuccess("HP CMSL module loaded — CMSL features enabled");
-                    else
-                        _consoleForm?.WriteWarning("HP CMSL not available — falling back to WMI for HP BIOS operations");
+                        // Load from configured path if provided, otherwise try system-installed module
+                        string importScript = !string.IsNullOrWhiteSpace(cmslModulePath)
+                            ? $"Import-Module '{cmslModulePath.Replace("'", "''")}' -ErrorAction Stop"
+                            : "Import-Module HP.ClientManagement -ErrorAction Stop";
+
+                        _consoleForm?.WriteInfo(!string.IsNullOrWhiteSpace(cmslModulePath)
+                            ? $"  Loading HP CMSL from: {cmslModulePath}"
+                            : "  Loading HP CMSL from system module path");
+
+                        _psRunspace.Commands.Clear();
+                        _psRunspace.AddScript(importScript);
+                        _psRunspace.Invoke();
+
+                        if (_psRunspace.HadErrors)
+                        {
+                            var errors = string.Join("; ", _psRunspace.Streams.Error
+                                .Select(e => e.Exception?.Message ?? e.ToString()));
+                            _consoleForm?.WriteWarning($"HP CMSL load warning: {errors}");
+
+                            // Verify module actually loaded despite errors
+                            _psRunspace.Commands.Clear();
+                            _psRunspace.AddScript("($null -ne (Get-Module -Name HP.ClientManagement))");
+                            var check = _psRunspace.Invoke();
+                            _isCmslLoaded = check.Count > 0 &&
+                                            check[0]?.BaseObject is bool loaded && loaded;
+                        }
+                        else
+                        {
+                            _isCmslLoaded = true;
+                        }
+
+                        if (_isCmslLoaded)
+                            _consoleForm?.WriteSuccess("HP CMSL module loaded — CMSL features enabled");
+                        else
+                            _consoleForm?.WriteWarning("HP CMSL not available — falling back to WMI for HP BIOS operations");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -101,6 +108,7 @@ namespace SA_ToolBelt
         /// <summary>
         /// Verifies the runspace is still usable and recreates it if stale.
         /// </summary>
+        // NOTE: callers must already hold _psLock before calling this method.
         private void EnsureRunspaceValid()
         {
             try
@@ -603,16 +611,20 @@ try {{
     Write-Output ""ERROR=$($_.Exception.Message)""
 }}";
 
-            EnsureRunspaceValid();
-            _psRunspace.Commands.Clear();
-            _psRunspace.AddScript(script);
-            var psResults = _psRunspace.Invoke();
-
-            if (_psRunspace.HadErrors && psResults.Count == 0)
+            System.Collections.ObjectModel.Collection<System.Management.Automation.PSObject> psResults;
+            lock (_psLock)
             {
-                var errorMsg = string.Join("; ", _psRunspace.Streams.Error
-                    .Select(e => e.Exception?.Message ?? e.ToString()));
-                throw new Exception($"PowerShell remote TPM query failed: {errorMsg}");
+                EnsureRunspaceValid();
+                _psRunspace.Commands.Clear();
+                _psRunspace.AddScript(script);
+                psResults = _psRunspace.Invoke();
+
+                if (_psRunspace.HadErrors && psResults.Count == 0)
+                {
+                    var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                        .Select(e => e.Exception?.Message ?? e.ToString()));
+                    throw new Exception($"PowerShell remote TPM query failed: {errorMsg}");
+                }
             }
 
             var lines = psResults
@@ -702,11 +714,15 @@ try {{
 
         private void QuerySecureBootViaRunspace(string computerName, BiosQueryResult result)
         {
-            EnsureRunspaceValid();
-            _psRunspace.Commands.Clear();
-            _psRunspace.AddScript(
-                "try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }");
-            var psResults = _psRunspace.Invoke();
+            System.Collections.ObjectModel.Collection<System.Management.Automation.PSObject> psResults;
+            lock (_psLock)
+            {
+                EnsureRunspaceValid();
+                _psRunspace.Commands.Clear();
+                _psRunspace.AddScript(
+                    "try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }");
+                psResults = _psRunspace.Invoke();
+            }
 
             string output = psResults.Count > 0 ? psResults[0]?.ToString()?.Trim() : string.Empty;
 
@@ -761,16 +777,20 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
 }}";
             }
 
-            EnsureRunspaceValid();
-            _psRunspace.Commands.Clear();
-            _psRunspace.AddScript(script);
-            var psResults = _psRunspace.Invoke();
-
-            if (_psRunspace.HadErrors && psResults.Count == 0)
+            System.Collections.ObjectModel.Collection<System.Management.Automation.PSObject> psResults;
+            lock (_psLock)
             {
-                var errorMsg = string.Join("; ", _psRunspace.Streams.Error
-                    .Select(e => e.Exception?.Message ?? e.ToString()));
-                throw new Exception($"CMSL HP BIOS settings query failed: {errorMsg}");
+                EnsureRunspaceValid();
+                _psRunspace.Commands.Clear();
+                _psRunspace.AddScript(script);
+                psResults = _psRunspace.Invoke();
+
+                if (_psRunspace.HadErrors && psResults.Count == 0)
+                {
+                    var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                        .Select(e => e.Exception?.Message ?? e.ToString()));
+                    throw new Exception($"CMSL HP BIOS settings query failed: {errorMsg}");
+                }
             }
 
             foreach (var obj in psResults)
@@ -929,16 +949,19 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
 }}";
                     }
 
-                    EnsureRunspaceValid();
-                    _psRunspace.Commands.Clear();
-                    _psRunspace.AddScript(script);
-                    _psRunspace.Invoke();
-
-                    if (_psRunspace.HadErrors)
+                    lock (_psLock)
                     {
-                        var errorMsg = string.Join("; ", _psRunspace.Streams.Error
-                            .Select(e => e.Exception?.Message ?? e.ToString()));
-                        throw new Exception(errorMsg);
+                        EnsureRunspaceValid();
+                        _psRunspace.Commands.Clear();
+                        _psRunspace.AddScript(script);
+                        _psRunspace.Invoke();
+
+                        if (_psRunspace.HadErrors)
+                        {
+                            var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                                .Select(e => e.Exception?.Message ?? e.ToString()));
+                            throw new Exception(errorMsg);
+                        }
                     }
 
                     result.Success = true;
