@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Management;
 using System.Management.Automation;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace SA_ToolBelt
@@ -17,6 +18,10 @@ namespace SA_ToolBelt
         private PowerShell _psRunspace;
         private bool _isCmslLoaded = false;
         private bool _disposed = false;
+
+        // Serializes all _psRunspace operations — concurrent BIOS queries share this instance
+        // and racing on Commands.Clear/AddScript/Invoke causes PSInvalidOperationException.
+        private readonly object _psLock = new object();
 
         // Caches Secure Boot result from elevated TPM query so we don't trigger a second UAC prompt
         private string _tpmFallbackSecureBoot;
@@ -43,49 +48,52 @@ namespace SA_ToolBelt
             {
                 try
                 {
-                    EnsureRunspaceValid();
-
-                    _consoleForm?.WriteInfo("Initializing HP CMSL module...");
-
-                    _psRunspace.Commands.Clear();
-                    _psRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
-                    _psRunspace.Invoke();
-
-                    // Load from configured path if provided, otherwise try system-installed module
-                    string importScript = !string.IsNullOrWhiteSpace(cmslModulePath)
-                        ? $"Import-Module '{cmslModulePath.Replace("'", "''")}' -ErrorAction Stop"
-                        : "Import-Module HP.ClientManagement -ErrorAction Stop";
-
-                    _consoleForm?.WriteInfo(!string.IsNullOrWhiteSpace(cmslModulePath)
-                        ? $"  Loading HP CMSL from: {cmslModulePath}"
-                        : "  Loading HP CMSL from system module path");
-
-                    _psRunspace.Commands.Clear();
-                    _psRunspace.AddScript(importScript);
-                    _psRunspace.Invoke();
-
-                    if (_psRunspace.HadErrors)
+                    lock (_psLock)
                     {
-                        var errors = string.Join("; ", _psRunspace.Streams.Error
-                            .Select(e => e.Exception?.Message ?? e.ToString()));
-                        _consoleForm?.WriteWarning($"HP CMSL load warning: {errors}");
+                        EnsureRunspaceValid();
 
-                        // Verify module actually loaded despite errors
+                        _consoleForm?.WriteInfo("Initializing HP CMSL module...");
+
                         _psRunspace.Commands.Clear();
-                        _psRunspace.AddScript("($null -ne (Get-Module -Name HP.ClientManagement))");
-                        var check = _psRunspace.Invoke();
-                        _isCmslLoaded = check.Count > 0 &&
-                                        check[0]?.BaseObject is bool loaded && loaded;
-                    }
-                    else
-                    {
-                        _isCmslLoaded = true;
-                    }
+                        _psRunspace.AddScript("Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force");
+                        _psRunspace.Invoke();
 
-                    if (_isCmslLoaded)
-                        _consoleForm?.WriteSuccess("HP CMSL module loaded — CMSL features enabled");
-                    else
-                        _consoleForm?.WriteWarning("HP CMSL not available — falling back to WMI for HP BIOS operations");
+                        // Load from configured path if provided, otherwise try system-installed module
+                        string importScript = !string.IsNullOrWhiteSpace(cmslModulePath)
+                            ? $"Import-Module '{cmslModulePath.Replace("'", "''")}' -ErrorAction Stop"
+                            : "Import-Module HP.ClientManagement -ErrorAction Stop";
+
+                        _consoleForm?.WriteInfo(!string.IsNullOrWhiteSpace(cmslModulePath)
+                            ? $"  Loading HP CMSL from: {cmslModulePath}"
+                            : "  Loading HP CMSL from system module path");
+
+                        _psRunspace.Commands.Clear();
+                        _psRunspace.AddScript(importScript);
+                        _psRunspace.Invoke();
+
+                        if (_psRunspace.HadErrors)
+                        {
+                            var errors = string.Join("; ", _psRunspace.Streams.Error
+                                .Select(e => e.Exception?.Message ?? e.ToString()));
+                            _consoleForm?.WriteWarning($"HP CMSL load warning: {errors}");
+
+                            // Verify module actually loaded despite errors
+                            _psRunspace.Commands.Clear();
+                            _psRunspace.AddScript("($null -ne (Get-Module -Name HP.ClientManagement))");
+                            var check = _psRunspace.Invoke();
+                            _isCmslLoaded = check.Count > 0 &&
+                                            check[0]?.BaseObject is bool loaded && loaded;
+                        }
+                        else
+                        {
+                            _isCmslLoaded = true;
+                        }
+
+                        if (_isCmslLoaded)
+                            _consoleForm?.WriteSuccess("HP CMSL module loaded — CMSL features enabled");
+                        else
+                            _consoleForm?.WriteWarning("HP CMSL not available — falling back to WMI for HP BIOS operations");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -100,6 +108,7 @@ namespace SA_ToolBelt
         /// <summary>
         /// Verifies the runspace is still usable and recreates it if stale.
         /// </summary>
+        // NOTE: callers must already hold _psLock before calling this method.
         private void EnsureRunspaceValid()
         {
             try
@@ -216,6 +225,7 @@ namespace SA_ToolBelt
             // HP-specific BIOS settings (only populated on HP machines)
             public List<BiosSetting> HpBiosSettings { get; set; } = new List<BiosSetting>();
             public bool IsHpMachine { get; set; }
+            public bool IsRpcDisabled { get; set; }
 
             public BiosQueryResult() { }
         }
@@ -244,6 +254,32 @@ namespace SA_ToolBelt
         /// Uses WMI for standard queries. HP BIOS settings use CMSL (PSRemoting) when
         /// available, falling back to the HP WMI provider.
         /// </summary>
+        /// <summary>
+        /// Tests whether TCP port 135 (RPC Endpoint Mapper) is reachable on the remote computer.
+        /// A fast pre-check that avoids long WMI timeouts when RPC is disabled or blocked.
+        /// </summary>
+        private static bool IsRpcAvailable(string computerName, int timeoutMs = 2000)
+        {
+            try
+            {
+                using (var client = new TcpClient())
+                {
+                    var ar = client.BeginConnect(computerName, 135, null, null);
+                    bool success = ar.AsyncWaitHandle.WaitOne(timeoutMs);
+                    if (success && client.Connected)
+                    {
+                        client.EndConnect(ar);
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public async Task<BiosQueryResult> QueryRemoteBiosAsync(string computerName, string username, string password, string domain)
         {
             return await Task.Run(() =>
@@ -252,6 +288,17 @@ namespace SA_ToolBelt
 
                 try
                 {
+                    // Pre-check: verify RPC port 135 is reachable before attempting WMI connections.
+                    // WMI relies on RPC; if it's blocked the connection will hang then fail anyway.
+                    if (!IsRpcAvailable(computerName))
+                    {
+                        result.Success = false;
+                        result.IsRpcDisabled = true;
+                        result.ErrorMessage = "RPC Disabled";
+                        _consoleForm?.WriteWarning($"{computerName}: RPC port 135 unreachable — skipping WMI query.");
+                        return result;
+                    }
+
                     _consoleForm?.WriteInfo($"Connecting to {computerName} via WMI...");
 
                     var connOptions = BuildConnectionOptions(computerName, username, password, domain);
@@ -564,16 +611,20 @@ try {{
     Write-Output ""ERROR=$($_.Exception.Message)""
 }}";
 
-            EnsureRunspaceValid();
-            _psRunspace.Commands.Clear();
-            _psRunspace.AddScript(script);
-            var psResults = _psRunspace.Invoke();
-
-            if (_psRunspace.HadErrors && psResults.Count == 0)
+            System.Collections.ObjectModel.Collection<System.Management.Automation.PSObject> psResults;
+            lock (_psLock)
             {
-                var errorMsg = string.Join("; ", _psRunspace.Streams.Error
-                    .Select(e => e.Exception?.Message ?? e.ToString()));
-                throw new Exception($"PowerShell remote TPM query failed: {errorMsg}");
+                EnsureRunspaceValid();
+                _psRunspace.Commands.Clear();
+                _psRunspace.AddScript(script);
+                psResults = _psRunspace.Invoke();
+
+                if (_psRunspace.HadErrors && psResults.Count == 0)
+                {
+                    var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                        .Select(e => e.Exception?.Message ?? e.ToString()));
+                    throw new Exception($"PowerShell remote TPM query failed: {errorMsg}");
+                }
             }
 
             var lines = psResults
@@ -663,11 +714,15 @@ try {{
 
         private void QuerySecureBootViaRunspace(string computerName, BiosQueryResult result)
         {
-            EnsureRunspaceValid();
-            _psRunspace.Commands.Clear();
-            _psRunspace.AddScript(
-                "try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }");
-            var psResults = _psRunspace.Invoke();
+            System.Collections.ObjectModel.Collection<System.Management.Automation.PSObject> psResults;
+            lock (_psLock)
+            {
+                EnsureRunspaceValid();
+                _psRunspace.Commands.Clear();
+                _psRunspace.AddScript(
+                    "try { $r = Confirm-SecureBootUEFI -ErrorAction Stop; Write-Output $r } catch { Write-Output 'Unsupported' }");
+                psResults = _psRunspace.Invoke();
+            }
 
             string output = psResults.Count > 0 ? psResults[0]?.ToString()?.Trim() : string.Empty;
 
@@ -722,16 +777,20 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
 }}";
             }
 
-            EnsureRunspaceValid();
-            _psRunspace.Commands.Clear();
-            _psRunspace.AddScript(script);
-            var psResults = _psRunspace.Invoke();
-
-            if (_psRunspace.HadErrors && psResults.Count == 0)
+            System.Collections.ObjectModel.Collection<System.Management.Automation.PSObject> psResults;
+            lock (_psLock)
             {
-                var errorMsg = string.Join("; ", _psRunspace.Streams.Error
-                    .Select(e => e.Exception?.Message ?? e.ToString()));
-                throw new Exception($"CMSL HP BIOS settings query failed: {errorMsg}");
+                EnsureRunspaceValid();
+                _psRunspace.Commands.Clear();
+                _psRunspace.AddScript(script);
+                psResults = _psRunspace.Invoke();
+
+                if (_psRunspace.HadErrors && psResults.Count == 0)
+                {
+                    var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                        .Select(e => e.Exception?.Message ?? e.ToString()));
+                    throw new Exception($"CMSL HP BIOS settings query failed: {errorMsg}");
+                }
             }
 
             foreach (var obj in psResults)
@@ -890,16 +949,19 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
 }}";
                     }
 
-                    EnsureRunspaceValid();
-                    _psRunspace.Commands.Clear();
-                    _psRunspace.AddScript(script);
-                    _psRunspace.Invoke();
-
-                    if (_psRunspace.HadErrors)
+                    lock (_psLock)
                     {
-                        var errorMsg = string.Join("; ", _psRunspace.Streams.Error
-                            .Select(e => e.Exception?.Message ?? e.ToString()));
-                        throw new Exception(errorMsg);
+                        EnsureRunspaceValid();
+                        _psRunspace.Commands.Clear();
+                        _psRunspace.AddScript(script);
+                        _psRunspace.Invoke();
+
+                        if (_psRunspace.HadErrors)
+                        {
+                            var errorMsg = string.Join("; ", _psRunspace.Streams.Error
+                                .Select(e => e.Exception?.Message ?? e.ToString()));
+                            throw new Exception(errorMsg);
+                        }
                     }
 
                     result.Success = true;

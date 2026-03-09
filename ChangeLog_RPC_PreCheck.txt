@@ -1,0 +1,190 @@
+File modified: BIOS_Tools.cs
+Methods updated:
+    QueryRemoteBiosAsync
+
+Methods added:
+    IsRpcAvailable
+
+Updated method code:
+
+    public async Task<BiosQueryResult> QueryRemoteBiosAsync(string computerName, string username, string password, string domain)
+    {
+        return await Task.Run(() =>
+        {
+            var result = new BiosQueryResult { ComputerName = computerName };
+
+            try
+            {
+                // Pre-check: verify RPC port 135 is reachable before attempting WMI connections.
+                // WMI relies on RPC; if it's blocked the connection will hang then fail anyway.
+                if (!IsRpcAvailable(computerName))
+                {
+                    result.Success = false;
+                    result.IsRpcDisabled = true;
+                    result.ErrorMessage = "RPC Disabled";
+                    _consoleForm?.WriteWarning($"{computerName}: RPC port 135 unreachable — skipping WMI query.");
+                    return result;
+                }
+
+                _consoleForm?.WriteInfo($"Connecting to {computerName} via WMI...");
+
+                var connOptions = BuildConnectionOptions(computerName, username, password, domain);
+
+                // Standard WMI queries (manufacturer-agnostic)
+                QueryHardwareInfo(computerName, connOptions, result);
+                QueryBiosInfo(computerName, connOptions, result);
+                QueryOsInfo(computerName, connOptions, result);
+                QueryTpmInfo(computerName, connOptions, result, username, password, domain);
+                QuerySecureBoot(computerName, connOptions, result);
+
+                // HP-specific BIOS settings
+                bool isHp = result.Manufacturer != null && (
+                    result.Manufacturer.IndexOf("HP", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    result.Manufacturer.IndexOf("Hewlett", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                if (isHp)
+                {
+                    result.IsHpMachine = true;
+
+                    // Try CMSL first; fall back to WMI HP provider
+                    bool cmslSucceeded = false;
+                    if (_isCmslLoaded)
+                    {
+                        try
+                        {
+                            QueryHpBiosSettingsViaCmsl(computerName, username, password, domain, result);
+                            cmslSucceeded = true;
+                        }
+                        catch (Exception cmslEx)
+                        {
+                            _consoleForm?.WriteWarning($"  CMSL HP BIOS query failed ({cmslEx.Message}), falling back to WMI...");
+                        }
+                    }
+
+                    if (!cmslSucceeded)
+                        QueryHpBiosSettingsViaWmi(computerName, connOptions, result);
+                }
+
+                result.Success = true;
+                _consoleForm?.WriteSuccess($"Successfully queried BIOS info from {computerName}");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                result.Success = false;
+                result.ErrorMessage = "Access denied. Verify your credentials have admin rights on the remote machine.";
+                _consoleForm?.WriteError($"Access denied on {computerName}");
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"WMI connection failed: {ex.Message}";
+                _consoleForm?.WriteError($"WMI COM error on {computerName}: {ex.Message}");
+            }
+            catch (ManagementException ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"WMI query error: {ex.Message}";
+                _consoleForm?.WriteError($"WMI query error on {computerName}: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"Unexpected error: {ex.Message}";
+                _consoleForm?.WriteError($"Error querying {computerName}: {ex.Message}");
+            }
+
+            return result;
+        });
+    }
+
+Added method code:
+
+    /// <summary>
+    /// Tests whether TCP port 135 (RPC Endpoint Mapper) is reachable on the remote computer.
+    /// A fast pre-check that avoids long WMI timeouts when RPC is disabled or blocked.
+    /// </summary>
+    private static bool IsRpcAvailable(string computerName, int timeoutMs = 2000)
+    {
+        try
+        {
+            using (var client = new TcpClient())
+            {
+                var ar = client.BeginConnect(computerName, 135, null, null);
+                bool success = ar.AsyncWaitHandle.WaitOne(timeoutMs);
+                if (success && client.Connected)
+                {
+                    client.EndConnect(ar);
+                    return true;
+                }
+                return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+Also added to BiosQueryResult class:
+    public bool IsRpcDisabled { get; set; }
+
+========================================================================
+
+File modified: SA_ToolBelt.cs
+Methods updated:
+    QueryAllBiosAsync
+    btnQueryBios_Click
+
+Methods added:
+    AddRpcDisabledBiosRow
+
+Updated method code (relevant changed sections only):
+
+    // In QueryAllBiosAsync — failure branch now includes RPC disabled row:
+    else
+    {
+        Interlocked.Increment(ref failed);
+        if (result.IsRpcDisabled)
+            AddRpcDisabledBiosRow(result.ComputerName);
+    }
+
+    // In btnQueryBios_Click — failure branch now shows RPC disabled row for single query:
+    else
+    {
+        if (result.IsRpcDisabled)
+        {
+            dgvHpBiosSettings.Rows.Clear();
+            AddRpcDisabledBiosRow(result.ComputerName);
+            lblBiosSettingsCount.Text = "RPC Disabled — no data available";
+        }
+        SetBiosQueryBusy(false, result.ErrorMessage);
+        lblBiosQueryStatusValue.ForeColor = WtWarnRed;
+        _consoleForm?.WriteError($"BIOS query failed: {result.ErrorMessage}");
+    }
+
+Added method code:
+
+    private void AddRpcDisabledBiosRow(string computerName)
+    {
+        string assignedTo = LookupAssignedTo(computerName);
+        dgvHpBiosSettings.Rows.Add(
+            computerName,
+            assignedTo,
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "RPC Disabled",
+            "\u2014",
+            "\u2014",
+            "\u2014"
+        );
+    }

@@ -2708,7 +2708,6 @@ namespace SA_ToolBelt
             dataGridViewCellStyle6.SelectionForeColor = Color.FromArgb(33, 37, 41);
             dataGridViewCellStyle6.WrapMode = DataGridViewTriState.False;
             dgvHpBiosSettings.DefaultCellStyle = dataGridViewCellStyle6;
-            dgvHpBiosSettings.Columns.AddRange(new DataGridViewColumn[] { colBiosCategory, colBiosSettingName, colBiosSettingValue });
             dataGridViewCellStyle12.Alignment = DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle12.BackColor = Color.White;
             dataGridViewCellStyle12.Font = new Font("Segoe UI", 9.5F);
