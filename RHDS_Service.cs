@@ -274,7 +274,7 @@ namespace SA_ToolBelt
                     string dnGroup = $"cn={securityGroup},ou=Groups,{BASE_DN}";
 
                     // var modifyRequest = new ModifyRequest(dnGroup, DirectoryAttributeOperation.Add, "memberuid", ntUserId);
-                    var modifyRequest = new ModifyRequest(dnGroup, DirectoryAttributeOperation.Add, "uniqueMember", dnUser);
+                    var modifyRequest = new ModifyRequest(dnGroup, DirectoryAttributeOperation.Add, "member", dnUser);
                     ldapConnection.SendRequest(modifyRequest);
                     _consoleForm?.WriteSuccess($"Added user to {securityGroup}");
                 }
@@ -722,3 +722,4 @@ namespace SA_ToolBelt
         #endregion
     }
 }
+
