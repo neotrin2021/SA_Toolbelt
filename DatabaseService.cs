@@ -190,14 +190,44 @@ namespace SA_ToolBelt
                     Value TEXT NOT NULL DEFAULT ''
                 )",
 
-                // GPO Tab tables — schema ready, uncomment when GPO tab goes to prod
-                // See GPO_Service.cs and .claude/GPO_Tab_Plan.md for full implementation details
-                /*
-                @"CREATE TABLE IF NOT EXISTS GPO_Settings (...)",
-                @"CREATE TABLE IF NOT EXISTS GPO_OU_Links (...)",
-                @"CREATE TABLE IF NOT EXISTS GPO_Scrape_History (...)",
-                @"CREATE TABLE IF NOT EXISTS GPO_Changelog (...)"
-                */
+                // GPO Tab tables
+                @"CREATE TABLE IF NOT EXISTS GPO_Settings (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    GPO_Name TEXT NOT NULL,
+                    Category TEXT,
+                    Setting_Name TEXT NOT NULL,
+                    Setting_Value TEXT,
+                    Setting_State TEXT,
+                    Last_Scraped TEXT NOT NULL
+                )",
+                @"CREATE TABLE IF NOT EXISTS GPO_OU_Links (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    OU_Name TEXT NOT NULL,
+                    OU_DN TEXT NOT NULL,
+                    OU_Parent_DN TEXT,
+                    GPO_Name TEXT NOT NULL,
+                    GPO_GUID TEXT,
+                    Link_Enabled INTEGER,
+                    Link_Enforced INTEGER,
+                    Last_Scraped TEXT NOT NULL
+                )",
+                @"CREATE TABLE IF NOT EXISTS GPO_Scrape_History (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Scrape_Time TEXT NOT NULL,
+                    GPOs_Scraped INTEGER,
+                    Settings_Count INTEGER,
+                    Notes TEXT
+                )",
+                @"CREATE TABLE IF NOT EXISTS GPO_Changelog (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Change_Time TEXT NOT NULL,
+                    GPO_Name TEXT NOT NULL,
+                    Category TEXT,
+                    Setting_Name TEXT NOT NULL,
+                    Old_Value TEXT,
+                    New_Value TEXT,
+                    Change_Type TEXT NOT NULL
+                )"
             };
 
             foreach (string sql in createStatements)
