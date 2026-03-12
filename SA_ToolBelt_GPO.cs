@@ -12,7 +12,7 @@ namespace SA_ToolBelt
         // GPO Tab — Button Handlers
         // -------------------------------------------------------------------------
 
-        private async void BtnGpoScrape_Click(object sender, EventArgs e)
+        private async void btnGpoScrape_Click(object sender, EventArgs e)
         {
             SetGpoButtonsEnabled(false);
             lblGpoStatus.Text = "Status: Scraping...";
@@ -227,7 +227,7 @@ namespace SA_ToolBelt
         private void InitializeGpoTab()
         {
             // Wire event handlers
-            btnGpoScrape.Click += BtnGpoScrape_Click;
+            btnGpoScrape.Click += btnGpoScrape_Click;
             btnGpoRefresh.Click += BtnGpoRefresh_Click;
             btnGpoDuplicates.Click += BtnGpoDuplicates_Click;
             tvwGpoTree.AfterSelect += TvwGpoTree_AfterSelect;
