@@ -491,11 +491,22 @@ namespace SA_ToolBelt
 
         /// <summary>
         /// Releases the application-level lock. Stops the heartbeat timer and deletes the .applock file.
+        /// Uses the WaitHandle overload of Timer.Dispose() to ensure any in-progress heartbeat callback
+        /// has fully completed before we attempt to delete the lock file. Without this, the heartbeat
+        /// could have the file open with FileShare.None at the exact moment we try to delete it,
+        /// causing a silent failure that leaves the lock file behind.
         /// </summary>
         public void ReleaseLock()
         {
-            _heartbeatTimer?.Dispose();
-            _heartbeatTimer = null;
+            if (_heartbeatTimer != null)
+            {
+                // Wait up to 5 seconds for any currently-running heartbeat callback to finish
+                // before we proceed to delete the lock file it may be writing.
+                using var timerStopped = new ManualResetEventSlim(false);
+                _heartbeatTimer.Dispose(timerStopped.WaitHandle);
+                timerStopped.Wait(TimeSpan.FromSeconds(5));
+                _heartbeatTimer = null;
+            }
 
             if (_lockAcquired && !string.IsNullOrEmpty(_lockFilePath))
             {
@@ -573,8 +584,8 @@ namespace SA_ToolBelt
         }
 
         /// <summary>
-        /// Force-unlocks the database by removing the .applock file and cleaning up SQLite journal files.
-        /// Also verifies database integrity after cleanup.
+        /// Force-unlocks the database by removing the .applock file.
+        /// Verifies database integrity after cleanup.
         /// WARNING: The other SA's toolbelt session will lose write access.
         /// </summary>
         public bool ForceUnlockDatabase()
@@ -597,26 +608,10 @@ namespace SA_ToolBelt
                     }
                 }
 
-                // Also clean up SQLite journal files in case they're stale
-                string walFile = _databasePath + "-wal";
-                string shmFile = _databasePath + "-shm";
-                string journalFile = _databasePath + "-journal";
-
-                if (File.Exists(walFile))
-                {
-                    File.Delete(walFile);
-                    _consoleForm?.WriteInfo($"Deleted WAL file: {walFile}");
-                }
-                if (File.Exists(shmFile))
-                {
-                    File.Delete(shmFile);
-                    _consoleForm?.WriteInfo($"Deleted SHM file: {shmFile}");
-                }
-                if (File.Exists(journalFile))
-                {
-                    File.Delete(journalFile);
-                    _consoleForm?.WriteInfo($"Deleted journal file: {journalFile}");
-                }
+                // Do NOT delete WAL/SHM/journal files here. If the other SA's toolbelt is still
+                // running, those files may be active and deleting them can corrupt the database
+                // or cause the integrity check below to fail. SQLite manages these files itself.
+                // Our only job is to remove the .applock so we can acquire the lock.
 
                 // Verify the database is now accessible
                 using (var connection = new SqliteConnection($"Data Source={_databasePath}"))
