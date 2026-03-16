@@ -190,14 +190,44 @@ namespace SA_ToolBelt
                     Value TEXT NOT NULL DEFAULT ''
                 )",
 
-                // GPO Tab tables — schema ready, uncomment when GPO tab goes to prod
-                // See GPO_Service.cs and .claude/GPO_Tab_Plan.md for full implementation details
-                /*
-                @"CREATE TABLE IF NOT EXISTS GPO_Settings (...)",
-                @"CREATE TABLE IF NOT EXISTS GPO_OU_Links (...)",
-                @"CREATE TABLE IF NOT EXISTS GPO_Scrape_History (...)",
-                @"CREATE TABLE IF NOT EXISTS GPO_Changelog (...)"
-                */
+                // GPO scraping tables
+                @"CREATE TABLE IF NOT EXISTS GPO_Settings (
+                    Id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                    GPO_Name       TEXT NOT NULL DEFAULT '',
+                    Category       TEXT NOT NULL DEFAULT '',
+                    Setting_Name   TEXT NOT NULL DEFAULT '',
+                    Setting_Value  TEXT NOT NULL DEFAULT '',
+                    Setting_State  TEXT NOT NULL DEFAULT '',
+                    Last_Scraped   TEXT NOT NULL DEFAULT ''
+                )",
+
+                @"CREATE TABLE IF NOT EXISTS GPO_OU_Links (
+                    Id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    OU_Name      TEXT NOT NULL DEFAULT '',
+                    OU_DN        TEXT NOT NULL DEFAULT '',
+                    OU_Parent_DN TEXT NOT NULL DEFAULT '',
+                    GPO_Name     TEXT NOT NULL DEFAULT '',
+                    Last_Scraped TEXT NOT NULL DEFAULT ''
+                )",
+
+                @"CREATE TABLE IF NOT EXISTS GPO_Scrape_History (
+                    Id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Scrape_Time    TEXT NOT NULL DEFAULT '',
+                    GPOs_Scraped   INTEGER NOT NULL DEFAULT 0,
+                    Settings_Count INTEGER NOT NULL DEFAULT 0,
+                    Notes          TEXT NOT NULL DEFAULT ''
+                )",
+
+                @"CREATE TABLE IF NOT EXISTS GPO_Changelog (
+                    Id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Change_Time TEXT NOT NULL DEFAULT '',
+                    GPO_Name    TEXT NOT NULL DEFAULT '',
+                    Category    TEXT NOT NULL DEFAULT '',
+                    Setting_Name TEXT NOT NULL DEFAULT '',
+                    Old_Value   TEXT NOT NULL DEFAULT '',
+                    New_Value   TEXT NOT NULL DEFAULT '',
+                    Change_Type TEXT NOT NULL DEFAULT ''
+                )"
             };
 
             foreach (string sql in createStatements)

@@ -195,6 +195,41 @@ namespace SA_ToolBelt
 
                     using var rootEntry = new DirectoryEntry(ldapRoot);
 
+                    // Also build guidToName directly from AD's CN=Policies,CN=System container.
+                    // The CN of each GPO object IS the GUID in {XXXXXXXX-...} format — exactly
+                    // what gPLink uses — so this lookup is always format-correct regardless of
+                    // how PowerShell returns the Id type.
+                    try
+                    {
+                        string rootDn = rootEntry.Properties["distinguishedName"]?.Value?.ToString() ?? "";
+                        if (!string.IsNullOrEmpty(rootDn))
+                        {
+                            using var policiesEntry = new DirectoryEntry($"LDAP://CN=Policies,CN=System,{rootDn}");
+                            using var policySearcher = new DirectorySearcher(policiesEntry)
+                            {
+                                Filter = "(objectClass=groupPolicyContainer)",
+                                SearchScope = SearchScope.OneLevel
+                            };
+                            policySearcher.PropertiesToLoad.AddRange(new[] { "cn", "displayName" });
+
+                            foreach (SearchResult sr in policySearcher.FindAll())
+                            {
+                                string cn = sr.Properties["cn"]?.Count > 0
+                                    ? sr.Properties["cn"][0]?.ToString()?.Trim('{', '}') ?? ""
+                                    : "";
+                                string displayName = sr.Properties["displayName"]?.Count > 0
+                                    ? sr.Properties["displayName"][0]?.ToString() ?? ""
+                                    : "";
+                                if (!string.IsNullOrEmpty(cn) && !string.IsNullOrEmpty(displayName))
+                                    guidToName[cn] = displayName;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _consoleForm?.WriteWarning($"Could not enumerate GPO Policies container for name lookup: {ex.Message}");
+                    }
+
                     // Build the root domain node
                     var domainNode = new OuNode
                     {
@@ -460,15 +495,22 @@ namespace SA_ToolBelt
             var changes = new List<GpoChangeRecord>();
 
             // Key = "GPOName|Category|SettingName"
-            var prevDict = previous.ToDictionary(
-                r => $"{r.GpoName}|{r.Category}|{r.SettingName}",
-                r => r,
-                StringComparer.OrdinalIgnoreCase);
+            // Use a safe loop instead of .ToDictionary() to avoid crashing on duplicate DB rows
+            var prevDict = new Dictionary<string, GpoSettingRecord>(StringComparer.OrdinalIgnoreCase);
+            foreach (var r in previous)
+            {
+                string key = $"{r.GpoName}|{r.Category}|{r.SettingName}";
+                if (!prevDict.ContainsKey(key))
+                    prevDict[key] = r;
+            }
 
-            var currDict = current.ToDictionary(
-                r => $"{r.GpoName}|{r.Category}|{r.SettingName}",
-                r => r,
-                StringComparer.OrdinalIgnoreCase);
+            var currDict = new Dictionary<string, GpoSettingRecord>(StringComparer.OrdinalIgnoreCase);
+            foreach (var r in current)
+            {
+                string key = $"{r.GpoName}|{r.Category}|{r.SettingName}";
+                if (!currDict.ContainsKey(key))
+                    currDict[key] = r;
+            }
 
             // Find Modified and Added
             foreach (var kvp in currDict)
