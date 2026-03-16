@@ -193,6 +193,21 @@ namespace SA_ToolBelt
             lblNewUserAcntCreation = new Label();
             tabRemoteTools = new TabPage();
             tabBiosTools = new TabPage();
+            tabGPO = new TabPage();
+            pnlGpoToolbar = new Panel();
+            btnGpoScrape = new Button();
+            btnGpoRefresh = new Button();
+            btnGpoDuplicates = new Button();
+            lblGpoStatus = new Label();
+            splGpoVertical = new SplitContainer();
+            splGpoHorizontal = new SplitContainer();
+            tvwGpoTree = new TreeView();
+            lvwGpoSettings = new ListView();
+            clmGpoCategory = new ColumnHeader();
+            clmGpoSettingName = new ColumnHeader();
+            clmGpoSettingValue = new ColumnHeader();
+            clmGpoSettingState = new ColumnHeader();
+            rtbGpoReport = new RichTextBox();
             pnlWinToolsHeader = new Panel();
             lblWinToolsTitle = new Label();
             lblWinToolsSubtitle = new Label();
@@ -540,6 +555,16 @@ namespace SA_ToolBelt
             gbxUserAccountCreation.SuspendLayout();
             tabBiosTools.SuspendLayout();
             pnlWinToolsHeader.SuspendLayout();
+            tabGPO.SuspendLayout();
+            pnlGpoToolbar.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splGpoVertical).BeginInit();
+            splGpoVertical.Panel1.SuspendLayout();
+            splGpoVertical.Panel2.SuspendLayout();
+            splGpoVertical.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splGpoHorizontal).BeginInit();
+            splGpoHorizontal.Panel1.SuspendLayout();
+            splGpoHorizontal.Panel2.SuspendLayout();
+            splGpoHorizontal.SuspendLayout();
             gbxBiosQuery.SuspendLayout();
             gbxBiosActions.SuspendLayout();
 
@@ -583,6 +608,7 @@ namespace SA_ToolBelt
             tabControlMain.Controls.Add(tabLDAP);
             tabControlMain.Controls.Add(tabRemoteTools);
             tabControlMain.Controls.Add(tabBiosTools);
+            tabControlMain.Controls.Add(tabGPO);
             tabControlMain.Controls.Add(tabLinuxTools);
             tabControlMain.Controls.Add(tabVMwareTools);
             tabControlMain.Controls.Add(tabOnlineOffline);
@@ -2341,7 +2367,143 @@ namespace SA_ToolBelt
             tabBiosTools.Size = new Size(1651, 847);
             tabBiosTools.TabIndex = 4;
             tabBiosTools.Text = "BIOS Tools";
-            // 
+            //
+            // tabGPO
+            //
+            tabGPO.BackColor = Color.FromArgb(245, 247, 250);
+            tabGPO.Controls.Add(splGpoVertical);
+            tabGPO.Controls.Add(pnlGpoToolbar);
+            tabGPO.Location = new Point(4, 24);
+            tabGPO.Name = "tabGPO";
+            tabGPO.Size = new Size(1651, 847);
+            tabGPO.TabIndex = 13;
+            tabGPO.Text = "GPO Tools";
+            //
+            // pnlGpoToolbar
+            //
+            pnlGpoToolbar.BackColor = Color.FromArgb(30, 58, 95);
+            pnlGpoToolbar.Controls.Add(lblGpoStatus);
+            pnlGpoToolbar.Controls.Add(btnGpoDuplicates);
+            pnlGpoToolbar.Controls.Add(btnGpoRefresh);
+            pnlGpoToolbar.Controls.Add(btnGpoScrape);
+            pnlGpoToolbar.Dock = DockStyle.Top;
+            pnlGpoToolbar.Location = new Point(0, 0);
+            pnlGpoToolbar.Name = "pnlGpoToolbar";
+            pnlGpoToolbar.Size = new Size(1651, 45);
+            pnlGpoToolbar.TabIndex = 0;
+            //
+            // btnGpoScrape
+            //
+            btnGpoScrape.Location = new Point(8, 9);
+            btnGpoScrape.Name = "btnGpoScrape";
+            btnGpoScrape.Size = new Size(130, 26);
+            btnGpoScrape.TabIndex = 0;
+            btnGpoScrape.Text = "Scrape GPOs";
+            btnGpoScrape.UseVisualStyleBackColor = true;
+            //
+            // btnGpoRefresh
+            //
+            btnGpoRefresh.Location = new Point(146, 9);
+            btnGpoRefresh.Name = "btnGpoRefresh";
+            btnGpoRefresh.Size = new Size(150, 26);
+            btnGpoRefresh.TabIndex = 1;
+            btnGpoRefresh.Text = "Refresh && Report";
+            btnGpoRefresh.UseVisualStyleBackColor = true;
+            //
+            // btnGpoDuplicates
+            //
+            btnGpoDuplicates.Location = new Point(304, 9);
+            btnGpoDuplicates.Name = "btnGpoDuplicates";
+            btnGpoDuplicates.Size = new Size(130, 26);
+            btnGpoDuplicates.TabIndex = 2;
+            btnGpoDuplicates.Text = "Find Duplicates";
+            btnGpoDuplicates.UseVisualStyleBackColor = true;
+            //
+            // lblGpoStatus
+            //
+            lblGpoStatus.AutoSize = true;
+            lblGpoStatus.ForeColor = Color.White;
+            lblGpoStatus.Location = new Point(452, 15);
+            lblGpoStatus.Name = "lblGpoStatus";
+            lblGpoStatus.Size = new Size(120, 15);
+            lblGpoStatus.TabIndex = 3;
+            lblGpoStatus.Text = "Status: Not scraped";
+            //
+            // splGpoVertical  (Horizontal orientation = top/bottom panels)
+            //
+            splGpoVertical.Dock = DockStyle.Fill;
+            splGpoVertical.Location = new Point(0, 45);
+            splGpoVertical.Name = "splGpoVertical";
+            splGpoVertical.Orientation = Orientation.Horizontal;
+            splGpoVertical.Panel1.Controls.Add(splGpoHorizontal);
+            splGpoVertical.Panel2.Controls.Add(rtbGpoReport);
+            splGpoVertical.Size = new Size(1651, 802);
+            splGpoVertical.SplitterDistance = 570;
+            splGpoVertical.TabIndex = 1;
+            //
+            // splGpoHorizontal  (Vertical orientation = left/right panels)
+            //
+            splGpoHorizontal.Dock = DockStyle.Fill;
+            splGpoHorizontal.Location = new Point(0, 0);
+            splGpoHorizontal.Name = "splGpoHorizontal";
+            splGpoHorizontal.Panel1.Controls.Add(tvwGpoTree);
+            splGpoHorizontal.Panel2.Controls.Add(lvwGpoSettings);
+            splGpoHorizontal.Size = new Size(1651, 570);
+            splGpoHorizontal.SplitterDistance = 420;
+            splGpoHorizontal.TabIndex = 0;
+            //
+            // tvwGpoTree
+            //
+            tvwGpoTree.Dock = DockStyle.Fill;
+            tvwGpoTree.Location = new Point(0, 0);
+            tvwGpoTree.Name = "tvwGpoTree";
+            tvwGpoTree.Size = new Size(420, 570);
+            tvwGpoTree.TabIndex = 0;
+            //
+            // lvwGpoSettings
+            //
+            lvwGpoSettings.Columns.AddRange(new ColumnHeader[] { clmGpoCategory, clmGpoSettingName, clmGpoSettingValue, clmGpoSettingState });
+            lvwGpoSettings.Dock = DockStyle.Fill;
+            lvwGpoSettings.FullRowSelect = true;
+            lvwGpoSettings.GridLines = true;
+            lvwGpoSettings.Location = new Point(0, 0);
+            lvwGpoSettings.Name = "lvwGpoSettings";
+            lvwGpoSettings.Size = new Size(1227, 570);
+            lvwGpoSettings.TabIndex = 0;
+            lvwGpoSettings.View = View.Details;
+            //
+            // clmGpoCategory
+            //
+            clmGpoCategory.Text = "Category";
+            clmGpoCategory.Width = 300;
+            //
+            // clmGpoSettingName
+            //
+            clmGpoSettingName.Text = "Setting Name";
+            clmGpoSettingName.Width = 400;
+            //
+            // clmGpoSettingValue
+            //
+            clmGpoSettingValue.Text = "Value";
+            clmGpoSettingValue.Width = 280;
+            //
+            // clmGpoSettingState
+            //
+            clmGpoSettingState.Text = "State";
+            clmGpoSettingState.Width = 100;
+            //
+            // rtbGpoReport
+            //
+            rtbGpoReport.Dock = DockStyle.Fill;
+            rtbGpoReport.Font = new Font("Consolas", 9F);
+            rtbGpoReport.Location = new Point(0, 0);
+            rtbGpoReport.Name = "rtbGpoReport";
+            rtbGpoReport.ReadOnly = true;
+            rtbGpoReport.ScrollBars = RichTextBoxScrollBars.Both;
+            rtbGpoReport.Size = new Size(1651, 228);
+            rtbGpoReport.TabIndex = 0;
+            rtbGpoReport.Text = "";
+            //
             // pnlWinToolsHeader
             // 
             pnlWinToolsHeader.BackColor = Color.FromArgb(30, 58, 95);
@@ -5460,6 +5622,17 @@ namespace SA_ToolBelt
             pnlHpBiosSettings.ResumeLayout(false);
             pnlHpBiosSettings.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvHpBiosSettings).EndInit();
+            tabGPO.ResumeLayout(false);
+            pnlGpoToolbar.ResumeLayout(false);
+            pnlGpoToolbar.PerformLayout();
+            splGpoVertical.Panel1.ResumeLayout(false);
+            splGpoVertical.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splGpoVertical).EndInit();
+            splGpoVertical.ResumeLayout(false);
+            splGpoHorizontal.Panel1.ResumeLayout(false);
+            splGpoHorizontal.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splGpoHorizontal).EndInit();
+            splGpoHorizontal.ResumeLayout(false);
             tabLinuxTools.ResumeLayout(false);
             gbxLinuxLogs.ResumeLayout(false);
             gbxLinuxLogs.PerformLayout();
@@ -5612,6 +5785,21 @@ namespace SA_ToolBelt
         private TabPage tabLDAP;
         private TabPage tabRemoteTools;
         private TabPage tabBiosTools;
+        private TabPage tabGPO;
+        private Panel pnlGpoToolbar;
+        private Button btnGpoScrape;
+        private Button btnGpoRefresh;
+        private Button btnGpoDuplicates;
+        private Label lblGpoStatus;
+        private SplitContainer splGpoVertical;
+        private SplitContainer splGpoHorizontal;
+        private TreeView tvwGpoTree;
+        private ListView lvwGpoSettings;
+        private ColumnHeader clmGpoCategory;
+        private ColumnHeader clmGpoSettingName;
+        private ColumnHeader clmGpoSettingValue;
+        private ColumnHeader clmGpoSettingState;
+        private RichTextBox rtbGpoReport;
         private Panel pnlWinToolsHeader;
         private Label lblWinToolsTitle;
         private Label lblWinToolsSubtitle;
