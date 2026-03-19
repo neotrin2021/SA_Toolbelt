@@ -751,13 +751,7 @@ try {{
             if (IsLocalComputer(computerName))
             {
                 _consoleForm?.WriteInfo("  Querying HP BIOS settings via CMSL (local)...");
-                script = @"
-Get-HPBIOSSettingsList | ForEach-Object {
-    [PSCustomObject]@{
-        Name  = $_.Name
-        Value = if ($_.CurrentValue) { $_.CurrentValue } else { '(not set)' }
-    }
-}";
+                script = @"Get-HPBIOSSettingsList";
             }
             else
             {
@@ -768,12 +762,7 @@ $secPass = ConvertTo-SecureString '{escapedPass}' -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
 Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
     Import-Module HP.ClientManagement -ErrorAction Stop
-    Get-HPBIOSSettingsList | ForEach-Object {{
-        [PSCustomObject]@{{
-            Name  = $_.Name
-            Value = if ($_.CurrentValue) {{ $_.CurrentValue }} else {{ '(not set)' }}
-        }}
-    }}
+    Get-HPBIOSSettingsList
 }}";
             }
 
@@ -798,7 +787,7 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
                 if (obj == null) continue;
 
                 string name = obj.Properties["Name"]?.Value?.ToString()?.Trim();
-                string value = obj.Properties["Value"]?.Value?.ToString()?.Trim() ?? "(not set)";
+                string value = obj.Properties["CurrentValue"]?.Value?.ToString()?.Trim() ?? "(not set)";
 
                 if (!string.IsNullOrEmpty(name))
                 {
