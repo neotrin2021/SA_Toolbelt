@@ -908,9 +908,10 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
         }
 
         /// <summary>
-        /// Sets a HP BIOS setting using CMSL (Set-HPBIOSSettingValue).
-        /// For local machine: runs in the persistent runspace directly.
-        /// For remote machine: uses PSRemoting (Invoke-Command).
+        /// Sets a HP BIOS setting using CMSL (Set-HPBIOSSettingValue) via external powershell.exe.
+        /// In-process PS Core lacks CimCmdlets, so we shell out to full Windows PowerShell 5.1.
+        /// For local machine: elevated via Verb="runas" (UAC prompt), output via temp file.
+        /// For remote machine: non-elevated, uses PSRemoting with credentials, output via temp file.
         /// </summary>
         private async Task<BiosSetResult> SetHpBiosSettingViaCmslAsync(
             string computerName, string username, string password, string domain,
@@ -919,10 +920,13 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
             return await Task.Run(() =>
             {
                 var result = new BiosSetResult { SettingName = settingName, NewValue = newValue };
+                string tempOutput = Path.Combine(Path.GetTempPath(), $"sa_bios_set_{Guid.NewGuid():N}.txt");
+                string tempScript = Path.Combine(Path.GetTempPath(), $"sa_bios_set_{Guid.NewGuid():N}.ps1");
 
                 try
                 {
-                    _consoleForm?.WriteInfo($"  Setting '{settingName}' to '{newValue}' on {computerName} via CMSL...");
+                    bool isLocal = IsLocalComputer(computerName);
+                    _consoleForm?.WriteInfo($"  Setting '{settingName}' to '{newValue}' on {computerName} via CMSL (external PS)...");
 
                     string escapedPass = password?.Replace("'", "''") ?? string.Empty;
                     string escapedBiosPass = biosPassword?.Replace("'", "''") ?? string.Empty;
@@ -934,34 +938,81 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
                         : $" -Password '{escapedBiosPass}'";
 
                     string script;
-                    if (IsLocalComputer(computerName))
+                    if (isLocal)
                     {
-                        script = $"Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop";
+                        script = $@"
+try {{
+    Import-Module HP.ClientManagement -ErrorAction Stop
+    Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
+    'SUCCESS' | Out-File -FilePath '{tempOutput}' -Encoding UTF8
+}} catch {{
+    ""ERROR=$($_.Exception.Message)"" | Out-File -FilePath '{tempOutput}' -Encoding UTF8
+}}";
                     }
                     else
                     {
                         script = $@"
-$secPass = ConvertTo-SecureString '{escapedPass}' -AsPlainText -Force
-$cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
-Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
-    Import-Module HP.ClientManagement -ErrorAction Stop
-    Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
+try {{
+    $secPass = ConvertTo-SecureString '{escapedPass}' -AsPlainText -Force
+    $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+    Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
+        Import-Module HP.ClientManagement -ErrorAction Stop
+        Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
+    }}
+    'SUCCESS' | Out-File -FilePath '{tempOutput}' -Encoding UTF8
+}} catch {{
+    ""ERROR=$($_.Exception.Message)"" | Out-File -FilePath '{tempOutput}' -Encoding UTF8
 }}";
                     }
 
-                    lock (_psLock)
-                    {
-                        EnsureRunspaceValid();
-                        _psRunspace.Commands.Clear();
-                        _psRunspace.AddScript(script);
-                        _psRunspace.Invoke();
+                    File.WriteAllText(tempScript, script);
 
-                        if (_psRunspace.HadErrors)
+                    ProcessStartInfo psi;
+                    if (isLocal)
+                    {
+                        _consoleForm?.WriteInfo("  Requesting elevated privileges for BIOS setting (UAC prompt may appear)...");
+                        psi = new ProcessStartInfo
                         {
-                            var errorMsg = string.Join("; ", _psRunspace.Streams.Error
-                                .Select(e => e.Exception?.Message ?? e.ToString()));
-                            throw new Exception(errorMsg);
+                            FileName = "powershell.exe",
+                            Arguments = $"-ExecutionPolicy Bypass -NoProfile -File \"{tempScript}\"",
+                            Verb = "runas",
+                            UseShellExecute = true,
+                            WindowStyle = ProcessWindowStyle.Hidden
+                        };
+                    }
+                    else
+                    {
+                        psi = new ProcessStartInfo
+                        {
+                            FileName = "powershell.exe",
+                            Arguments = $"-ExecutionPolicy Bypass -NoProfile -File \"{tempScript}\"",
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                    }
+
+                    using (var proc = Process.Start(psi))
+                    {
+                        if (proc == null)
+                            throw new Exception("Failed to start external PowerShell process for BIOS setting");
+
+                        if (!proc.WaitForExit(60000))
+                        {
+                            proc.Kill();
+                            throw new Exception("External PowerShell BIOS setting timed out after 60 seconds");
                         }
+                    }
+
+                    if (!File.Exists(tempOutput))
+                        throw new Exception("External PowerShell produced no output (UAC may have been declined)");
+
+                    string[] lines = File.ReadAllLines(tempOutput);
+                    string output = string.Join(" ", lines).Trim();
+
+                    if (output.StartsWith("ERROR=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string errorMsg = output.Substring("ERROR=".Length);
+                        throw new Exception(errorMsg);
                     }
 
                     result.Success = true;
@@ -974,6 +1025,11 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
                     result.ErrorMessage = ex.Message;
                     _consoleForm?.WriteError($"  CMSL error setting '{settingName}': {ex.Message}");
                     throw; // Re-throw so caller can fall back to WMI
+                }
+                finally
+                {
+                    try { if (File.Exists(tempScript)) File.Delete(tempScript); } catch { }
+                    try { if (File.Exists(tempOutput)) File.Delete(tempOutput); } catch { }
                 }
 
                 return result;
