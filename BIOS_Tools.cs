@@ -755,7 +755,7 @@ try {{
 Get-HPBIOSSettingsList | ForEach-Object {
     [PSCustomObject]@{
         Name  = $_.Name
-        Value = if ($_.Value) { $_.Value } else { '(not set)' }
+        Value = if ($_.CurrentValue) { $_.CurrentValue } else { '(not set)' }
     }
 }";
             }
@@ -771,7 +771,7 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
     Get-HPBIOSSettingsList | ForEach-Object {{
         [PSCustomObject]@{{
             Name  = $_.Name
-            Value = if ($_.Value) {{ $_.Value }} else {{ '(not set)' }}
+            Value = if ($_.CurrentValue) {{ $_.CurrentValue }} else {{ '(not set)' }}
         }}
     }}
 }}";
@@ -884,7 +884,7 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
 
         /// <summary>
         /// Sets a single HP BIOS setting.
-        /// Uses CMSL (Set-HPBIOSSettingValue) when available; falls back to WMI HP_BIOSSettingInterface.
+        /// Uses CMSL (Set-HPBIOSSetting) when available; falls back to WMI HP_BIOSSettingInterface.
         /// </summary>
         public async Task<BiosSetResult> SetHpBiosSettingAsync(
             string computerName, string username, string password, string domain,
@@ -908,7 +908,7 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
         }
 
         /// <summary>
-        /// Sets a HP BIOS setting using CMSL (Set-HPBIOSSettingValue) via external powershell.exe.
+        /// Sets a HP BIOS setting using CMSL (Set-HPBIOSSetting) via external powershell.exe.
         /// In-process PS Core lacks CimCmdlets, so we shell out to full Windows PowerShell 5.1.
         /// For local machine: elevated via Verb="runas" (UAC prompt), output via temp file.
         /// For remote machine: non-elevated, uses PSRemoting with credentials, output via temp file.
@@ -943,7 +943,7 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
                         script = $@"
 try {{
     Import-Module HP.ClientManagement -ErrorAction Stop
-    Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
+    Set-HPBIOSSetting -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
     'SUCCESS' | Out-File -FilePath '{tempOutput}' -Encoding UTF8
 }} catch {{
     ""ERROR=$($_.Exception.Message)"" | Out-File -FilePath '{tempOutput}' -Encoding UTF8
@@ -957,7 +957,7 @@ try {{
     $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
     Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
         Import-Module HP.ClientManagement -ErrorAction Stop
-        Set-HPBIOSSettingValue -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
+        Set-HPBIOSSetting -Name '{escapedSettingName}' -Value '{escapedNewValue}'{biosPasswordParam} -ErrorAction Stop
     }}
     'SUCCESS' | Out-File -FilePath '{tempOutput}' -Encoding UTF8
 }} catch {{
