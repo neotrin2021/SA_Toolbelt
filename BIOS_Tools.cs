@@ -746,12 +746,19 @@ try {{
         /// </summary>
         private void QueryHpBiosSettingsViaCmsl(string computerName, string username, string password, string domain, BiosQueryResult result)
         {
+            // Get-HPBIOSSettingsList returns setting NAMES only (strings).
+            // We must call Get-HPBIOSSettingValue for each name to get the current value.
             string script;
 
             if (IsLocalComputer(computerName))
             {
                 _consoleForm?.WriteInfo("  Querying HP BIOS settings via CMSL (local)...");
-                script = @"Get-HPBIOSSettingsList";
+                script = @"
+$names = Get-HPBIOSSettingsList
+foreach ($n in $names) {
+    $v = try { Get-HPBIOSSettingValue -Name $n -ErrorAction Stop } catch { '(error)' }
+    [PSCustomObject]@{ Name = $n; CurrentValue = $v }
+}";
             }
             else
             {
@@ -762,7 +769,11 @@ $secPass = ConvertTo-SecureString '{escapedPass}' -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
 Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
     Import-Module HP.ClientManagement -ErrorAction Stop
-    Get-HPBIOSSettingsList
+    $names = Get-HPBIOSSettingsList
+    foreach ($n in $names) {{
+        $v = try {{ Get-HPBIOSSettingValue -Name $n -ErrorAction Stop }} catch {{ '(error)' }}
+        [PSCustomObject]@{{ Name = $n; CurrentValue = $v }}
+    }}
 }}";
             }
 
@@ -786,8 +797,17 @@ Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Sto
             {
                 if (obj == null) continue;
 
+                // Handle both PSCustomObject (with Name/CurrentValue properties)
+                // and plain strings (setting name only, from older CMSL versions)
                 string name = obj.Properties["Name"]?.Value?.ToString()?.Trim();
                 string value = obj.Properties["CurrentValue"]?.Value?.ToString()?.Trim() ?? "(not set)";
+
+                // Fallback: if the object is a plain string, it IS the setting name
+                if (string.IsNullOrEmpty(name) && obj.BaseObject is string strName)
+                {
+                    name = strName.Trim();
+                    value = "(name only)";
+                }
 
                 if (!string.IsNullOrEmpty(name))
                 {
