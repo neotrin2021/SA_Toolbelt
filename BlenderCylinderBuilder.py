@@ -16,6 +16,10 @@ from mathutils import Vector, Matrix
 from bpy.props import FloatProperty, IntProperty, BoolProperty
 
 
+# Class-level storage for resume vert indices (set by resume operator, read by modal)
+_cyl_resume_vert_indices = None
+
+
 class CYLBUILDER_OT_start(bpy.types.Operator):
     """Start interactive cylinder building mode"""
     bl_idname = "mesh.cylinder_builder_start"
@@ -88,6 +92,12 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
             self.report({'INFO'}, "Cylinder Builder confirmed")
             return {'FINISHED'}
 
+        # P = Stop Building (pause) – exits modal but stays in edit mode
+        if event.type == 'P' and event.value == 'PRESS':
+            context.area.header_text_set(None)
+            self.report({'INFO'}, "Cylinder Builder paused – select edges and click Resume Building to continue")
+            return {'FINISHED'}
+
         if event.value != 'PRESS':
             return {'RUNNING_MODAL'}
 
@@ -144,7 +154,7 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
         if handled:
             bmesh.update_edit_mesh(obj.data)
             context.area.header_text_set(
-                "Cylinder Builder | WASD=Move | JIKL=Tilt | "
+                "Cylinder Builder | WASD=Move | JIKL=Tilt | P=Stop | "
                 f"Step={step:.3f} | Tilt={math.degrees(tilt_angle):.1f}° | "
                 f"Inverse={'ON' if inverse else 'OFF'} | Enter/Esc=Done"
             )
@@ -152,13 +162,21 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
+        global _cyl_resume_vert_indices
         if context.edit_object is None:
             self.report({'WARNING'}, "Must be in edit mode")
             return {'CANCELLED'}
 
+        # Pick up resume vert indices if set by the resume operator
+        if _cyl_resume_vert_indices is not None:
+            self._resume_verts = list(_cyl_resume_vert_indices)
+            _cyl_resume_vert_indices = None
+        else:
+            self._resume_verts = None
+
         props = context.scene.cyl_builder
         context.area.header_text_set(
-            "Cylinder Builder | WASD=Move | JIKL=Tilt | "
+            "Cylinder Builder | WASD=Move | JIKL=Tilt | P=Stop | "
             f"Step={props.step_size:.3f} | Tilt={math.degrees(props.tilt_angle):.1f}° | "
             f"Inverse={'ON' if props.inverse_tilt else 'OFF'} | Enter/Esc=Done"
         )
@@ -166,11 +184,20 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def _get_top_ring_verts(self, bm):
-        """Find the most recently created ring of vertices (highest indices)."""
+        """Find the active ring of vertices.
+
+        If resuming from a selected edge, uses the stored resume verts.
+        Otherwise returns the most recently created ring (highest indices).
+        """
         if not bm.verts:
             return []
 
         bm.verts.ensure_lookup_table()
+
+        # If we have resume verts, use those (first operation after resume)
+        if self._resume_verts is not None:
+            return [bm.verts[i] for i in self._resume_verts]
+
         segments = bpy.context.scene.cyl_builder.circle_segments
 
         # The last N verts added are the current ring
@@ -200,6 +227,9 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
         for v in new_verts:
             v.co += offset
 
+        # Clear resume state – new verts are now at the end of the vert list
+        self._resume_verts = None
+
     def _tilt_ring(self, bm, axis, angle):
         """Tilt the top ring around its center by angle (radians) on the given axis."""
         top_verts = self._get_top_ring_verts(bm)
@@ -227,6 +257,42 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
             v.co = center + rotated
 
 
+class CYLBUILDER_OT_resume(bpy.types.Operator):
+    """Resume building from selected edges"""
+    bl_idname = "mesh.cylinder_builder_resume"
+    bl_label = "Resume Cylinder Builder"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        global _cyl_resume_vert_indices
+
+        obj = context.edit_object
+        if obj is None:
+            self.report({'WARNING'}, "Must be in edit mode")
+            return {'CANCELLED'}
+
+        bm = bmesh.from_edit_mesh(obj.data)
+        bm.edges.ensure_lookup_table()
+
+        # Collect verts from selected edges
+        selected_edges = [e for e in bm.edges if e.select]
+        if not selected_edges:
+            self.report({'WARNING'}, "Select the edges of the ring you want to resume from")
+            return {'CANCELLED'}
+
+        vert_indices = set()
+        for e in selected_edges:
+            vert_indices.add(e.verts[0].index)
+            vert_indices.add(e.verts[1].index)
+
+        # Store for the modal to pick up
+        _cyl_resume_vert_indices = sorted(vert_indices)
+
+        # Launch the modal operator
+        bpy.ops.mesh.cylinder_builder_modal('INVOKE_DEFAULT')
+        return {'FINISHED'}
+
+
 class CYLBUILDER_PT_panel(bpy.types.Panel):
     """Sidebar panel for Cylinder Builder settings"""
     bl_label = "Cylinder Builder"
@@ -251,6 +317,7 @@ class CYLBUILDER_PT_panel(bpy.types.Panel):
 
         layout.separator()
         layout.operator("mesh.cylinder_builder_start", text="Start Building", icon='MESH_CYLINDER')
+        layout.operator("mesh.cylinder_builder_resume", text="Resume Building", icon='PLAY')
 
         layout.separator()
         layout.label(text="Controls (while building):")
@@ -268,6 +335,7 @@ class CYLBUILDER_PT_panel(bpy.types.Panel):
         col.separator()
         col.label(text="Inverse: Reverses JIKL")
         col.separator()
+        col.label(text="P = Stop Building (pause)")
         col.label(text="Enter / Esc = Finish")
 
 
@@ -319,6 +387,7 @@ classes = (
     CylBuilderProperties,
     CYLBUILDER_OT_start,
     CYLBUILDER_OT_modal,
+    CYLBUILDER_OT_resume,
     CYLBUILDER_PT_panel,
 )
 
