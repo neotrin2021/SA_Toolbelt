@@ -2340,5 +2340,394 @@ try {{
         }
 
         #endregion
+
+        #region BitLocker Compliance
+
+        /// <summary>
+        /// Represents the BitLocker status of a single volume
+        /// </summary>
+        public class BitLockerVolumeInfo
+        {
+            public string MountPoint { get; set; }
+            public string VolumeType { get; set; }
+            public string EncryptionMethod { get; set; }
+            public string EncryptionPercentage { get; set; }
+            public string ProtectionStatus { get; set; }
+            public string LockStatus { get; set; }
+            public string KeyProtectors { get; set; }
+            public string AutoUnlockEnabled { get; set; }
+            public string CapacityGB { get; set; }
+        }
+
+        /// <summary>
+        /// Result wrapper for BitLocker compliance enforcement
+        /// </summary>
+        public class BitLockerResult
+        {
+            public bool Success { get; set; }
+            public string ErrorMessage { get; set; }
+            public string ComputerName { get; set; }
+            public string Action { get; set; }
+            public bool KeyBackedUpToAD { get; set; }
+            public List<BitLockerVolumeInfo> Volumes { get; set; } = new List<BitLockerVolumeInfo>();
+        }
+
+        /// <summary>
+        /// Enforces BitLocker compliance on a target machine. Handles three scenarios:
+        ///   1. Already encrypted + Protection On  → Back up recovery key to AD
+        ///   2. Already encrypted + Protection Off → Resume protection, back up key to AD
+        ///   3. Not encrypted                      → Enable BitLocker (TPM + RecoveryPassword), back up key to AD
+        /// Supports both local (elevated) and remote (PSRemoting) execution.
+        /// </summary>
+        public async Task<BitLockerResult> EnforceBitLockerComplianceAsync(string computerName, string username, string password, string domain)
+        {
+            return await Task.Run(() =>
+            {
+                var result = new BitLockerResult { ComputerName = computerName };
+
+                try
+                {
+                    _consoleForm?.WriteInfo($"Checking BitLocker compliance on {computerName}...");
+
+                    // The PowerShell script handles all three scenarios:
+                    //   - Checks current encryption state
+                    //   - Takes the appropriate action
+                    //   - Backs up recovery key to AD
+                    //   - Returns volume status
+                    string bitLockerScript = @"
+$ErrorActionPreference = 'Stop'
+$actionTaken = 'None'
+$keyBackedUp = $false
+$mountPoint = 'C:'
+
+try {
+    # --- Step 1: Get current BitLocker status ---
+    $vol = Get-BitLockerVolume -MountPoint $mountPoint -ErrorAction Stop
+
+    $isEncrypted = $vol.VolumeStatus -eq 'FullyEncrypted' -or $vol.VolumeStatus -eq 'EncryptionInProgress'
+    $protectionOn = $vol.ProtectionStatus -eq 'On'
+    $hasTPM = ($vol.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'Tpm' }) -ne $null
+    $hasRecoveryPw = ($vol.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }) -ne $null
+
+    if ($isEncrypted) {
+        # --- Scenario 1 or 2: Already encrypted ---
+        if (-not $protectionOn) {
+            # Scenario 2: Encrypted but protection is suspended/off
+            Resume-BitLocker -MountPoint $mountPoint -ErrorAction Stop
+            $actionTaken = 'ResumedProtection'
+        } else {
+            $actionTaken = 'AlreadyCompliant'
+        }
+
+        # Ensure protectors are correct (add if missing)
+        if (-not $hasTPM) {
+            Add-BitLockerKeyProtector -MountPoint $mountPoint -TpmProtector -ErrorAction Stop
+            $actionTaken = if ($actionTaken -eq 'AlreadyCompliant') { 'AddedTpmProtector' } else { $actionTaken + '+AddedTpmProtector' }
+        }
+        if (-not $hasRecoveryPw) {
+            Add-BitLockerKeyProtector -MountPoint $mountPoint -RecoveryPasswordProtector -ErrorAction Stop
+            $actionTaken = if ($actionTaken -eq 'AlreadyCompliant') { 'AddedRecoveryPassword' } else { $actionTaken + '+AddedRecoveryPassword' }
+        }
+    } else {
+        # --- Scenario 3: Not encrypted ---
+        # Check prerequisites
+        $tpm = Get-Tpm -ErrorAction SilentlyContinue
+        if (-not $tpm -or -not $tpm.TpmPresent -or -not $tpm.TpmReady) {
+            throw 'TPM is not present or not ready. Cannot enable BitLocker.'
+        }
+
+        try {
+            $secureBoot = Confirm-SecureBootUEFI -ErrorAction Stop
+            if (-not $secureBoot) {
+                throw 'Secure Boot is not enabled. Cannot enable BitLocker.'
+            }
+        } catch [System.PlatformNotSupportedException] {
+            # Legacy BIOS — Secure Boot not applicable, proceed anyway
+        }
+
+        # Enable BitLocker with TPM and RecoveryPassword protectors
+        Enable-BitLocker -MountPoint $mountPoint -EncryptionMethod XtsAes256 -TpmProtector -ErrorAction Stop
+        Add-BitLockerKeyProtector -MountPoint $mountPoint -RecoveryPasswordProtector -ErrorAction Stop
+        $actionTaken = 'EnabledBitLocker'
+    }
+
+    # --- Step 2: Back up recovery key(s) to AD ---
+    $vol = Get-BitLockerVolume -MountPoint $mountPoint -ErrorAction Stop
+    $recoveryProtectors = $vol.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
+    foreach ($rp in $recoveryProtectors) {
+        try {
+            Backup-BitLockerKeyProtector -MountPoint $mountPoint -KeyProtectorId $rp.KeyProtectorId -ErrorAction Stop
+            $keyBackedUp = $true
+        } catch {
+            # Backup may fail if AD DS schema isn't configured — warn but don't fail
+        }
+    }
+
+    # --- Step 3: Build output ---
+    $vol = Get-BitLockerVolume -MountPoint $mountPoint -ErrorAction Stop
+    $kp = ($vol.KeyProtector | ForEach-Object { $_.KeyProtectorType }) -join ':'
+
+    Write-Output ""ACTION=$actionTaken""
+    Write-Output ""KEYBACKED=$keyBackedUp""
+    Write-Output ""VOL_MountPoint=$($vol.MountPoint)""
+    Write-Output ""VOL_VolumeType=$($vol.VolumeType)""
+    Write-Output ""VOL_EncryptionMethod=$($vol.EncryptionMethod)""
+    Write-Output ""VOL_EncryptionPercentage=$($vol.EncryptionPercentage)""
+    Write-Output ""VOL_ProtectionStatus=$($vol.ProtectionStatus)""
+    Write-Output ""VOL_LockStatus=$($vol.LockStatus)""
+    Write-Output ""VOL_KeyProtectors=$kp""
+    Write-Output ""VOL_AutoUnlockEnabled=$($vol.AutoUnlockEnabled)""
+    Write-Output ""VOL_CapacityGB=$([math]::Round($vol.CapacityGB, 2))""
+} catch {
+    Write-Output ""ERROR=$($_.Exception.Message)""
+}
+";
+
+                    string[] outputLines;
+
+                    if (IsLocalComputer(computerName))
+                    {
+                        outputLines = ExecuteBitLockerLocalElevated(bitLockerScript);
+                    }
+                    else
+                    {
+                        outputLines = ExecuteBitLockerRemote(bitLockerScript, computerName, username, password, domain);
+                    }
+
+                    // Parse results
+                    ParseBitLockerOutput(outputLines, result);
+
+                    if (result.Success)
+                    {
+                        // Log action-specific messages
+                        switch (result.Action)
+                        {
+                            case "AlreadyCompliant":
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker is already fully compliant.");
+                                break;
+                            case "ResumedProtection":
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker protection was suspended — resumed successfully.");
+                                break;
+                            case "EnabledBitLocker":
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker has been enabled. Encryption is in progress.");
+                                break;
+                            default:
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker action completed — {result.Action}");
+                                break;
+                        }
+
+                        if (result.KeyBackedUpToAD)
+                            _consoleForm?.WriteToConsole($"  Recovery key backed up to Active Directory.", System.Drawing.Color.DarkOrange);
+                        else
+                            _consoleForm?.WriteWarning($"  WARNING: Recovery key could NOT be backed up to AD. Verify AD DS BitLocker schema.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = $"BitLocker compliance check failed: {ex.Message}";
+                    _consoleForm?.WriteError(result.ErrorMessage);
+                }
+
+                return result;
+            });
+        }
+
+        /// <summary>
+        /// Executes the BitLocker script on the local machine via an elevated PowerShell process (UAC prompt).
+        /// </summary>
+        private string[] ExecuteBitLockerLocalElevated(string script)
+        {
+            string tempOutput = Path.Combine(Path.GetTempPath(), $"sa_bl_{Guid.NewGuid():N}.txt");
+            string tempScript = Path.Combine(Path.GetTempPath(), $"sa_bl_{Guid.NewGuid():N}.ps1");
+
+            try
+            {
+                // Wrap the script to redirect output to a temp file (elevated process can't redirect stdout)
+                string wrappedScript = script + $"\n| Out-Null\n" +
+                    "# Output is already written via Write-Output, capture it\n" +
+                    "$null = $null"; // no-op to keep script valid
+
+                // Actually, we need to redirect Write-Output to file since elevated process stdout isn't available
+                string fileRedirectedScript = script.Replace(
+                    "Write-Output \"\"",
+                    "Add-Content -Path '" + tempOutput + "' -Value \"\"");
+
+                // Simpler approach: wrap entire script output to file
+                string finalScript = $@"
+$outputLines = @()
+& {{
+{script}
+}} | ForEach-Object {{ $outputLines += $_ }}
+$outputLines | Out-File -FilePath '{tempOutput}' -Encoding UTF8
+";
+
+                File.WriteAllText(tempScript, finalScript);
+
+                _consoleForm?.WriteInfo("  Requesting elevated privileges for BitLocker operation (UAC prompt may appear)...");
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -NoProfile -File \"{tempScript}\"",
+                    Verb = "runas",
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    if (proc == null)
+                        throw new Exception("Failed to start elevated PowerShell process");
+
+                    if (!proc.WaitForExit(120000)) // 2 minutes for encryption to start
+                    {
+                        proc.Kill();
+                        throw new Exception("Elevated PowerShell BitLocker operation timed out");
+                    }
+                }
+
+                if (!File.Exists(tempOutput))
+                    throw new Exception("Elevated PowerShell produced no output (UAC may have been declined)");
+
+                return File.ReadAllLines(tempOutput);
+            }
+            finally
+            {
+                try { if (File.Exists(tempScript)) File.Delete(tempScript); } catch { }
+                try { if (File.Exists(tempOutput)) File.Delete(tempOutput); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Executes the BitLocker script on a remote machine via PSRemoting (Invoke-Command).
+        /// </summary>
+        private string[] ExecuteBitLockerRemote(string script, string computerName, string username, string password, string domain)
+        {
+            string tempScript = Path.Combine(Path.GetTempPath(), $"sa_bl_{Guid.NewGuid():N}.ps1");
+
+            try
+            {
+                // Build remote execution wrapper — the core script runs inside Invoke-Command
+                string remoteScript = $@"
+$secPass = ConvertTo-SecureString '{password}' -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
+{script}
+}}
+";
+
+                File.WriteAllText(tempScript, remoteScript);
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -NoProfile -File \"{tempScript}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                string output;
+                using (var proc = Process.Start(psi))
+                {
+                    if (proc == null)
+                        throw new Exception("Failed to start PowerShell process for remote BitLocker operation");
+
+                    output = proc.StandardOutput.ReadToEnd();
+                    proc.WaitForExit(120000);
+
+                    if (!proc.HasExited)
+                    {
+                        proc.Kill();
+                        throw new Exception("PowerShell remote BitLocker operation timed out");
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(output))
+                    throw new Exception("PowerShell remote BitLocker query produced no output");
+
+                return output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            }
+            finally
+            {
+                try { if (File.Exists(tempScript)) File.Delete(tempScript); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Parses key=value output lines from the BitLocker PowerShell script into a BitLockerResult.
+        /// </summary>
+        private void ParseBitLockerOutput(string[] lines, BitLockerResult result)
+        {
+            var volume = new BitLockerVolumeInfo();
+            bool hasVolumeData = false;
+
+            foreach (string rawLine in lines)
+            {
+                string line = rawLine.Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+
+                int eqIdx = line.IndexOf('=');
+                if (eqIdx < 0) continue;
+
+                string key = line.Substring(0, eqIdx).Trim();
+                string val = line.Substring(eqIdx + 1).Trim();
+
+                switch (key)
+                {
+                    case "ERROR":
+                        result.Success = false;
+                        result.ErrorMessage = val;
+                        _consoleForm?.WriteError($"  BitLocker error: {val}");
+                        return;
+
+                    case "ACTION":
+                        result.Action = val;
+                        break;
+
+                    case "KEYBACKED":
+                        result.KeyBackedUpToAD = val.Equals("True", StringComparison.OrdinalIgnoreCase);
+                        break;
+
+                    case "VOL_MountPoint":
+                        volume.MountPoint = val;
+                        hasVolumeData = true;
+                        break;
+                    case "VOL_VolumeType":
+                        volume.VolumeType = val;
+                        break;
+                    case "VOL_EncryptionMethod":
+                        volume.EncryptionMethod = val;
+                        break;
+                    case "VOL_EncryptionPercentage":
+                        volume.EncryptionPercentage = val;
+                        break;
+                    case "VOL_ProtectionStatus":
+                        volume.ProtectionStatus = val;
+                        break;
+                    case "VOL_LockStatus":
+                        volume.LockStatus = val;
+                        break;
+                    case "VOL_KeyProtectors":
+                        volume.KeyProtectors = val;
+                        break;
+                    case "VOL_AutoUnlockEnabled":
+                        volume.AutoUnlockEnabled = val;
+                        break;
+                    case "VOL_CapacityGB":
+                        volume.CapacityGB = val;
+                        break;
+                }
+            }
+
+            if (hasVolumeData)
+                result.Volumes.Add(volume);
+
+            result.Success = true;
+        }
+
+        #endregion
     }
 }
