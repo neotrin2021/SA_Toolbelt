@@ -116,18 +116,24 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
 
         handled = False
 
-        # --- WASD: Extrude in direction ---
+        # --- WASD: Extrude along ring's local orientation ---
         if event.type == 'W':
-            self._extrude_ring(bm, Vector((0, 0, step)))
+            normal = self._get_ring_normal(bm)
+            self._extrude_ring(bm, normal * step)
             handled = True
         elif event.type == 'S':
-            self._extrude_ring(bm, Vector((0, 0, -step)))
+            normal = self._get_ring_normal(bm)
+            self._extrude_ring(bm, -normal * step)
             handled = True
         elif event.type == 'A':
-            self._extrude_ring(bm, Vector((-step, 0, 0)))
+            normal = self._get_ring_normal(bm)
+            right = self._get_ring_right(normal)
+            self._extrude_ring(bm, -right * step)
             handled = True
         elif event.type == 'D':
-            self._extrude_ring(bm, Vector((step, 0, 0)))
+            normal = self._get_ring_normal(bm)
+            right = self._get_ring_right(normal)
+            self._extrude_ring(bm, right * step)
             handled = True
 
         # --- JIKL: Tilt the last ring ---
@@ -182,6 +188,36 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
         )
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
+
+    def _get_ring_normal(self, bm):
+        """Calculate the face normal of the top ring using Newell's method."""
+        top_verts = self._get_top_ring_verts(bm)
+        if len(top_verts) < 3:
+            return Vector((0, 0, 1))
+
+        normal = Vector((0, 0, 0))
+        n = len(top_verts)
+        for i in range(n):
+            curr = top_verts[i].co
+            next_v = top_verts[(i + 1) % n].co
+            normal.x += (curr.y - next_v.y) * (curr.z + next_v.z)
+            normal.y += (curr.z - next_v.z) * (curr.x + next_v.x)
+            normal.z += (curr.x - next_v.x) * (curr.y + next_v.y)
+
+        if normal.length > 0:
+            normal.normalize()
+        else:
+            normal = Vector((0, 0, 1))
+        return normal
+
+    def _get_ring_right(self, normal):
+        """Get a 'right' vector perpendicular to the ring normal."""
+        up = Vector((0, 0, 1))
+        if abs(normal.dot(up)) > 0.999:
+            up = Vector((0, 1, 0))
+        right = normal.cross(up)
+        right.normalize()
+        return right
 
     def _get_top_ring_verts(self, bm):
         """Find the active ring of vertices.
