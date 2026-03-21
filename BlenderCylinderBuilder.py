@@ -44,6 +44,10 @@ class CYLBUILDER_OT_start(bpy.types.Operator):
         verts = []
         segments = props.circle_segments
         radius = props.circle_radius
+        # Initialize radius transition to match starting radius
+        props.start_radius = radius
+        props.end_radius = radius
+        props.radius_steps_remaining = 0
         for i in range(segments):
             angle = 2 * math.pi * i / segments
             x = radius * math.cos(angle)
@@ -113,46 +117,48 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
 
         handled = False
 
+        new_verts = []
+
         # --- WASD: Extrude along ring's local orientation ---
         if event.type == 'W':
             normal = self._get_ring_normal(bm)
-            self._extrude_ring(bm, normal * step)
+            new_verts = self._extrude_ring(bm, normal * step)
             handled = True
         elif event.type == 'S':
             normal = self._get_ring_normal(bm)
-            self._extrude_ring(bm, -normal * step)
+            new_verts = self._extrude_ring(bm, -normal * step)
             handled = True
         elif event.type == 'A':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, -right * step)
+            new_verts = self._extrude_ring(bm, -right * step)
             handled = True
         elif event.type == 'D':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, right * step)
+            new_verts = self._extrude_ring(bm, right * step)
             handled = True
 
         # --- QEZC: Diagonal extrude (half step each axis) ---
         elif event.type == 'Q':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, normal * half + (-right) * half)
+            new_verts = self._extrude_ring(bm, normal * half + (-right) * half)
             handled = True
         elif event.type == 'E':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, normal * half + right * half)
+            new_verts = self._extrude_ring(bm, normal * half + right * half)
             handled = True
         elif event.type == 'Z':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, -normal * half + (-right) * half)
+            new_verts = self._extrude_ring(bm, -normal * half + (-right) * half)
             handled = True
         elif event.type == 'C':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, -normal * half + right * half)
+            new_verts = self._extrude_ring(bm, -normal * half + right * half)
             handled = True
 
         # --- JIKL: Tilt the last ring ---
@@ -180,12 +186,20 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
             self._tilt_ring(bm, 'X', angle)
             handled = True
 
+        # Apply radius transition after any extrude
+        if new_verts:
+            self._apply_radius_step(new_verts, props)
+
         if handled:
             bmesh.update_edit_mesh(obj.data)
+            radius_info = ""
+            if props.radius_steps_remaining > 0:
+                radius_info = (f" | Radius={props.start_radius:.3f}→"
+                               f"{props.end_radius:.3f} ({props.radius_steps_remaining} left)")
             context.area.header_text_set(
                 "Cylinder Builder | WASD=Move | JIKL=Tilt | P=Stop | "
                 f"Step={step:.3f} | Tilt={math.degrees(tilt_angle):.1f}° | "
-                f"Inverse={'ON' if inverse else 'OFF'} | Enter/Esc=Done"
+                f"Inverse={'ON' if inverse else 'OFF'}{radius_info} | Enter/Esc=Done"
             )
 
         return {'RUNNING_MODAL'}
@@ -266,10 +280,10 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
         return all_verts[-segments:]
 
     def _extrude_ring(self, bm, offset):
-        """Extrude the top ring by the given offset vector."""
+        """Extrude the top ring by the given offset vector. Returns new verts."""
         top_verts = self._get_top_ring_verts(bm)
         if not top_verts:
-            return
+            return []
 
         # Find edges that connect top ring verts to each other
         top_set = set(top_verts)
@@ -288,6 +302,34 @@ class CYLBUILDER_OT_modal(bpy.types.Operator):
 
         # Clear resume state – new verts are now at the end of the vert list
         self._resume_verts = None
+        return new_verts
+
+    def _apply_radius_step(self, new_verts, props):
+        """Scale the newly extruded ring if a radius transition is active."""
+        if props.radius_steps_remaining <= 0:
+            return
+        if abs(props.end_radius - props.start_radius) < 1e-6:
+            return
+        if not new_verts:
+            return
+
+        increment = (props.end_radius - props.start_radius) / props.radius_steps_remaining
+        new_radius = props.start_radius + increment
+
+        # Calculate center of the new ring
+        center = Vector((0, 0, 0))
+        for v in new_verts:
+            center += v.co
+        center /= len(new_verts)
+
+        # Scale each vert's distance from center
+        scale_factor = new_radius / props.start_radius
+        for v in new_verts:
+            direction = v.co - center
+            v.co = center + direction * scale_factor
+
+        props.start_radius = new_radius
+        props.radius_steps_remaining -= 1
 
     def _tilt_ring(self, bm, axis, angle):
         """Tilt the top ring around its center by angle (radians) on the given axis."""
@@ -375,6 +417,16 @@ class CYLBUILDER_PT_panel(bpy.types.Panel):
         layout.prop(props, "inverse_tilt")
 
         layout.separator()
+        layout.label(text="Radius Transition:")
+        row = layout.row()
+        row.prop(props, "start_radius")
+        row.enabled = False  # Start radius is read-only
+        layout.prop(props, "end_radius")
+        layout.prop(props, "radius_steps")
+        if props.radius_steps_remaining > 0:
+            layout.label(text=f"Steps remaining: {props.radius_steps_remaining}")
+
+        layout.separator()
         layout.operator("mesh.cylinder_builder_start", text="Start Building", icon='MESH_CYLINDER')
         layout.operator("mesh.cylinder_builder_resume", text="Resume Building", icon='PLAY')
 
@@ -401,6 +453,22 @@ class CYLBUILDER_PT_panel(bpy.types.Panel):
         col.separator()
         col.label(text="P = Stop Building (pause)")
         col.label(text="Enter / Esc = Finish")
+
+
+def _on_end_radius_update(self, context):
+    """Reset remaining steps when end radius changes."""
+    if abs(self.end_radius - self.start_radius) > 1e-6:
+        self.radius_steps_remaining = self.radius_steps
+    else:
+        self.radius_steps_remaining = 0
+
+
+def _on_radius_steps_update(self, context):
+    """Reset remaining steps when step count changes."""
+    if abs(self.end_radius - self.start_radius) > 1e-6:
+        self.radius_steps_remaining = self.radius_steps
+    else:
+        self.radius_steps_remaining = 0
 
 
 class CylBuilderProperties(bpy.types.PropertyGroup):
@@ -439,6 +507,37 @@ class CylBuilderProperties(bpy.types.PropertyGroup):
         name="Inverse Tilt",
         description="When enabled, JIKL tilts in the opposite direction (down instead of up)",
         default=False,
+    )
+    start_radius: FloatProperty(
+        name="Start Radius",
+        description="Current radius of the building ring (auto-updated)",
+        default=1.0,
+        min=0.01,
+        max=100.0,
+        unit='LENGTH',
+    )
+    end_radius: FloatProperty(
+        name="End Radius",
+        description="Target radius to transition toward",
+        default=1.0,
+        min=0.01,
+        max=100.0,
+        unit='LENGTH',
+        update=_on_end_radius_update,
+    )
+    radius_steps: IntProperty(
+        name="Radius Steps",
+        description="Number of extrude presses to reach the end radius",
+        default=5,
+        min=1,
+        max=100,
+        update=_on_radius_steps_update,
+    )
+    radius_steps_remaining: IntProperty(
+        name="Steps Left",
+        description="Remaining extrude presses until end radius is reached",
+        default=0,
+        min=0,
     )
 
     @property
