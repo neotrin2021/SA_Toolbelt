@@ -12,7 +12,7 @@ import bpy
 import bmesh
 import math
 from mathutils import Vector, Matrix
-from bpy.props import FloatProperty, BoolProperty
+from bpy.props import FloatProperty, IntProperty, BoolProperty
 
 
 # Class-level storage for resume vert indices (set by resume operator, read by modal)
@@ -37,6 +37,14 @@ class BOXBUILDER_OT_start(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
         obj.select_set(True)
         context.view_layer.objects.active = obj
+
+        # Initialize size transition to match starting dimensions
+        props.start_width = props.width
+        props.end_width = props.width
+        props.width_steps_remaining = 0
+        props.start_depth = props.depth
+        props.end_depth = props.depth
+        props.depth_steps_remaining = 0
 
         # Build initial square with bmesh
         bm = bmesh.new()
@@ -117,46 +125,48 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
 
         handled = False
 
+        new_verts = []
+
         # --- WASD: Extrude along ring's local orientation ---
         if event.type == 'W':
             normal = self._get_ring_normal(bm)
-            self._extrude_ring(bm, normal * step)
+            new_verts = self._extrude_ring(bm, normal * step)
             handled = True
         elif event.type == 'S':
             normal = self._get_ring_normal(bm)
-            self._extrude_ring(bm, -normal * step)
+            new_verts = self._extrude_ring(bm, -normal * step)
             handled = True
         elif event.type == 'A':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, -right * step)
+            new_verts = self._extrude_ring(bm, -right * step)
             handled = True
         elif event.type == 'D':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, right * step)
+            new_verts = self._extrude_ring(bm, right * step)
             handled = True
 
         # --- QEZC: Diagonal extrude (half step each axis) ---
         elif event.type == 'Q':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, normal * half + (-right) * half)
+            new_verts = self._extrude_ring(bm, normal * half + (-right) * half)
             handled = True
         elif event.type == 'E':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, normal * half + right * half)
+            new_verts = self._extrude_ring(bm, normal * half + right * half)
             handled = True
         elif event.type == 'Z':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, -normal * half + (-right) * half)
+            new_verts = self._extrude_ring(bm, -normal * half + (-right) * half)
             handled = True
         elif event.type == 'C':
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
-            self._extrude_ring(bm, -normal * half + right * half)
+            new_verts = self._extrude_ring(bm, -normal * half + right * half)
             handled = True
 
         # --- JIKL: Tilt the last ring ---
@@ -180,12 +190,23 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
             self._tilt_ring(bm, 'X', angle)
             handled = True
 
+        # Apply size transition after any extrude
+        if new_verts:
+            self._apply_size_step(bm, new_verts, props)
+
         if handled:
             bmesh.update_edit_mesh(obj.data)
+            size_info = ""
+            if props.width_steps_remaining > 0:
+                size_info += (f" | W={props.start_width:.3f}\u2192"
+                              f"{props.end_width:.3f} ({props.width_steps_remaining} left)")
+            if props.depth_steps_remaining > 0:
+                size_info += (f" | D={props.start_depth:.3f}\u2192"
+                              f"{props.end_depth:.3f} ({props.depth_steps_remaining} left)")
             context.area.header_text_set(
-                "Box Builder | WASD=Move | JIKL=Tilt | P=Stop | "
+                "Box Builder | WASD=Move | QEZC=Diag | JIKL=Tilt | P=Stop | "
                 f"Step={step:.3f} | Tilt={math.degrees(tilt_angle):.1f}\u00b0 | "
-                f"Inverse={'ON' if inverse else 'OFF'} | Enter/Esc=Done"
+                f"Inverse={'ON' if inverse else 'OFF'}{size_info} | Enter/Esc=Done"
             )
 
         return {'RUNNING_MODAL'}
@@ -205,7 +226,7 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
 
         props = context.scene.box_builder
         context.area.header_text_set(
-            "Box Builder | WASD=Move | JIKL=Tilt | P=Stop | "
+            "Box Builder | WASD=Move | QEZC=Diag | JIKL=Tilt | P=Stop | "
             f"Step={props.step_size:.3f} | Tilt={math.degrees(props.tilt_angle):.1f}\u00b0 | "
             f"Inverse={'ON' if props.inverse_tilt else 'OFF'} | Enter/Esc=Done"
         )
@@ -264,10 +285,10 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
         return all_verts[-self.VERTS_PER_RING:]
 
     def _extrude_ring(self, bm, offset):
-        """Extrude the top square ring by the given offset vector."""
+        """Extrude the top square ring by the given offset vector. Returns new verts."""
         top_verts = self._get_top_ring_verts(bm)
         if not top_verts:
-            return
+            return []
 
         # Find edges that connect top ring verts to each other
         top_set = set(top_verts)
@@ -286,6 +307,64 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
 
         # Clear resume state – new verts are now at the end of the vert list
         self._resume_verts = None
+        return new_verts
+
+    def _apply_size_step(self, bm, new_verts, props):
+        """Scale the newly extruded ring if a width/depth transition is active.
+
+        Unlike a cylinder (uniform radius scaling), a box scales independently
+        along its local width (right vector) and depth (up vector relative to
+        the ring normal).  We project each vert onto those axes relative to the
+        ring center and apply per-axis scale factors.
+        """
+        if not new_verts:
+            return
+
+        width_active = (props.width_steps_remaining > 0
+                        and abs(props.end_width - props.start_width) > 1e-6)
+        depth_active = (props.depth_steps_remaining > 0
+                        and abs(props.end_depth - props.start_depth) > 1e-6)
+
+        if not width_active and not depth_active:
+            return
+
+        # Calculate center of the new ring
+        center = Vector((0, 0, 0))
+        for v in new_verts:
+            center += v.co
+        center /= len(new_verts)
+
+        # Determine local axes of the ring
+        normal = self._get_ring_normal(bm)
+        right = self._get_ring_right(normal)
+        up = right.cross(normal)
+        up.normalize()
+
+        # Compute scale factors
+        w_scale = 1.0
+        d_scale = 1.0
+
+        if width_active:
+            w_inc = (props.end_width - props.start_width) / props.width_steps_remaining
+            new_w = props.start_width + w_inc
+            w_scale = new_w / props.start_width
+            props.start_width = new_w
+            props.width_steps_remaining -= 1
+
+        if depth_active:
+            d_inc = (props.end_depth - props.start_depth) / props.depth_steps_remaining
+            new_d = props.start_depth + d_inc
+            d_scale = new_d / props.start_depth
+            props.start_depth = new_d
+            props.depth_steps_remaining -= 1
+
+        # Apply per-axis scaling
+        for v in new_verts:
+            offset = v.co - center
+            r_comp = offset.dot(right)
+            u_comp = offset.dot(up)
+            n_comp = offset.dot(normal)
+            v.co = center + right * (r_comp * w_scale) + up * (u_comp * d_scale) + normal * n_comp
 
     def _tilt_ring(self, bm, axis, angle):
         """Tilt the top ring around its center by angle (radians) on the given axis."""
@@ -373,6 +452,26 @@ class BOXBUILDER_PT_panel(bpy.types.Panel):
         layout.prop(props, "inverse_tilt")
 
         layout.separator()
+        layout.label(text="Width Transition:")
+        row = layout.row()
+        row.prop(props, "start_width")
+        row.enabled = False  # Start width is read-only
+        layout.prop(props, "end_width")
+        layout.prop(props, "width_steps")
+        if props.width_steps_remaining > 0:
+            layout.label(text=f"Width steps remaining: {props.width_steps_remaining}")
+
+        layout.separator()
+        layout.label(text="Depth Transition:")
+        row = layout.row()
+        row.prop(props, "start_depth")
+        row.enabled = False  # Start depth is read-only
+        layout.prop(props, "end_depth")
+        layout.prop(props, "depth_steps")
+        if props.depth_steps_remaining > 0:
+            layout.label(text=f"Depth steps remaining: {props.depth_steps_remaining}")
+
+        layout.separator()
         layout.operator("mesh.box_builder_start", text="Start Building", icon='MESH_CUBE')
         layout.operator("mesh.box_builder_resume", text="Resume Building", icon='PLAY')
 
@@ -399,6 +498,38 @@ class BOXBUILDER_PT_panel(bpy.types.Panel):
         col.separator()
         col.label(text="P = Stop Building (pause)")
         col.label(text="Enter / Esc = Finish")
+
+
+def _on_end_width_update(self, context):
+    """Reset remaining width steps when end width changes."""
+    if abs(self.end_width - self.start_width) > 1e-6:
+        self.width_steps_remaining = self.width_steps
+    else:
+        self.width_steps_remaining = 0
+
+
+def _on_width_steps_update(self, context):
+    """Reset remaining width steps when step count changes."""
+    if abs(self.end_width - self.start_width) > 1e-6:
+        self.width_steps_remaining = self.width_steps
+    else:
+        self.width_steps_remaining = 0
+
+
+def _on_end_depth_update(self, context):
+    """Reset remaining depth steps when end depth changes."""
+    if abs(self.end_depth - self.start_depth) > 1e-6:
+        self.depth_steps_remaining = self.depth_steps
+    else:
+        self.depth_steps_remaining = 0
+
+
+def _on_depth_steps_update(self, context):
+    """Reset remaining depth steps when step count changes."""
+    if abs(self.end_depth - self.start_depth) > 1e-6:
+        self.depth_steps_remaining = self.depth_steps
+    else:
+        self.depth_steps_remaining = 0
 
 
 class BoxBuilderProperties(bpy.types.PropertyGroup):
@@ -438,6 +569,68 @@ class BoxBuilderProperties(bpy.types.PropertyGroup):
         name="Inverse Tilt",
         description="When enabled, JIKL tilts in the opposite direction (down instead of up)",
         default=False,
+    )
+    start_width: FloatProperty(
+        name="Start Width",
+        description="Current width of the building ring (auto-updated)",
+        default=1.0,
+        min=0.01,
+        max=100.0,
+        unit='LENGTH',
+    )
+    end_width: FloatProperty(
+        name="End Width",
+        description="Target width to transition toward",
+        default=1.0,
+        min=0.01,
+        max=100.0,
+        unit='LENGTH',
+        update=_on_end_width_update,
+    )
+    width_steps: IntProperty(
+        name="Width Steps",
+        description="Number of extrude presses to reach the end width",
+        default=5,
+        min=1,
+        max=100,
+        update=_on_width_steps_update,
+    )
+    width_steps_remaining: IntProperty(
+        name="Width Steps Left",
+        description="Remaining extrude presses until end width is reached",
+        default=0,
+        min=0,
+    )
+    start_depth: FloatProperty(
+        name="Start Depth",
+        description="Current depth of the building ring (auto-updated)",
+        default=1.0,
+        min=0.01,
+        max=100.0,
+        unit='LENGTH',
+    )
+    end_depth: FloatProperty(
+        name="End Depth",
+        description="Target depth to transition toward",
+        default=1.0,
+        min=0.01,
+        max=100.0,
+        unit='LENGTH',
+        update=_on_end_depth_update,
+    )
+    depth_steps: IntProperty(
+        name="Depth Steps",
+        description="Number of extrude presses to reach the end depth",
+        default=5,
+        min=1,
+        max=100,
+        update=_on_depth_steps_update,
+    )
+    depth_steps_remaining: IntProperty(
+        name="Depth Steps Left",
+        description="Remaining extrude presses until end depth is reached",
+        default=0,
+        min=0,
     )
 
     @property
