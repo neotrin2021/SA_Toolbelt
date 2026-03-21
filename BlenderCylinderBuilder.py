@@ -59,9 +59,6 @@ class CYLBUILDER_OT_start(bpy.types.Operator):
         for i in range(segments):
             bm.edges.new((verts[i], verts[(i + 1) % segments]))
 
-        # Create the face
-        bm.faces.new(verts)
-
         bm.to_mesh(mesh)
         bm.free()
         mesh.update()

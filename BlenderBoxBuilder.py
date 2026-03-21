@@ -64,9 +64,6 @@ class BOXBUILDER_OT_start(bpy.types.Operator):
         bm.edges.new((v2, v3))
         bm.edges.new((v3, v0))
 
-        # Create the face
-        bm.faces.new(verts)
-
         bm.to_mesh(mesh)
         bm.free()
         mesh.update()
