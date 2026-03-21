@@ -83,6 +83,7 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
     def modal(self, context, event):
         props = context.scene.box_builder
         step = props.step_size
+        half = step / 2.0
         tilt_angle = props.tilt_angle
         inverse = props.inverse_tilt
 
@@ -134,6 +135,28 @@ class BOXBUILDER_OT_modal(bpy.types.Operator):
             normal = self._get_ring_normal(bm)
             right = self._get_ring_right(normal)
             self._extrude_ring(bm, right * step)
+            handled = True
+
+        # --- QEZC: Diagonal extrude (half step each axis) ---
+        elif event.type == 'Q':
+            normal = self._get_ring_normal(bm)
+            right = self._get_ring_right(normal)
+            self._extrude_ring(bm, normal * half + (-right) * half)
+            handled = True
+        elif event.type == 'E':
+            normal = self._get_ring_normal(bm)
+            right = self._get_ring_right(normal)
+            self._extrude_ring(bm, normal * half + right * half)
+            handled = True
+        elif event.type == 'Z':
+            normal = self._get_ring_normal(bm)
+            right = self._get_ring_right(normal)
+            self._extrude_ring(bm, -normal * half + (-right) * half)
+            handled = True
+        elif event.type == 'C':
+            normal = self._get_ring_normal(bm)
+            right = self._get_ring_right(normal)
+            self._extrude_ring(bm, -normal * half + right * half)
             handled = True
 
         # --- JIKL: Tilt the last ring ---
@@ -361,6 +384,11 @@ class BOXBUILDER_PT_panel(bpy.types.Panel):
         col.label(text="S = Extrude Down")
         col.label(text="A = Extrude Left")
         col.label(text="D = Extrude Right")
+        col.separator()
+        col.label(text="Q = Diagonal Up-Left")
+        col.label(text="E = Diagonal Up-Right")
+        col.label(text="Z = Diagonal Down-Left")
+        col.label(text="C = Diagonal Down-Right")
         col.separator()
         col.label(text="J = Tilt Right Side Up")
         col.label(text="L = Tilt Left Side Up")
