@@ -227,6 +227,43 @@ namespace SA_ToolBelt
                     Old_Value   TEXT NOT NULL DEFAULT '',
                     New_Value   TEXT NOT NULL DEFAULT '',
                     Change_Type TEXT NOT NULL DEFAULT ''
+                // GPO Tab tables
+                @"CREATE TABLE IF NOT EXISTS GPO_Settings (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    GPO_Name TEXT NOT NULL,
+                    Category TEXT,
+                    Setting_Name TEXT NOT NULL,
+                    Setting_Value TEXT,
+                    Setting_State TEXT,
+                    Last_Scraped TEXT NOT NULL
+                )",
+                @"CREATE TABLE IF NOT EXISTS GPO_OU_Links (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    OU_Name TEXT NOT NULL,
+                    OU_DN TEXT NOT NULL,
+                    OU_Parent_DN TEXT,
+                    GPO_Name TEXT NOT NULL,
+                    GPO_GUID TEXT,
+                    Link_Enabled INTEGER,
+                    Link_Enforced INTEGER,
+                    Last_Scraped TEXT NOT NULL
+                )",
+                @"CREATE TABLE IF NOT EXISTS GPO_Scrape_History (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Scrape_Time TEXT NOT NULL,
+                    GPOs_Scraped INTEGER,
+                    Settings_Count INTEGER,
+                    Notes TEXT
+                )",
+                @"CREATE TABLE IF NOT EXISTS GPO_Changelog (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Change_Time TEXT NOT NULL,
+                    GPO_Name TEXT NOT NULL,
+                    Category TEXT,
+                    Setting_Name TEXT NOT NULL,
+                    Old_Value TEXT,
+                    New_Value TEXT,
+                    Change_Type TEXT NOT NULL
                 )"
             };
 

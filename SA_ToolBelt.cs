@@ -34,6 +34,7 @@ namespace SA_ToolBelt
         private DatabaseService _databaseService;
         private Windows_Tools _windowsTools;
         private BIOS_Tools _biosTools;
+        private GPO_Service _gpoService;
 
         // Startup Shutdown Variables
         public string VMMode = "NormalRun";
@@ -72,6 +73,8 @@ namespace SA_ToolBelt
             _preCheck = new PreCheck(_consoleForm);
             _databaseService = new DatabaseService(_consoleForm);
             _biosTools = new BIOS_Tools(_consoleForm);
+            _gpoService = new GPO_Service(_consoleForm, _windowsTools, _databaseService);
+            InitializeGpoTab();
 
             this.KeyPreview = true;
             this.FormClosing += SAToolBelt_FormClosing;
@@ -293,7 +296,8 @@ namespace SA_ToolBelt
             tabControlMain.TabPages.Add(tabAD);
             tabControlMain.TabPages.Add(tabLDAP);
             // tabControlMain.TabPages.Add(tabRemoteTools);
-            tabControlMain.TabPages.Add(tabWindowsTools);
+            tabControlMain.TabPages.Add(tabBiosTools);
+            tabControlMain.TabPages.Add(tabGPO);
             // tabControlMain.TabPages.Add(tabLinuxTools);
             // tabControlMain.TabPages.Add(tabVMwareTools);
             tabControlMain.TabPages.Add(tabOnlineOffline);
