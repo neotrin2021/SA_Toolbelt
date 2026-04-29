@@ -1727,5 +1727,236 @@ namespace SA_ToolBelt
         }
 
         #endregion
+
+        #region BitLocker Compliance
+
+        /// <summary>
+        /// Represents the BitLocker status of a single volume
+        /// </summary>
+        public class BitLockerVolumeInfo
+        {
+            public string MountPoint { get; set; }
+            public string VolumeType { get; set; }
+            public string EncryptionMethod { get; set; }
+            public string EncryptionPercentage { get; set; }
+            public string ProtectionStatus { get; set; }
+            public string LockStatus { get; set; }
+            public string KeyProtectors { get; set; }
+            public string AutoUnlockEnabled { get; set; }
+            public string CapacityGB { get; set; }
+        }
+
+        /// <summary>
+        /// Result wrapper for BitLocker compliance enforcement
+        /// </summary>
+        public class BitLockerResult
+        {
+            public bool Success { get; set; }
+            public string ErrorMessage { get; set; }
+            public string ComputerName { get; set; }
+            public string Action { get; set; }
+            public bool KeyBackedUpToAD { get; set; }
+            public List<BitLockerVolumeInfo> Volumes { get; set; } = new List<BitLockerVolumeInfo>();
+        }
+
+        /// <summary>
+        /// Enforces BitLocker compliance on a target machine. Handles three scenarios:
+        ///   1. Already encrypted + Protection On  → Back up recovery key to AD
+        ///   2. Already encrypted + Protection Off → Resume protection, back up key to AD
+        ///   3. Not encrypted                      → Enable BitLocker (TPM + RecoveryPassword), back up key to AD
+        /// Uses PSRemoting (Invoke-Command) for remote machines.
+        /// </summary>
+        public async Task<BitLockerResult> EnforceBitLockerComplianceAsync(string computerName, string username, string password, string domain)
+        {
+            return await Task.Run(() =>
+            {
+                var result = new BitLockerResult { ComputerName = computerName };
+
+                try
+                {
+                    _consoleForm?.WriteInfo($"Checking BitLocker compliance on {computerName}...");
+
+                    string bitLockerScript = @"
+$ErrorActionPreference = 'Stop'
+$actionTaken = 'None'
+$keyBackedUp = $false
+$mountPoint = 'C:'
+
+try {{
+    # --- Step 1: Get current BitLocker status ---
+    $vol = Get-BitLockerVolume -MountPoint $mountPoint -ErrorAction Stop
+
+    $isEncrypted = $vol.VolumeStatus -eq 'FullyEncrypted' -or $vol.VolumeStatus -eq 'EncryptionInProgress'
+    $protectionOn = $vol.ProtectionStatus -eq 'On'
+    $hasTPM = ($vol.KeyProtector | Where-Object {{ $_.KeyProtectorType -eq 'Tpm' }}) -ne $null
+    $hasRecoveryPw = ($vol.KeyProtector | Where-Object {{ $_.KeyProtectorType -eq 'RecoveryPassword' }}) -ne $null
+
+    if ($isEncrypted) {{
+        # --- Scenario 1 or 2: Already encrypted ---
+        if (-not $protectionOn) {{
+            # Scenario 2: Encrypted but protection is suspended/off
+            Resume-BitLocker -MountPoint $mountPoint -ErrorAction Stop
+            $actionTaken = 'ResumedProtection'
+        }} else {{
+            $actionTaken = 'AlreadyCompliant'
+        }}
+
+        # Ensure protectors are correct (add if missing)
+        if (-not $hasTPM) {{
+            Add-BitLockerKeyProtector -MountPoint $mountPoint -TpmProtector -ErrorAction Stop
+            $actionTaken = if ($actionTaken -eq 'AlreadyCompliant') {{ 'AddedTpmProtector' }} else {{ $actionTaken + '+AddedTpmProtector' }}
+        }}
+        if (-not $hasRecoveryPw) {{
+            Add-BitLockerKeyProtector -MountPoint $mountPoint -RecoveryPasswordProtector -ErrorAction Stop
+            $actionTaken = if ($actionTaken -eq 'AlreadyCompliant') {{ 'AddedRecoveryPassword' }} else {{ $actionTaken + '+AddedRecoveryPassword' }}
+        }}
+    }} else {{
+        # --- Scenario 3: Not encrypted ---
+        # Check prerequisites
+        $tpm = Get-Tpm -ErrorAction SilentlyContinue
+        if (-not $tpm -or -not $tpm.TpmPresent -or -not $tpm.TpmReady) {{
+            throw 'TPM is not present or not ready. Cannot enable BitLocker.'
+        }}
+
+        try {{
+            $secureBoot = Confirm-SecureBootUEFI -ErrorAction Stop
+            if (-not $secureBoot) {{
+                throw 'Secure Boot is not enabled. Cannot enable BitLocker.'
+            }}
+        }} catch [System.PlatformNotSupportedException] {{
+            # Legacy BIOS — Secure Boot not applicable, proceed anyway
+        }}
+
+        # Enable BitLocker with TPM and RecoveryPassword protectors
+        Enable-BitLocker -MountPoint $mountPoint -EncryptionMethod XtsAes256 -TpmProtector -ErrorAction Stop
+        Add-BitLockerKeyProtector -MountPoint $mountPoint -RecoveryPasswordProtector -ErrorAction Stop
+        $actionTaken = 'EnabledBitLocker'
+    }}
+
+    # --- Step 2: Back up recovery key(s) to AD ---
+    $vol = Get-BitLockerVolume -MountPoint $mountPoint -ErrorAction Stop
+    $recoveryProtectors = $vol.KeyProtector | Where-Object {{ $_.KeyProtectorType -eq 'RecoveryPassword' }}
+    foreach ($rp in $recoveryProtectors) {{
+        try {{
+            Backup-BitLockerKeyProtector -MountPoint $mountPoint -KeyProtectorId $rp.KeyProtectorId -ErrorAction Stop
+            $keyBackedUp = $true
+        }} catch {{
+            # Backup may fail if AD DS schema isn't configured — warn but don't fail
+        }}
+    }}
+
+    # --- Step 3: Build output ---
+    $vol = Get-BitLockerVolume -MountPoint $mountPoint -ErrorAction Stop
+    $kp = ($vol.KeyProtector | ForEach-Object {{ $_.KeyProtectorType }}) -join ':'
+
+    [PSCustomObject]@{{
+        Action = $actionTaken
+        KeyBackedUp = $keyBackedUp
+        MountPoint = $vol.MountPoint
+        VolumeType = $vol.VolumeType.ToString()
+        EncryptionMethod = $vol.EncryptionMethod.ToString()
+        EncryptionPercentage = $vol.EncryptionPercentage.ToString()
+        ProtectionStatus = $vol.ProtectionStatus.ToString()
+        LockStatus = $vol.LockStatus.ToString()
+        KeyProtectors = $kp
+        AutoUnlockEnabled = $vol.AutoUnlockEnabled.ToString()
+        CapacityGB = [math]::Round($vol.CapacityGB, 2).ToString()
+    }}
+}} catch {{
+    [PSCustomObject]@{{
+        Action = 'Error'
+        ErrorMessage = $_.Exception.Message
+    }}
+}}
+";
+
+                    using (var ps = PowerShell.Create())
+                    {
+                        string credential = $@"
+                            $secPass = ConvertTo-SecureString '{password}' -AsPlainText -Force
+                            $cred = New-Object System.Management.Automation.PSCredential('{domain}\{username}', $secPass)
+                        ";
+
+                        ps.AddScript($@"
+                            {credential}
+                            Invoke-Command -ComputerName '{computerName}' -Credential $cred -ErrorAction Stop -ScriptBlock {{
+                                {bitLockerScript}
+                            }}
+                        ");
+
+                        var results = ps.Invoke();
+
+                        if (ps.HadErrors)
+                        {
+                            foreach (var error in ps.Streams.Error)
+                                _consoleForm?.WriteWarning($"  BitLocker warning: {error.Exception?.Message}");
+                        }
+
+                        foreach (var obj in results)
+                        {
+                            string action = obj.Properties["Action"]?.Value?.ToString() ?? "Unknown";
+
+                            if (action == "Error")
+                            {
+                                result.Success = false;
+                                result.ErrorMessage = obj.Properties["ErrorMessage"]?.Value?.ToString() ?? "Unknown error";
+                                _consoleForm?.WriteError($"  BitLocker error: {result.ErrorMessage}");
+                                return result;
+                            }
+
+                            result.Action = action;
+                            result.KeyBackedUpToAD = obj.Properties["KeyBackedUp"]?.Value?.ToString()?.Equals("True", StringComparison.OrdinalIgnoreCase) ?? false;
+
+                            result.Volumes.Add(new BitLockerVolumeInfo
+                            {
+                                MountPoint = obj.Properties["MountPoint"]?.Value?.ToString() ?? "",
+                                VolumeType = obj.Properties["VolumeType"]?.Value?.ToString() ?? "",
+                                EncryptionMethod = obj.Properties["EncryptionMethod"]?.Value?.ToString() ?? "",
+                                EncryptionPercentage = obj.Properties["EncryptionPercentage"]?.Value?.ToString() ?? "",
+                                ProtectionStatus = obj.Properties["ProtectionStatus"]?.Value?.ToString() ?? "",
+                                LockStatus = obj.Properties["LockStatus"]?.Value?.ToString() ?? "",
+                                KeyProtectors = obj.Properties["KeyProtectors"]?.Value?.ToString() ?? "",
+                                AutoUnlockEnabled = obj.Properties["AutoUnlockEnabled"]?.Value?.ToString() ?? "",
+                                CapacityGB = obj.Properties["CapacityGB"]?.Value?.ToString() ?? ""
+                            });
+                        }
+
+                        result.Success = true;
+
+                        // Log action-specific messages
+                        switch (result.Action)
+                        {
+                            case "AlreadyCompliant":
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker is already fully compliant.");
+                                break;
+                            case "ResumedProtection":
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker protection was suspended — resumed successfully.");
+                                break;
+                            case "EnabledBitLocker":
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker has been enabled. Encryption is in progress.");
+                                break;
+                            default:
+                                _consoleForm?.WriteSuccess($"  {computerName}: BitLocker action completed — {result.Action}");
+                                break;
+                        }
+
+                        if (result.KeyBackedUpToAD)
+                            _consoleForm?.WriteInfo($"  Recovery key backed up to Active Directory.");
+                        else
+                            _consoleForm?.WriteWarning($"  WARNING: Recovery key could NOT be backed up to AD. Verify AD DS BitLocker schema.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = $"BitLocker compliance check failed: {ex.Message}";
+                    _consoleForm?.WriteError(result.ErrorMessage);
+                }
+
+                return result;
+            });
+        }
+
+        #endregion
     }
 }
