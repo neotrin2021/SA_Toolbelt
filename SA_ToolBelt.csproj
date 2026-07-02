@@ -37,6 +37,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Archived reference snapshots - kept in the repo for history but NOT compiled.
+         They redeclare the same types as their live counterparts (VMwareManager.cs,
+         Windows_Tools.cs / BIOS_Tools.cs) and would otherwise cause duplicate-definition
+         build errors (CS0101/CS0111) because the SDK compiles all *.cs files by default. -->
+    <Compile Remove="VMwareManager_Original.cs" />
+    <Compile Remove="Windows_Tools_UAC_version.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="Microsoft.PowerShell.Commands.Diagnostics">
       <HintPath>bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\Microsoft.PowerShell.Commands.Diagnostics.dll</HintPath>
     </Reference>
