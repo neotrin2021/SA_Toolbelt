@@ -651,6 +651,17 @@ namespace SA_ToolBelt
                 _consoleForm?.WriteInfo($"Creating home directory for user: {ntUserId}");
                 _consoleForm?.WriteInfo($"SSH Connection - Host: {hostname}, User: {username}");
 
+                // Guard: refuse to run if the home directory base path isn't a valid
+                // absolute path. Without this, a blank base path would collapse the target
+                // to "/{ntUserId}" and attempt to create it at the filesystem root.
+                if (string.IsNullOrWhiteSpace(_homeDirectoryBasePath) || !_homeDirectoryBasePath.StartsWith("/"))
+                {
+                    _consoleForm?.WriteError("Home directory base path is not configured (or is not an absolute path).");
+                    _consoleForm?.WriteError("Set a valid 'Home Directory' location (e.g. /net/cce-data/home) in the Configuration tab before creating home directories.");
+                    _consoleForm?.WriteError("Home directory creation aborted to avoid writing to the filesystem root.");
+                    return false;
+                }
+
                 // Directory path where we'll create the user's home directory
                 string directoryPath = $"{_homeDirectoryBasePath}/{ntUserId}";
 
